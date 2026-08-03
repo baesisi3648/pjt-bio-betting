@@ -74,8 +74,8 @@ check('H8', '같은 모둠 두 번째 기기 접속 허용 (점유 없음)', j2.
 // 라운드 진행
 const st0 = JSON.parse(JSON.parse(tabs['게임'][1][3]) && tabs['게임'][1][3]);
 const lastRound = st0.lastRound;
-let phaseLog = [];
-G.gwStartRound(CODE);
+let phaseLog = [], roundsSeen = [];
+G.gwAdvanceRound(CODE);
 
 for (let round = 1; round <= lastRound; round++) {
   // 문제 풀이 — 모둠마다 다른 난이도
@@ -94,17 +94,22 @@ for (let round = 1; round <= lastRound; round++) {
     G.gwPlaceBet(CODE, t, { [animal]: 2 });
   }
   forceExpire(); G.gwGetState(CODE, 'teacher');            // betting → waiting
-  if (round < lastRound) G.gwNextRound(CODE);
+  roundsSeen.push(loadRaw().round);
+  if (round < lastRound) G.gwAdvanceRound(CODE);
 }
 
 check('SIM4', '단계 순서 quiz→discuss→betting', phaseLog[0] === 'discuss' && phaseLog[1] === 'betting',
   `1라운드 단계 전이: ${phaseLog.slice(0, 2).join(' → ')}`);
 
+check('BUG1', '라운드가 실제로 앞으로 나간다 (1라운드 반복 방지)',
+  roundsSeen.join(',') === Array.from({length:lastRound},(_,i)=>i+1).join(','),
+  '진행한 라운드: ' + roundsSeen.join(' → ') + ' (기대 1..' + lastRound + ')');
+
 const st = loadRaw();
 check('D3', '토론 단계에 베팅이 잠긴다', (() => {
   // 새 판으로 별도 확인
   const c2 = G.gwCreateGame({ className: 'X', unit: '유전', teamCount: 2, teamNames: [] }).data.code;
-  G.gwStartRound(c2); forceExpire(c2); G.gwGetState(c2, 'teacher');   // → discuss
+  G.gwAdvanceRound(c2); forceExpire(c2); G.gwGetState(c2, 'teacher');   // → discuss
   return G.gwPlaceBet(c2, 1, { A: 1 }).error === 'BET_CLOSED';
 })(), '토론 중 베팅 시도 → BET_CLOSED');
 

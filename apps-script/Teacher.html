@@ -228,7 +228,7 @@ function render(d){
   document.getElementById('odds').innerHTML = codes.map(function(c){
     var bumped = prevOdds[c] !== undefined && prevOdds[c] !== d.odds[c];
     return '<tr class="'+(bumped?'bump':'')+'"><td>'+(d.emojis[c]||'')+' <b>'+esc(d.animals[c])+'</b></td>'+
-           '<td class="num">'+(d.pool[c]-15)+'코인</td><td class="odds num">'+d.odds[c].toFixed(2)+'배</td></tr>';
+           '<td class="num">'+(d.pool[c]-d.seedCoins)+'코인</td><td class="odds num">'+d.odds[c].toFixed(2)+'배</td></tr>';
   }).join('');
   prevOdds = {}; codes.forEach(function(c){ prevOdds[c]=d.odds[c]; });
 
@@ -240,7 +240,7 @@ function render(d){
 
   var waiting = d.phase==='waiting';
   document.getElementById('btn-round').classList.toggle('hidden', !waiting);
-  document.getElementById('btn-round').textContent = d.round===1 && !d.secondsLeft ? '🎲 1라운드 시작' : '🎲 다음 라운드';
+  document.getElementById('btn-round').textContent = d.roundStarted ? '🎲 ' + (d.round+1) + '라운드 시작' : '🎲 ' + d.round + '라운드 시작';
   document.getElementById('btn-pause').textContent = d.phase==='paused' ? '▶ 이어하기' : '⏸ 일시정지';
   document.getElementById('btn-pause').classList.toggle('hidden', waiting);
 }
@@ -250,10 +250,7 @@ function tick(d){
   t.textContent = (PHASE_KO[d.phase]||'') + (d.secondsLeft!=null ? '  ⏱ '+d.secondsLeft : '');
   t.className = 'timer num' + (d.secondsLeft!=null && d.secondsLeft<=10 ? ' urgent':'');
 }
-function nextRound(){
-  var fn = (LAST && LAST.round===1 && !LAST.secondsLeft) ? 'gwStartRound' : 'gwNextRound';
-  call(fn, [CODE], function(){ forceRefresh(); });
-}
+function nextRound(){ call('gwAdvanceRound', [CODE], function(){ forceRefresh(); }); }
 function togglePause(){ call('gwTogglePause', [CODE], function(){ forceRefresh(); }); }
 function askReveal(){
   confirmBox('정답 순위를 화면에 띄웁니다.\nTV에 보여도 괜찮나요?', function(){

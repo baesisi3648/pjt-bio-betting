@@ -64,7 +64,7 @@ function gwCreateGame(config) {
 
     var state = {
       version: 1, code: code, className: config.className, unit: config.unit,
-      round: 1, lastRound: race.lastRound, phase: PHASES.WAITING,
+      round: 1, lastRound: race.lastRound, phase: PHASES.WAITING, roundStarted: false,
       phaseEndsAt: null, pausedAt: null, stateVersion: 1, eventSeq: 0,
       truth: race.truth, moves: race.moves, lastRoundHidden: true,
       animals: v.animals.names, emojis: v.animals.emojis,
@@ -234,38 +234,29 @@ function gwPlaceBet(code, teamNo, bets) {
 
 // ── 6. 라운드 진행 · 일시정지 · 정산 ───────────────────────
 
+/**
+ * 라운드 진행 버튼 하나가 부르는 유일한 함수.
+ *
+ * ⚠️ 화면이 "1라운드인가?"로 판단하면 안 된다. 베팅이 끝나도 round는 그대로 1이라,
+ *    화면이 판단하면 1라운드가 무한 반복된다. 어디까지 했는지는 서버만 안다.
+ */
 function gwAdvanceRound(code) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
-    if (state.phase !== PHASES.WAITING) return ok(teacherView(state));
+    if (state.phase !== PHASES.WAITING) return ok(teacherView(state));   // 진행 중이면 무시
 
-    if (state.round > 1 || state.phaseEndsAt) state.round = Math.min(state.round + 1, state.lastRound);
-    setPhase(state, PHASES.QUIZ, state.settings.quizSeconds);
-    appendEvent(state, 'round_start', null, { phase: state.phase, phaseEndsAt: state.phaseEndsAt });
-    saveSnapshot(state);
-    return ok(teacherView(state));
-  });
-}
-
-function gwStartRound(code) {
-  return withLock(function () {
-    var state = loadState(code);
-    if (!state) return err('GAME_NOT_FOUND');
-    if (state.phase !== PHASES.WAITING) return ok(teacherView(state));
-    setPhase(state, PHASES.QUIZ, state.settings.quizSeconds);
-    appendEvent(state, 'round_start', null, { phase: state.phase, phaseEndsAt: state.phaseEndsAt });
-    saveSnapshot(state);
-    return ok(teacherView(state));
-  });
-}
-
-function gwNextRound(code) {
-  return withLock(function () {
-    var state = loadState(code);
-    if (!state) return err('GAME_NOT_FOUND');
-    if (state.round >= state.lastRound) { state.phase = PHASES.DONE; saveSnapshot(state); return ok(teacherView(state)); }
-    state.round++;
+    if (state.roundStarted) {
+      // 이번 라운드는 이미 끝났다 → 다음 라운드로
+      if (state.round >= state.lastRound) {
+        state.phase = PHASES.DONE;
+        state.stateVersion++;
+        saveSnapshot(state);
+        return ok(teacherView(state));
+      }
+      state.round++;
+    }
+    state.roundStarted = true;
     setPhase(state, PHASES.QUIZ, state.settings.quizSeconds);
     appendEvent(state, 'round_start', null, { phase: state.phase, phaseEndsAt: state.phaseEndsAt });
     saveSnapshot(state);
@@ -329,7 +320,7 @@ function teacherView(state) {
     phase: state.pausedAt ? PHASES.PAUSED : state.phase,
     secondsLeft: secondsLeft(state), stateVersion: state.stateVersion,
     positions: positionsAtRound(state.moves, state.round),
-    odds: computeOdds(state.pool), pool: state.pool,
+    odds: computeOdds(state.pool), pool: state.pool, seedCoins: state.settings.seedCoins,
     animals: state.animals, emojis: state.emojis,
     truth: state.truth,
     teams: state.teams.map(function (t) {
