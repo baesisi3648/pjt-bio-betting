@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>10. 결정 요약 — 뭐가 왜 이렇게 정해졌나</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">10. 결정 요약 — 뭐가 왜 이렇게 정해졌나</div><div class="sub">10-desire-map.md</div><a class="lvl1" href="#10-결정-요약-뭐가-왜-이렇게-정해졌나">10. 결정 요약 — 뭐가 왜 이렇게 정해졌나</a><a class="lvl2" href="#1-처음-말한-것-다시-정리한-것">1. 처음 말한 것 → 다시 정리한 것</a><a class="lvl2" href="#2-한-줄">2. 한 줄</a><a class="lvl2" href="#3-필수-기능이-이-한-줄과-어떻게-연결되나">3. 필수 기능이 이 한 줄과 어떻게 연결되나</a><a class="lvl2" href="#4-뺀-것과-그-이유">4. 뺀 것과 그 이유</a><a class="lvl2" href="#5-원본-pdf에서-뒤집은-것">5. 원본 PDF에서 뒤집은 것</a><a class="lvl2" href="#6-갈림길에서-고른-것">6. 갈림길에서 고른 것</a><a class="lvl2" href="#6-2-리뷰council-후-바뀐-것">6-2. 리뷰(council) 후 바뀐 것</a><a class="lvl2" href="#7-아직-안-풀린-것">7. 아직 안 풀린 것</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="10-결정-요약-뭐가-왜-이렇게-정해졌나">10. 결정 요약 — 뭐가 왜 이렇게 정해졌나</h1>
+<p>이 문서는 <strong>왜 이런 물건이 됐는지</strong>를 한 장으로 남긴 것이다. 나중에 &quot;이거 왜 이렇게 했더라&quot; 싶을 때 여기부터 본다.</p>
+<hr>
+<h2 id="1-처음-말한-것-다시-정리한-것">1. 처음 말한 것 → 다시 정리한 것</h2>
+<div class="table-wrap"><table><thead><tr><th></th><th>내용</th></tr></thead><tbody><tr><td><strong>처음 요청</strong></td><td>&quot;더 지니어스 '사기경마' 같은 베팅 게임을 앱스 스크립트로 만들고 싶다&quot;</td></tr><tr><td><strong>다시 정리</strong></td><td>&quot;단원 마무리 복습을, 모둠이 단서를 모아 서로 이야기하는 시간으로 바꾸기&quot;</td></tr><tr><td><strong>왜 바뀌었나</strong></td><td>성공의 모습을 물었더니 &quot;조용하던 애들이 말한다&quot;였다. 그러면 이 도구의 목적은 문제를 많이 풀리는 게 아니라 <strong>모둠 대화를 만드는 것</strong>이다. 문제 풀이는 힌트를 얻는 수단이고, 진짜 수업은 힌트를 받은 뒤 2~3분에 일어난다</td></tr></tbody></table></div>
+<hr>
+<h2 id="2-한-줄">2. 한 줄</h2>
+<blockquote><strong>단원 진도를 다 뺀 마무리 차시에</strong>, 모둠이 문제를 골라 풀고 얻은 단서로 순위를 추리하게 만들고 싶다. <strong>그래서</strong> 평소 손 안 드는 학생도 모둠 안에서 말하게 되고, 문제만 바꿔 끼우면 학기 내내 다시 쓸 수 있다.</blockquote>
+<hr>
+<h2 id="3-필수-기능이-이-한-줄과-어떻게-연결되나">3. 필수 기능이 이 한 줄과 어떻게 연결되나</h2>
+<div class="table-wrap"><table><thead><tr><th>필수 기능</th><th>한 줄의 어느 부분을 떠받치나</th></tr></thead><tbody><tr><td>힌트 보관함 (M7)</td><td><strong>&quot;단서를 모아 서로 이야기&quot;</strong> — 이게 없으면 기억력 싸움이 되고 대화가 안 생김</td></tr><tr><td>난이도 선택 (M6)</td><td><strong>&quot;모둠이 골라 푼다&quot;</strong> — 수준 차이가 큰 반에서 모두가 참여할 유일한 방법</td></tr><tr><td>배당률 전광판 (M10)</td><td><strong>&quot;남보다 먼저 알아낸다&quot;</strong> — 남들이 어디 거는지 보이는 유일한 창. 눈치싸움 전체</td></tr><tr><td>순위 확정 + 이동 역산 (M2)</td><td><strong>&quot;추리한다&quot;</strong> — 힌트가 거짓이면 추리 자체가 성립 안 함</td></tr><tr><td>힌트 검산 (M3)</td><td>같음. 답이 안 좁혀지면 추리가 아니라 찍기가 됨</td></tr><tr><td>시트 문제 연동 (M4) + 동물·힌트 수정 (M14)</td><td><strong>&quot;학기 내내 다시 쓴다&quot;</strong> — 재사용의 유일한 수단</td></tr><tr><td>모둠 암호 (M5)</td><td><strong>&quot;우리 단서&quot;</strong> — 남의 힌트가 보이면 모둠 대화가 무의미해짐</td></tr><tr><td>판 코드 이어하기 (M1)</td><td><strong>&quot;마무리 차시&quot;</strong> — 50분에 안 끝나므로 2차시 분할이 전제</td></tr><tr><td>타이머 자동 마감 (M12)</td><td>같음. 수업이 밀리면 다음에 안 쓰게 됨</td></tr></tbody></table></div>
+<hr>
+<h2 id="4-뺀-것과-그-이유">4. 뺀 것과 그 이유</h2>
+<div class="table-wrap"><table><thead><tr><th>뺀 것</th><th>왜</th></tr></thead><tbody><tr><td>한글/엑셀 자동 변환</td><td>파일 형식이 제각각이라 만들 품이 큰데, 처음 한 번 손으로 옮기면 끝난다</td></tr><tr><td>수업 후 결과 리포트</td><td>게임과 별개 기능. 있으면 좋지만 없어도 수업이 굴러간다. 대신 <code>기록</code> 탭에 재료는 쌓아둔다</td></tr><tr><td>다른 교사 공유·계정 관리</td><td>&quot;나 혼자, 내 반들&quot;로 확정 → 통째로 불필요. 이 하나로 만들 양이 절반 가까이 줄었다</td></tr><tr><td>학생 개인 기록·로그인</td><td>모둠 단위 게임. 개인정보를 안 받는 게 학교에서 훨씬 안전</td></tr><tr><td>즉시 반응(실시간 푸시)</td><td>필요한 순간이 베팅 60초뿐이고, 1~2초와 0.1초는 교실에서 구분이 안 된다. 대신 관리할 곳이 두 배가 된다</td></tr><tr><td>애니메이션·효과음·모둠 메모장</td><td>없어도 게임이 돈다. 시간 남으면 추가</td></tr></tbody></table></div>
+<hr>
+<h2 id="5-원본-pdf에서-뒤집은-것">5. 원본 PDF에서 뒤집은 것</h2>
+<div class="table-wrap"><table><thead><tr><th>PDF</th><th>바꾼 것</th><th>왜</th></tr></thead><tbody><tr><td>말 이동을 랜덤으로</td><td><strong>순위를 먼저 정하고 이동을 역산</strong></td><td>PDF 코드대로면 &quot;A가 1등&quot;이라 해놓고 A가 5등으로 들어온다. 게임이 무너진다</td></tr><tr><td>3마리 골인 시 종료 (몇 라운드일지 모름)</td><td><strong>마지막 라운드를 5 또는 6으로 몰래 고정</strong></td><td>2차시 수업 시간에 맞추려면 예측 가능해야 한다. 긴장감은 5냐 6이냐로 남긴다</td></tr><tr><td>팀 순차 진행</td><td><strong>모든 모둠 동시 진행</strong></td><td>6모둠 순차면 라운드당 10분, 50분에 3라운드밖에 못 돈다</td></tr><tr><td>라운드당 3코인 (코드엔 미구현)</td><td><strong>서버에서 실제로 막음</strong></td><td>PDF 코드는 무한 클릭 가능</td></tr><tr><td>정산 계산 없음</td><td><strong>1등 100%/2등 70%/3등 50% 실제 계산</strong></td><td>PDF 코드엔 정산이 아예 없다</td></tr><tr><td>힌트 랜덤 추출</td><td><strong>참인 힌트만 + 중복 없음 + 검산</strong></td><td>거짓 힌트나 중복이 나오면 추리가 안 된다</td></tr></tbody></table></div>
+<hr>
+<h2 id="6-갈림길에서-고른-것">6. 갈림길에서 고른 것</h2>
+<div class="table-wrap"><table><thead><tr><th>갈림길</th><th>고른 것</th><th>포기한 것</th></tr></thead><tbody><tr><td>50분에 못 끝남</td><td>2차시로 나눔</td><td>한 시간 완결. 대신 저장·복구를 만들어야 함</td></tr><tr><td>학생 참여 방식</td><td>모둠 폰</td><td>선생님이 다 조작하는 단순함. 대신 힌트 비밀이 자연스럽게 지켜짐</td></tr><tr><td>앱스 스크립트 vs 외부 서비스</td><td>앱스 스크립트 + 캐시</td><td>즉시 반응. 대신 관리할 곳이 하나로 유지됨</td></tr><tr><td>라운드 넘기기</td><td>타이머 자동</td><td>선생님 재량. 대신 수업이 안 밀림</td></tr><tr><td>힌트 보안</td><td>모둠별 4자리 암호</td><td>종이 나눠주는 수고. 대신 확실함</td></tr><tr><td>정산 규칙</td><td>PDF 그대로 (1·2·3등만)</td><td>하위권 구제. 첫 수업 관찰 후 재검토</td></tr></tbody></table></div>
+<hr>
+<h2 id="6-2-리뷰council-후-바뀐-것">6-2. 리뷰(council) 후 바뀐 것</h2>
+<div class="table-wrap"><table><thead><tr><th>지적</th><th>결정</th><th>왜</th></tr></thead><tbody><tr><td>정산이 &quot;먼저 알아내면 유리&quot;를 지운다 (C1)</td><td><strong>PDF 그대로 최종 배당률 유지</strong></td><td>규칙이 단순해야 학생에게 설명이 된다. 대신 <code>bets</code>에 라운드 번호를 남겨 나중에 바꿀 여지를 둠</td></tr><tr><td>접속 점유 판정이 문서 안에서 모순 (C2)</td><td><strong>점유를 아예 없앰</strong></td><td>새로고침한 폰이 자기 자신 때문에 막히면 그 모둠은 게임에서 이탈한다. 방어선은 암호 하나로 충분</td></tr><tr><td>캐시 소실 시 라운드 베팅 증발 (C3)</td><td><strong>답·베팅 즉시 기록</strong> (M16)</td><td>&quot;우리 코인 어디 갔어요&quot;가 30명 앞에서 터지면 안 된다</td></tr><tr><td>폰 1대에 4~5명 (C4)</td><td><strong>메모장은 <code>Should</code> 유지</strong>, 힌트 글자만 20px로</td><td>만들 양을 늘리는 대신 A4 한 장 나눠주는 수업 운영으로 대신한다</td></tr><tr><td>일시정지가 없다 (C5)</td><td><strong>버튼 추가</strong> (M15)</td><td>첫 수업에 &quot;잠깐 설명 좀&quot; 순간이 반드시 온다</td></tr><tr><td>시드 5가 배당을 극단화 (C6)</td><td><strong>15로 올림</strong></td><td>시드 5면 최대 배당 29.6배 — 3코인 찍어 맞힌 모둠이 6라운드 추론한 모둠을 뒤집는다. 추론 게임이 복권이 된다</td></tr><tr><td>모둠마다 같은 문제 (C9)</td><td><strong>같은 문제 유지</strong></td><td>다르게 주려면 단원당 문항이 18개→54개. 준비 부담이 이 도구를 안 쓰게 만드는 게 더 큰 위험</td></tr><tr><td>암호 3회 잠금이 장난 도구 (C10)</td><td><strong>잠금 제거, 1초 지연만</strong></td><td>모둠 단위로 잠그면 남의 모둠을 계속 잠글 수 있다</td></tr></tbody></table></div>
+<p>전문: <code>council-report.md</code></p>
+<hr>
+<h2 id="7-아직-안-풀린-것">7. 아직 안 풀린 것</h2>
+<p>첫 수업에서 확인해야 한다.</p>
+<ol><li><strong>힌트 밸런스</strong> — 어려움이 얼마나 강해야 하나. 너무 강하면 한 방에 끝나고, 약하면 추리가 안 된다</li><li><strong>하위권 모둠이 끝까지 하나</strong> — PDF 정산 규칙(1·2·3등만 인정)이 너무 가혹할 수 있다</li><li><strong>접속 시간</strong> — 첫 수업은 접속에만 10분 넘게 걸릴 수 있다. 그러면 1차시 라운드를 2개로 줄인다</li><li><strong>모둠 안에서 폰을 한 명이 독점하지 않나</strong> — 독점하면 나머지가 구경만 하게 되어 목적이 무너진다</li><li><strong>같은 난이도를 고른 모둠에 같은 문제를 주는 게 맞나</strong> — 옆 모둠 답을 베낄 수 있다 (같은 문제로 가기로 결정. 심하면 전환)</li><li><strong>초반에 코인을 안 쓰고 버티지 않나</strong> — 최종 배당률만 쓰기로 한 결과. 다들 마지막에 몰빵하면 게임이 밋밋해진다 (<code>01-prd §6-2</code>에 조정 후보 세 가지)</li><li><strong>시드 15가 적당한가</strong> — 배당이 여전히 튀면 20, 밋밋하면 10</li></ol>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 01-prd ~ 09-personas 전부</li><li>영향 주는 하위 문서: 06-tasks</li><li>아직 안 정한 것: §7의 다섯 가지</li><li>확인 기준: 01-prd §5</li><li>위험: §7의 1번과 4번이 어긋나면 &quot;조용하던 애들이 말한다&quot;가 달성 안 됨 — 기획의 목적 자체가 흔들린다</li></ul>
+<div class="meta-foot">원본: <code>10-desire-map.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

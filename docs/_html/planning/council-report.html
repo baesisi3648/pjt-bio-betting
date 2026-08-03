@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Council 리뷰 리포트</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">Council 리뷰 리포트</div><div class="sub">council-report.md</div><a class="lvl1" href="#council-리뷰-리포트">Council 리뷰 리포트</a><a class="lvl2" href="#점수">점수</a><a class="lvl2" href="#치명적-이대로-만들면-게임이-성립-안-함">🚨 치명적 — 이대로 만들면 게임이 성립 안 함</a><a class="lvl3" href="#c1-먼저-알아내면-유리하다가-정산-규칙에-의해-지워진다">C1. &quot;먼저 알아내면 유리하다&quot;가 정산 규칙에 의해 지워진다</a><a class="lvl3" href="#c2-접속-점유-판정이-문서-안에서-서로-모순된다">C2. 접속 점유 판정이 문서 안에서 서로 모순된다</a><a class="lvl2" href="#중대-수업-중에-사고가-날-지점">⚠️ 중대 — 수업 중에 사고가 날 지점</a><a class="lvl3" href="#c3-캐시가-날아가면-그-라운드-베팅이-통째로-사라진다">C3. 캐시가 날아가면 그 라운드 베팅이 통째로 사라진다</a><a class="lvl3" href="#c4-폰-1대에-45명-목적과-정면-충돌">C4. 폰 1대에 4~5명 — 목적과 정면 충돌</a><a class="lvl3" href="#c5-선생님이-수업을-멈출-방법이-없다">C5. 선생님이 수업을 멈출 방법이 없다</a><a class="lvl3" href="#c6-시드-코인-5는-배당률을-극단으로-튀게-한다">C6. 시드 코인 5는 배당률을 극단으로 튀게 한다</a><a class="lvl2" href="#개선-제안-지금-안-해도-되지만-하면-좋음">💡 개선 제안 — 지금 안 해도 되지만 하면 좋음</a><a class="lvl3" href="#c7-접속-3단계를-모둠별-qr로-1단계로-줄이기">C7. 접속 3단계를 모둠별 QR로 1단계로 줄이기</a><a class="lvl3" href="#c8-힌트를-부분만-받으면-아무도-답을-못-좁힌다">C8. 힌트를 부분만 받으면 아무도 답을 못 좁힌다</a><a class="lvl3" href="#c9-같은-난이도를-고른-모둠이-같은-문제를-받는-문제">C9. 같은 난이도를 고른 모둠이 같은 문제를 받는 문제</a><a class="lvl3" href="#c10-암호-3회-실패-잠금이-장난의-도구가-된다">C10. 암호 3회 실패 잠금이 장난의 도구가 된다</a><a class="lvl2" href="#관점별-상세">관점별 상세</a><a class="lvl3" href="#아키텍처-710">아키텍처 (7/10)</a><a class="lvl3" href="#사용자-경험-610">사용자 경험 (6/10)</a><a class="lvl3" href="#보안안전-710">보안·안전 (7/10)</a><a class="lvl2" href="#세-관점에서-모두-걸린-것">세 관점에서 모두 걸린 것</a><a class="lvl2" href="#사용자-결정이-필요한-쟁점">사용자 결정이 필요한 쟁점</a><a class="lvl2" href="#리뷰가-못-본-것">리뷰가 못 본 것</a></nav>
+<main><h1 id="council-리뷰-리포트">Council 리뷰 리포트</h1>
+<ul><li>대상: <code>docs/planning/01-prd.md</code> ~ <code>10-desire-map.md</code> (10개)</li><li>실행 모드: <strong>단일 세션</strong> (<code>$CLABS_SOCKET</code> 없음). 별도 리뷰어 에이전트를 띄우지 않고 한 세션에서 세 관점을 순차 적용</li><li>날짜: 2026-08-01</li></ul>
+<blockquote>⚠️ 한계 명시: 진짜로 독립된 리뷰어 3명이 아니라 <strong>같은 모델이 관점을 바꿔가며</strong> 본 것이다. 서로 다른 AI가 부딪히는 교차검증은 일어나지 않았다. &quot;합의&quot;라는 표현 대신 &quot;세 관점에서 모두 걸림&quot;으로 읽어야 한다.</blockquote>
+<hr>
+<h2 id="점수">점수</h2>
+<div class="table-wrap"><table><thead><tr><th>관점</th><th>점수</th><th>한 줄</th></tr></thead><tbody><tr><td>아키텍처</td><td><strong>7 / 10</strong></td><td>스택 선택과 이동 역산은 탄탄. 하지만 <strong>정산 규칙이 게임의 핵심 전제를 무너뜨린다</strong></td></tr><tr><td>사용자 경험</td><td><strong>6 / 10</strong></td><td>흐름은 잘 짜였으나 <strong>폰 1대에 4~5명</strong>이라는 물리적 제약을 정면으로 다루지 않았다</td></tr><tr><td>보안·안전</td><td><strong>7 / 10</strong></td><td>개인정보 처리는 모범적. 하지만 <strong>접속 점유 판정이 문서 안에서 모순</strong>된다</td></tr></tbody></table></div>
+<hr>
+<h2 id="치명적-이대로-만들면-게임이-성립-안-함">🚨 치명적 — 이대로 만들면 게임이 성립 안 함</h2>
+<h3 id="c1-먼저-알아내면-유리하다가-정산-규칙에-의해-지워진다">C1. &quot;먼저 알아내면 유리하다&quot;가 정산 규칙에 의해 지워진다</h3>
+<p><strong>어디</strong>: <code>02-trd.md §6-5</code>, <code>01-prd.md §6-(5)</code>, <code>04-database.md §5</code></p>
+<p>기획 전체가 이 전제 위에 서 있다 — <em>&quot;1·2·3등을 빨리 알아내면 남보다 먼저 그 동물에 많이 걸어서 코인을 더 얻는다&quot;</em> (PDF 원문). 그런데 정산식은 이렇다.</p>
+<pre class="code"><code>획득 = 건 코인 × 그 동물의 최종 배당률 × 배율</code></pre>
+<p><strong>최종</strong> 배당률 하나만 쓴다. 그러면 1라운드에 아무도 안 볼 때 치타에 3코인 건 모둠과, 6라운드에 다 알고 나서 치타에 3코인 건 모둠이 <strong>정확히 같은 돈을 받는다.</strong> 오히려 늦게 건 쪽이 정보가 확실하니 유리하다.</p>
+<p>즉 <strong>일찍 추론할 이유가 없다.</strong> 마지막 라운드까지 코인을 쥐고 있다가 골인 순서 보고 몰빵하는 게 최적 전략이 된다. 힌트도, 문제 풀이도, 눈치싸움도 전부 의미가 없어진다.</p>
+<p>실제 경마의 파리뮤추얼이 이 방식인 건 맞다. 하지만 경마는 <em>배당률을 보고 거는 게임</em>이고, 이건 <em>정보를 먼저 얻는 게임</em>이다. 규칙을 그대로 가져오면 목적과 어긋난다.</p>
+<p><strong>고치는 법</strong>: 베팅을 확정하는 <strong>그 순간의 배당률을 고정</strong>한다. 1라운드에 아무도 안 건 동물에 걸면 20배로 고정되고, 나중에 다들 몰려서 2배로 떨어져도 그 모둠은 20배를 받는다. 이러면 &quot;먼저 알아낸 보상&quot;이 숫자로 나타난다.</p>
+<blockquote><code>04-database.md</code>의 <code>bets</code> 구조를 <code>{&quot;A&quot;: 2}</code> 에서 <code>{&quot;A&quot;: {&quot;coins&quot;:2, &quot;odds&quot;:20.4}}</code> 로 바꿔야 한다.</blockquote>
+<h3 id="c2-접속-점유-판정이-문서-안에서-서로-모순된다">C2. 접속 점유 판정이 문서 안에서 서로 모순된다</h3>
+<p><strong>어디</strong>: <code>06-screens.md S4</code> vs <code>08-test-plan.md B1</code></p>
+<div class="table-wrap"><table><thead><tr><th>문서</th><th>뭐라고 썼나</th></tr></thead><tbody><tr><td>06-screens S4</td><td>&quot;다른 폰이 잡은 모둠은 회색 → <code>TEAM_TAKEN</code>&quot;</td></tr><tr><td>08-test-plan B1</td><td>&quot;폰 새로고침 → 재입력하면 그대로 복구&quot;</td></tr></tbody></table></div>
+<p>새로고침하면 그 모둠은 이미 &quot;잡혀 있는&quot; 상태다. 그러면 <strong>자기 자신 때문에 재접속이 막힌다.</strong> 수업 중에 이게 터지면 그 모둠은 게임에서 이탈한다.</p>
+<p><strong>고치는 법 (둘 중 하나)</strong></p>
+<ul><li>(가) 점유를 아예 없앤다 — 암호만 맞으면 몇 대든 들어옴. 모둠이 폰 2대를 쓰고 싶을 수도 있고, 어차피 암호가 방어선이다. <strong>이쪽을 권한다.</strong></li><li>(나) 마지막 요청으로부터 30초 지나면 점유 해제. 구현이 늘고, 30초 안에 새로고침한 모둠은 여전히 막힌다.</li></ul>
+<hr>
+<h2 id="중대-수업-중에-사고가-날-지점">⚠️ 중대 — 수업 중에 사고가 날 지점</h2>
+<h3 id="c3-캐시가-날아가면-그-라운드-베팅이-통째로-사라진다">C3. 캐시가 날아가면 그 라운드 베팅이 통째로 사라진다</h3>
+<p><strong>어디</strong>: <code>02-trd.md §5</code></p>
+<p>시트 쓰기를 &quot;라운드 끝날 때 1회&quot;로 몰아놨다. 성능상 옳은 결정이지만, 라운드 중간에 구글이 캐시를 비우면 <strong>그 라운드에 낸 답과 베팅이 전부 증발</strong>한다. 문서에는 &quot;최대 1라운드 손실&quot;이라고 한 줄 적혀 있는데, 교실에서 이건 &quot;우리 코인 어디 갔어요&quot;가 30명 앞에서 터지는 사고다.</p>
+<p><strong>고치는 법</strong>: 되돌릴 수 없는 사건(답 제출, 베팅 확정)만 <code>기록</code> 탭에 <strong>즉시 한 줄 추가</strong>한다. 시트에 한 줄 붙이는 건 상태 전체를 쓰는 것보다 훨씬 빠르다(0.2~0.4초). 캐시가 날아가면 마지막 스냅샷 + 그 뒤 사건들을 다시 재생해서 복구한다.</p>
+<h3 id="c4-폰-1대에-45명-목적과-정면-충돌">C4. 폰 1대에 4~5명 — 목적과 정면 충돌</h3>
+<p><strong>어디</strong>: <code>06-screens.md S5</code>, <code>09-personas.md</code></p>
+<p>이 도구의 목적은 <strong>&quot;조용하던 애들이 말한다&quot;</strong> 다. 그런데 화면은 6인치 하나고, 그걸 든 한 명이 조작한다. 힌트를 읽는 것도, 문제를 읽는 것도 그 한 명이다. 나머지 4명은 목을 빼고 넘겨다본다. <strong>카훗보다 나빠질 수 있다</strong> — 카훗은 최소한 문제가 TV에 뜬다.</p>
+<p>이건 기술로 못 푼다. 모둠마다 다른 난이도를 고르니 문제를 TV에 띄울 수도 없다.</p>
+<p><strong>완화 (세 개 다 해야 한다)</strong></p>
+<ol><li>힌트 카드 글자를 훨씬 크게 (17px → 20px, 줄간격 1.8). 폰을 가운데 놓고 넷이 같이 읽을 수 있게</li><li><code>Should</code>로 미뤄둔 <strong>모둠 메모장을 <code>Must</code>로 올린다.</strong> 힌트를 옮겨 적으며 이야기하는 게 이 수업의 실체다</li><li>운영으로: 모둠마다 A4 한 장을 주고 힌트를 옮겨 적게 한다 (앱이 아니라 수업 설계)</li></ol>
+<h3 id="c5-선생님이-수업을-멈출-방법이-없다">C5. 선생님이 수업을 멈출 방법이 없다</h3>
+<p><strong>어디</strong>: <code>03-user-flow.md §3</code>, <code>02-trd.md §7</code></p>
+<p>타이머 자동 마감만 있고 <strong>일시정지가 없다.</strong> 첫 수업에서 &quot;잠깐, 이거 설명 좀 할게&quot; 하는 순간이 반드시 온다. 학생 질문, 갑작스러운 방송, 기기 문제 — 전부 타이머가 돌아가는 중에 일어난다.</p>
+<p><strong>고치는 법</strong>: 교사 화면에 <code>⏸ 일시정지</code> 하나. 누르면 <code>phaseEndsAt</code>을 미뤄놓고, 다시 누르면 남은 시간부터 이어간다. 코드 20줄이면 된다. <strong>자동 마감 방침은 그대로 두되 비상구는 남긴다.</strong></p>
+<h3 id="c6-시드-코인-5는-배당률을-극단으로-튀게-한다">C6. 시드 코인 5는 배당률을 극단으로 튀게 한다</h3>
+<p><strong>어디</strong>: <code>04-database.md §5</code>, <code>02-trd.md §6-3</code></p>
+<p>6모둠 × 6라운드 × 3코인 = 최대 108코인이 풀에 들어온다. 시드는 동물당 5, 총 40.</p>
+<div class="table-wrap"><table><thead><tr><th>상황</th><th>배당률</th></tr></thead><tbody><tr><td>아무도 안 건 동물</td><td>(108+40) / 5 = <strong>29.6배</strong></td></tr><tr><td>30코인 몰린 동물</td><td>148 / 35 = <strong>4.2배</strong></td></tr></tbody></table></div>
+<p>29.6배짜리에 3코인 찍어서 우연히 맞으면 88코인이다. 6라운드 내내 성실하게 추론한 모둠을 한 방에 뒤집는다. <strong>추론 게임이 아니라 복권이 된다.</strong></p>
+<p><strong>고치는 법</strong>: 시드를 동물당 <strong>15~20</strong>으로 올린다. 그러면 최대 배당이 8~10배로 눌리고, 정보 우위가 운보다 커진다. <code>설정</code> 탭 값이니 첫 수업 후 조정 가능하지만, 초기값을 5로 두면 첫 수업이 망한다.</p>
+<hr>
+<h2 id="개선-제안-지금-안-해도-되지만-하면-좋음">💡 개선 제안 — 지금 안 해도 되지만 하면 좋음</h2>
+<h3 id="c7-접속-3단계를-모둠별-qr로-1단계로-줄이기">C7. 접속 3단계를 모둠별 QR로 1단계로 줄이기</h3>
+<p>첫 수업 접속에 10분이 걸릴 위험을 이미 문서에 적어뒀는데, 완화책이 &quot;미리 확인&quot; 뿐이다. <strong>모둠별 QR을 인쇄</strong>하면(판 코드 + 모둠 번호까지 담고, 암호만 손입력) 3단계가 1.5단계가 된다. <code>S1</code> 인쇄 화면에 QR을 같이 넣으면 되므로 추가 부담이 작다.</p>
+<h3 id="c8-힌트를-부분만-받으면-아무도-답을-못-좁힌다">C8. 힌트를 부분만 받으면 아무도 답을 못 좁힌다</h3>
+<p><code>08-test-plan.md G3</code>는 <strong>전체 힌트를 합쳤을 때</strong> 1·2·3등이 유일하게 결정되는지 검사한다. 그런데 실제로 한 모둠은 6개(라운드당 1개)만 받는다. 6개 부분 정보로 8마리 중 상위 3을 좁히는 게 가능한지는 <strong>검사하지 않는다.</strong></p>
+<p><strong>고치는 법</strong>: G3를 두 단계로 나눈다.</p>
+<ul><li>G3-a: 전체 힌트로 유일 결정 (지금 있음)</li><li>G3-b: <strong>어려움만 6번 고른 모둠</strong>이 받을 힌트로 1·2·3등을 좁힐 수 있는가 → 이게 안 되면 어려움을 고를 이유가 없다</li></ul>
+<h3 id="c9-같은-난이도를-고른-모둠이-같은-문제를-받는-문제">C9. 같은 난이도를 고른 모둠이 같은 문제를 받는 문제</h3>
+<p><code>04-database.md</code>에 이미 &quot;아직 안 정한 것&quot;으로 적혀 있지만, 리뷰 관점에서는 <strong>거의 확실히 문제가 된다.</strong> 5~6모둠이 한 교실에서 동시에 같은 문제를 90초 안에 푼다. 옆 모둠 소리가 다 들린다.</p>
+<p><strong>고치는 법</strong>: 난이도별 문제를 미리 섞어서 <strong>모둠마다 다른 번호를 배정</strong>한다. 필요 문항 수가 늘어나는 게 아니라(라운드당 난이도별 1문항이면 6모둠이 겹침), 난이도별 문항을 6개 이상 확보하면 라운드마다 모둠별로 다른 걸 줄 수 있다. → <strong>단원당 최소 문항이 18개에서 늘어난다.</strong> 선생님 부담과 직결되므로 결정이 필요하다.</p>
+<h3 id="c10-암호-3회-실패-잠금이-장난의-도구가-된다">C10. 암호 3회 실패 잠금이 장난의 도구가 된다</h3>
+<p><code>06-screens.md S4</code>에서 &quot;3번 틀리면 30초 잠금&quot;인데, <strong>누구를 잠그는지</strong>가 안 적혀 있다. 모둠 단위로 잠그면 장난치는 학생이 남의 모둠을 계속 잠글 수 있다.</p>
+<p><strong>고치는 법</strong>: 잠금을 없애고 시도마다 1초씩 지연만 준다. 4자리 숫자를 손으로 찍어 맞히는 건 어차피 현실적으로 어렵고, 교실이라 물리적으로 감시된다.</p>
+<hr>
+<h2 id="관점별-상세">관점별 상세</h2>
+<h3 id="아키텍처-710">아키텍처 (7/10)</h3>
+<p><strong>좋은 점</strong></p>
+<ul><li>앱스 스크립트 선택 근거가 &quot;부품 수&quot;라는 유지보수 관점에서 나온 것 — 성능 비교보다 훨씬 옳은 기준</li><li>이동 역산으로 PDF 원본의 치명적 버그를 잡은 것이 이 기획의 최대 성과</li><li><code>GameGateway</code> 7개 함수로 통신을 분리해 후퇴로를 남긴 설계</li><li><code>Game.gs</code>를 순수 함수로 강제한 것 — 앱스 스크립트에서 테스트 가능한 유일한 방법</li></ul>
+<p><strong>나쁜 점</strong></p>
+<ul><li><strong>C1</strong> 정산이 게임 전제와 모순 (치명)</li><li><strong>C3</strong> 라운드 중간 캐시 소실 시 데이터 유실</li><li><strong>C6</strong> 시드 코인이 배당 편차를 극단화</li><li><code>LockService.getScriptLock()</code>은 스크립트 전체에 하나뿐이다. 여러 반을 <strong>동시에</strong> 돌리면 반끼리 잠금을 뺏는다. 선생님이 반별로 다른 시간에 쓰므로 지금은 문제없지만, 문서에 전제로 적어야 한다</li></ul>
+<p><strong>핵심 질문</strong></p>
+<ol><li>베팅 시점 배당률 고정으로 바꾸면 <code>bets</code> 구조가 바뀐다 — 지금 결정할 것인가?</li><li>이벤트 즉시 기록을 넣으면 라운드당 시트 쓰기가 최대 12회(6모둠 × 2)로 는다. 감당 가능한가? → 0.3초 × 12 = 3.6초, 라운드 4분 중이므로 문제없음</li></ol>
+<h3 id="사용자-경험-610">사용자 경험 (6/10)</h3>
+<p><strong>좋은 점</strong></p>
+<ul><li>TV용과 폰용을 <strong>다른 물건</strong>으로 규정한 것 (24px vs 16px)</li><li>실패 상태를 화면마다 다 적어둔 것 — 대부분의 기획이 빠뜨리는 부분</li><li>오류 메시지에 &quot;무엇을 하라&quot;까지 강제한 규칙</li><li>정산 화면을 3단계로 나눠 김빠짐을 막은 연출 감각</li></ul>
+<p><strong>나쁜 점</strong></p>
+<ul><li><strong>C4</strong> 폰 1대 4~5명 문제를 정면으로 안 다룸 (이 기획의 목적과 직결)</li><li><strong>C5</strong> 일시정지가 없음</li><li><strong>C7</strong> 접속 3단계</li><li><code>S3</code> 정산에서 6모둠 × 8동물 계산 내역은 스크롤이 매우 길어진다. 이미 &quot;안 정한 것&quot;에 있지만, 교실에서 이건 <strong>집중력이 끊기는 3분</strong>이다. 모둠당 접힌 카드로 만들고 선생님이 하나씩 펴는 게 낫다</li><li>학생 화면에 &quot;지금 뭘 할 때인지&quot;를 하단에 두기로 했는데, 폰에서 하단은 잘 안 본다. <strong>상단 타이머 바로 옆</strong>이 맞다</li></ul>
+<p><strong>핵심 질문</strong></p>
+<ol><li>모둠 메모장을 <code>Must</code>로 올릴 것인가?</li><li>힌트를 종이에 옮겨 적게 하는 걸 수업 설계에 넣을 것인가?</li></ol>
+<h3 id="보안안전-710">보안·안전 (7/10)</h3>
+<p><strong>좋은 점</strong></p>
+<ul><li><strong>정답을 응답에 안 담는다</strong>는 원칙과 <code>toTeamView</code> 강제 — 이게 이 게임의 생명선이고 제대로 잡았다</li><li>학생 이름·학번을 안 받는 결정. 학교에서 개인정보를 안 만드는 게 최선</li><li>데이터가 선생님 구글 드라이브 밖으로 안 나감</li><li><code>08-test-plan G4</code>에서 응답 JSON을 문자열 검사하는 방식 — 실용적이고 확실함</li></ul>
+<p><strong>나쁜 점</strong></p>
+<ul><li><strong>C2</strong> 접속 점유 판정 모순 (치명)</li><li><strong>C10</strong> 잠금이 장난 도구가 됨</li><li>웹앱을 &quot;링크가 있는 모든 사용자&quot;로 열어야 하는데(학생 로그인 불가라 불가피), 그러면 <strong>판 코드만 알면 반 이름과 모둠 이름 목록이 보인다.</strong> 모둠 이름에 학생 실명을 넣지 말라는 안내가 <code>S1</code>에 필요하다</li><li><code>기록</code> 탭이 학기 내내 쌓이는데 정리 주기가 없다. 개인정보는 없지만 시트가 무거워지면 판 만들기가 느려진다</li></ul>
+<p><strong>핵심 질문</strong></p>
+<ol><li>점유 판정을 없앨 것인가(권장), 30초 만료로 갈 것인가?</li></ol>
+<hr>
+<h2 id="세-관점에서-모두-걸린-것">세 관점에서 모두 걸린 것</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>아키텍처</th><th>UX</th><th>보안</th></tr></thead><tbody><tr><td>C1 정산이 전제와 모순</td><td>✅ 치명</td><td>✅ 게임이 재미없어짐</td><td>—</td></tr><tr><td>C2 점유 판정 모순</td><td>✅ 구현 불가능</td><td>✅ 모둠 이탈</td><td>✅ 치명</td></tr><tr><td>C4 폰 1대 4~5명</td><td>—</td><td>✅ 치명</td><td>—</td></tr><tr><td>C6 시드 5</td><td>✅ 밸런스</td><td>✅ 복권화</td><td>—</td></tr></tbody></table></div>
+<p><strong>C1과 C2는 코드를 짜기 전에 반드시 결정해야 한다.</strong> 나중에 고치면 데이터 구조를 갈아엎어야 한다.</p>
+<hr>
+<h2 id="사용자-결정이-필요한-쟁점">사용자 결정이 필요한 쟁점</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>쟁점</th><th>선택지</th></tr></thead><tbody><tr><td>1</td><td>배당률 고정 시점</td><td>(가) 베팅 시점 고정 ← 권장 / (나) 최종 배당률 유지</td></tr><tr><td>2</td><td>접속 점유</td><td>(가) 점유 없앰 ← 권장 / (나) 30초 만료</td></tr><tr><td>3</td><td>모둠 메모장</td><td>(가) <code>Must</code>로 올림 ← 권장 / (나) <code>Should</code> 유지</td></tr><tr><td>4</td><td>시드 코인</td><td>(가) 15~20으로 올림 ← 권장 / (나) 5 유지</td></tr><tr><td>5</td><td>모둠별 다른 문제</td><td>(가) 배정 (문항 수 3배 필요) / (나) 같은 문제 유지 ← 부담 고려 시</td></tr><tr><td>6</td><td>일시정지 버튼</td><td>(가) 추가 ← 권장 / (나) 없음</td></tr></tbody></table></div>
+<hr>
+<h2 id="리뷰가-못-본-것">리뷰가 못 본 것</h2>
+<p>정직하게 적어둔다.</p>
+<ul><li>실제 교실에서 45분이 어떻게 흐르는지는 <strong>문서로 못 본다.</strong> C4(폰 1대)와 접속 시간은 첫 수업에서만 확인된다</li><li>앱스 스크립트의 실제 응답 속도는 <strong>측정 안 했다.</strong> 0.3초 목표는 근거 있는 추정이지 실측이 아니다</li><li>생명과학 문제 자체의 질(난이도 3단계가 실제로 비슷한 내용인지)은 이 리뷰 범위 밖이다</li><li>같은 모델이 관점만 바꿔 본 것이라, 서로 다른 AI가 부딪혔다면 나왔을 지적은 빠져 있다</li></ul>
+<div class="meta-foot">원본: <code>council-report.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

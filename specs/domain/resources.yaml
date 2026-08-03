@@ -1,0 +1,179 @@
+version: "2.0"
+
+# 와일드 더비 도메인 리소스
+# 저장소는 구글 스프레드시트. REST API가 아니라 GameGateway 함수로 접근한다.
+# 화면은 여기 정의된 resource 이름과 필드만 참조한다 (느슨한 결합).
+
+meta:
+  storage: google-sheets
+  access: apps-script GameGateway
+  source_docs: [docs/planning/04-database.md, docs/planning/02-trd.md]
+
+resources:
+
+  # ── 선생님이 채우는 것 ─────────────────────────────────
+
+  question:
+    sheet: 문제
+    owner: teacher
+    description: 문제은행. 단원별·난이도별 4지선다
+    fields:
+      id:          { type: int,    note: 시트 행 번호 }
+      unit:        { type: string, note: 단원 이름 }
+      level:       { type: enum,   values: [쉬움, 중간, 어려움] }
+      text:        { type: string }
+      choices:     { type: string[4] }
+      answer:      { type: int,    range: [1, 4] }
+      explanation: { type: string, required: false }
+    constraints:
+      - 단원당 난이도별 최소 6문항 (총 18문항). 부족하면 판 만들 때 경고
+      - level이 세 값 중 하나가 아니면 그 행 무시
+      - answer가 1~4 밖이면 그 행 무시
+
+  hint_template:
+    sheet: 힌트문구
+    owner: teacher
+    description: 힌트 문장 틀. 자리표시 {X}{Y}{Z}{N}에 동물·숫자가 채워진다
+    fields:
+      level:    { type: enum, values: [쉬움, 중간, 어려움] }
+      kind:     { type: enum, values: [순위확정, 상위확정, 부정확정, 둘비교, 사이끼움, 범위, 제외, 둘중하나] }
+      template: { type: string }
+    constraints:
+      - kind는 힌트 논리 판단의 열쇠라 값 변경 금지
+      - template에서 자리표시를 지우면 판 만들기 차단
+
+  animal:
+    sheet: 동물
+    owner: teacher
+    description: 등장 동물 8마리. 단원 테마에 맞춰 교체 가능
+    fields:
+      code:  { type: enum, values: [A, B, C, D, E, F, G, H] }
+      name:  { type: string }
+      emoji: { type: string }
+    constraints:
+      - 정확히 8행. 아니면 판 만들기 차단
+      - code는 고정 (힌트 생성 내부에서 사용)
+
+  setting:
+    sheet: 설정
+    owner: teacher
+    description: 게임 상수. 첫 수업 후 조정하는 값들
+    fields:
+      initial_coins:      { type: int, default: 20 }
+      max_bet_per_round:  { type: int, default: 3 }
+      seed_coins:         { type: int, default: 15, note: "리뷰 반영 — PDF 5에서 상향" }
+      quiz_seconds:       { type: int, default: 90 }
+      bet_seconds:        { type: int, default: 60 }
+      track_cells:        { type: int, default: 10 }
+      payout_rank1:       { type: float, default: 1.0 }
+      payout_rank2:       { type: float, default: 0.7 }
+      payout_rank3:       { type: float, default: 0.5 }
+
+  # ── 앱이 만드는 것 ────────────────────────────────────
+
+  game:
+    sheet: 게임
+    owner: system
+    description: 판 하나 = 한 반. 상태 JSON을 통째로 보관
+    fields:
+      code:        { type: string, length: 4, note: 판 코드 (칠판에 적는 값) }
+      class_name:  { type: string }
+      unit:        { type: string }
+      round:       { type: int }
+      last_round:  { type: int, values: [5, 6], secret: true }
+      phase:       { type: enum, values: [waiting, moving, quiz, discuss, betting, paused, done] }
+      phase_ends_at: { type: timestamp, note: 서버 시각 기준 }
+      paused_at:   { type: timestamp, nullable: true }
+      state_version: { type: int, note: 바뀔 때마다 +1. 화면 재렌더 판단 }
+      event_seq:   { type: int, note: 기록 탭 복구 기준점 }
+      truth:       { type: animal_code[8], secret: true, note: 1등부터 8등까지 }
+      moves:       { type: map<animal_code, int[]>, secret: true, note: 라운드별 이동 칸수 (역산 결과) }
+      positions:   { type: map<animal_code, int> }
+      pool:        { type: map<animal_code, int>, note: 누적 베팅 + 시드 }
+      is_over:     { type: bool }
+    secrets:
+      - truth
+      - moves
+      - last_round
+    constraints:
+      - secret 필드는 모둠 응답에 절대 담기지 않는다 (toTeamView 강제)
+      - 최종 도착 순서는 truth와 100% 일치해야 함 (이동 역산)
+
+  team:
+    sheet: 게임 (상태 JSON 내부)
+    owner: system
+    description: 모둠 하나
+    fields:
+      no:          { type: int }
+      name:        { type: string }
+      pin:         { type: string, length: 4, secret_from: other_teams }
+      coins:       { type: int }
+      hints:       { type: hint[] }
+      answered:    { type: map<round, answer_record> }
+      bets:        { type: map<round, map<animal_code, int>>, note: "라운드별로 나눠 저장 — 나중에 배당 방식 전환 대비" }
+      bet_locked:  { type: map<round, bool> }
+    constraints:
+      - 접속 점유 없음. 암호만 맞으면 여러 기기 동시 접속 허용 (리뷰 반영)
+
+  hint:
+    owner: system
+    description: 모둠에 지급된 힌트 한 개
+    fields:
+      round: { type: int }
+      level: { type: enum, values: [쉬움, 중간, 어려움] }
+      text:  { type: string }
+    constraints:
+      - 모든 힌트는 truth 기준으로 참
+      - 같은 모둠에 같은 문장을 두 번 주지 않음
+
+  event:
+    sheet: 기록
+    owner: system
+    description: 사건 로그 겸 캐시 복구 재료. 발생 즉시 한 줄 append
+    fields:
+      seq:     { type: int }
+      code:    { type: string }
+      round:   { type: int }
+      team_no: { type: int, nullable: true }
+      kind:    { type: enum, values: [answer, bet, round_start, pause] }
+      payload: { type: json }
+      at:      { type: timestamp }
+    constraints:
+      - answer / bet 은 라운드 끝을 기다리지 않고 즉시 기록 (리뷰 반영)
+      - 캐시 소실 시 마지막 스냅샷 + seq 큰 사건 재생으로 복구
+
+  # ── 계산되는 것 (저장 안 함) ──────────────────────────
+
+  odds:
+    owner: computed
+    description: 실시간 배당률
+    formula: "(전체 pool 합) / (해당 동물 pool)"
+    fields:
+      animal_code: { type: enum }
+      total_bet:   { type: int, note: 시드 제외 실제 베팅 }
+      value:       { type: float, precision: 2 }
+
+  settlement:
+    owner: computed
+    description: 최종 정산
+    formula: "Σ (건 코인 × 최종 배당률 × 순위별 배율)"
+    fields:
+      team_no:      { type: int }
+      lines:        { type: settlement_line[] }
+      gained:       { type: int }
+      final_coins:  { type: int }
+      rank:         { type: int }
+    constraints:
+      - 4~8등에 건 코인은 소멸
+      - 최종 배당률 하나만 사용 (선생님 결정 — 01-prd §6-2)
+
+# ── 접근 함수 (02-trd §4) ──────────────────────────────
+gateway:
+  - { fn: createGame,    actor: teacher, writes: [game, team, event] }
+  - { fn: joinGame,      actor: team,    reads:  [game, team] }
+  - { fn: getState,      actor: both,    reads:  [game, team, odds], note: 2초 폴링. viewer에 따라 다른 내용 }
+  - { fn: submitAnswer,  actor: team,    writes: [team, event] }
+  - { fn: placeBet,      actor: team,    writes: [team, game, event] }
+  - { fn: advanceRound,  actor: teacher, writes: [game, event] }
+  - { fn: togglePause,   actor: teacher, writes: [game, event] }
+  - { fn: finalize,      actor: teacher, writes: [game], returns: settlement[] }

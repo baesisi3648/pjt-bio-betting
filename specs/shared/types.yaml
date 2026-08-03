@@ -1,0 +1,139 @@
+version: "2.0"
+
+# 서버 ↔ 화면이 주고받는 모양. Code.gs의 GameGateway가 이 계약을 지킨다.
+
+envelope:
+  success: "{ ok: true,  data: <아래 타입> }"
+  failure: "{ ok: false, error: <ErrorCode>, message: <한국어 안내> }"
+
+types:
+
+  AnimalCode:
+    kind: enum
+    values: [A, B, C, D, E, F, G, H]
+
+  Level:
+    kind: enum
+    values: [쉬움, 중간, 어려움]
+
+  Phase:
+    kind: enum
+    values: [waiting, moving, quiz, discuss, betting, paused, done]
+
+  ErrorCode:
+    kind: enum
+    values:
+      - GAME_NOT_FOUND
+      - GAME_ENDED
+      - WRONG_PIN
+      - QUIZ_CLOSED
+      - BET_CLOSED
+      - ALREADY_ANSWERED
+      - ALREADY_BET
+      - TOO_MANY_COINS
+      - NOT_ENOUGH_COINS
+      - PAUSED
+      - LOCK_TIMEOUT
+      - SHEET_INVALID
+
+  Hint:
+    round: int
+    level: Level
+    text: string
+
+  Odds:
+    animalCode: AnimalCode
+    totalBet: int      # 시드 제외
+    value: float       # 소수 둘째 자리
+
+  TeacherState:
+    code: string
+    className: string
+    unit: string
+    round: int
+    lastRound: int          # 교사만
+    phase: Phase
+    secondsLeft: int
+    pausedAt: timestamp?
+    stateVersion: int
+    positions: "map<AnimalCode, int>"
+    odds: "Odds[]"
+    truth: "AnimalCode[8]"  # 교사만. 정산 전엔 화면에 안 그림
+    teams: "TeamProgress[]"
+    isOver: bool
+
+  TeamState:
+    round: int
+    phase: Phase
+    secondsLeft: int
+    pausedAt: timestamp?
+    stateVersion: int
+    positions: "map<AnimalCode, int>"
+    odds: "Odds[]"
+    teamProgress: "TeamProgress[]"   # 이름 + 완료 여부만
+    me: MyTeam
+    question: Question?               # 이번 라운드 고른 난이도 1문항, 정답 제외
+    truth: "AnimalCode[8]?"           # isOver == true 일 때만
+    isOver: bool
+    forbidden_fields: [moves, lastRound]
+
+  TeamProgress:
+    no: int
+    name: string
+    answered: bool
+    betLocked: bool
+    note: 완료 여부만. 무엇을 골랐는지·맞았는지는 담지 않는다
+
+  MyTeam:
+    no: int
+    name: string
+    coins: int
+    hints: "Hint[]"
+    myBets: "map<round, map<AnimalCode, int>>"
+    canAnswer: bool
+    canBet: bool
+    chosenLevel: Level?
+
+  Question:
+    text: string
+    choices: "string[4]"
+    note: answer는 채점 전에 담지 않는다
+
+  AnswerResult:
+    correct: bool
+    answer: int          # 채점 후에만
+    explanation: string?
+    newHint: Hint?
+
+  SettlementLine:
+    animalCode: AnimalCode
+    animalName: string
+    finalRank: int
+    coins: int
+    odds: float
+    payoutRate: float    # 1.0 / 0.7 / 0.5 / 0
+    gained: int
+
+  Settlement:
+    teamNo: int
+    teamName: string
+    lines: "SettlementLine[]"
+    gained: int
+    finalCoins: int
+    rank: int
+
+gateway_signatures:
+  createGame:   "(config: {className, unit, teamCount, teamNames[]}) -> {code, pins: map<int,string>, studentUrl}"
+  joinGame:     "(code, teamNo, pin) -> TeamState"
+  getState:     "(code, viewer) -> TeacherState | TeamState"
+  submitAnswer: "(code, teamNo, level, choice) -> AnswerResult"
+  placeBet:     "(code, teamNo, bets: map<AnimalCode,int>) -> TeamState"
+  advanceRound: "(code) -> TeacherState"
+  togglePause:  "(code) -> TeacherState"
+  finalize:     "(code) -> Settlement[]"
+
+invariants:
+  - viewer가 "team:*"이면 응답은 반드시 toTeamView를 통과한다
+  - TeamState에 truth·moves·lastRound가 담기면 게임이 무너진다 (isOver 후 truth만 예외)
+  - 상태를 바꾸는 모든 함수는 withLock 안에서 돈다
+  - 시간 판단은 전부 서버. 화면은 secondsLeft만 받는다

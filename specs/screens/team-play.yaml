@@ -1,0 +1,174 @@
+version: "2.0"
+
+screen:
+  id: S5
+  name: 모둠 — 게임 화면
+  route: "<웹앱주소>?code={code}&team={no}"
+  viewer: team
+  device: phone-360w
+  layout: header / tabs / tab-content
+  musts: [M6, M7, M8, M12, M15]
+  note: 학생이 45분 내내 보는 화면. 폰 1대를 4~5명이 같이 본다
+
+data_requirements:
+  - resource: game
+    needs: [round, phase, seconds_left, positions, paused_at]
+    forbidden: [truth, moves, last_round]   # 응답에 아예 담지 않는다
+  - resource: team
+    needs: [no, name, coins, hints, answered, bets, bet_locked]
+    scope: 자기 모둠만
+  - resource: team
+    needs: [no, name, answered, bet_locked]
+    scope: 전체
+    purpose: 진행 현황 표시용 (완료 여부만)
+  - resource: odds
+    needs: [animal_code, value]
+  - resource: animal
+    needs: [code, name, emoji]
+  - resource: question
+    needs: [text, choices]
+    scope: 이번 라운드에 고른 난이도 1문항만
+    forbidden: [answer]   # 채점 전에는 정답을 안 내려보낸다
+
+polling:
+  interval_ms: 2000
+  action: getState(code, viewer="team:{no}")
+  rerender_when: state_version 변경
+
+components:
+  - id: timer_bar
+    type: progress_bar
+    position: top
+    function: 남은 시간을 막대로. 숫자는 옆에 작게
+
+  - id: now_label
+    type: banner
+    position: top
+    value: "지금은 ▸ {phase_label}"
+    phase_labels:
+      waiting: 다음 라운드를 기다려요
+      moving:  동물들이 달리는 중
+      quiz:    문제 풀 때예요
+      discuss: 힌트 보고 이야기할 때예요
+      betting: 베팅할 때예요
+      paused:  선생님이 잠시 멈췄어요
+    note: "하단이 아니라 상단. 폰에서 하단은 잘 안 본다 (리뷰 반영)"
+
+  - id: team_bar
+    type: bar
+    position: top
+    value: "{no}모둠 {name}   💰 {coins}코인"
+
+  - id: tabs
+    type: tabs
+    items: [문제, 힌트, 베팅]
+    badge: "힌트 탭에 새 힌트 수"
+    auto_switch: 새 힌트 도착 시 힌트 탭으로
+
+  # ── 탭 1: 문제 ─────────────────────────────
+  - id: tab_quiz
+    type: panel
+    states:
+      not_chosen:
+        content: 난이도 버튼 3개
+        buttons:
+          - { id: easy,   label: "쉬움 / 힌트 약",  color: --easy,   height: 88px }
+          - { id: normal, label: "중간 / 힌트 중",  color: --normal, height: 88px }
+          - { id: hard,   label: "어려움 / 힌트 강", color: --hard,   height: 88px }
+        confirm: "{level}로 정할까요? 이번 라운드에는 못 바꿔요"
+      chosen:
+        content: 문제 텍스트 + 4지선다 + 제출 버튼
+        note: 모둠이 함께 읽고 답을 정하도록 문제 글자를 크게
+      submitted_correct:
+        content: "⭕ 정답! 힌트를 받았어요"
+        action: 힌트 탭으로 자동 전환
+      submitted_wrong:
+        content: "❌ 오답 — 정답 {n}번 / {explanation}"
+      timeout:
+        content: "시간이 지났어요. 다음 라운드를 기다려주세요"
+      wrong_phase:
+        content: "지금은 {phase_label}"
+    rules:
+      - 난이도 선택은 라운드당 1회, 제출도 1회. 이후 잠김
+      - 자동 채점 (4지선다)
+
+  # ── 탭 2: 힌트 (게임의 심장) ─────────────────
+  - id: tab_hints
+    type: card_list
+    data_source: { resource: team.hints, scope: 자기 모둠, sort: round desc }
+    card:
+      header: "{round}라운드 · {level}"
+      body: "{text}"
+      style:
+        font_size: 20px      # 폰 기본 16px보다 크게 (리뷰 C4 반영)
+        line_height: 1.8
+        left_border: 난이도 색
+    empty: "문제를 맞히면 힌트를 받아요"
+    note: |
+      모둠 토론의 무대. 폰 1대를 4~5명이 가운데 놓고 같이 읽으므로
+      글자를 크게 잡는다. 스크롤 없이 6개까지 들어오는 게 목표.
+      (모둠 메모장은 Should — 대신 A4 한 장을 나눠주는 수업 운영으로 대신한다)
+
+  # ── 탭 3: 베팅 ──────────────────────────────
+  - id: tab_bet
+    type: panel
+    rows:
+      data_source: { resource: animal }
+      row: "{emoji} {name}  {odds}배  [−] {coins} [+]"
+      stepper: { size: 56px }
+    footer:
+      - "이번 라운드 {used}/3 사용"
+      - { id: confirm_bet, label: 베팅 확정하기, color: --gold }
+      - { id: past_bets, style: small, value: "지난 라운드 누적: {animal}에 {n}코인 …" }
+    states:
+      open:      입력 가능
+      locked:    전체 회색 + "확정됨"
+      closed:    "베팅 시간이 지났어요"
+      paused:    "선생님이 잠시 멈췄어요"
+    rules:
+      - "+ 버튼은 3코인 도달 또는 보유 코인 초과 시 흐려짐"
+      - 확정 전 확인 1회, 확정 후 되돌리기 불가
+
+validations:
+  server_side:   # 화면에서 막아도 서버가 다시 막는다
+    - { code: TOO_MANY_COINS,     message: "이번 라운드에는 3개까지만 걸 수 있어요" }
+    - { code: NOT_ENOUGH_COINS,   message: "코인이 모자라요" }
+    - { code: BET_CLOSED,         message: "베팅 시간이 지났어요. 다음 라운드를 기다려주세요" }
+    - { code: QUIZ_CLOSED,        message: "제출 시간이 지났어요" }
+    - { code: ALREADY_BET,        message: "이미 확정했어요" }
+    - { code: ALREADY_ANSWERED,   message: "이번 라운드는 이미 제출했어요" }
+    - { code: PAUSED,             message: "선생님이 잠시 멈췄어요" }
+    - { code: LOCK_TIMEOUT,       message: "잠시 후 다시 눌러주세요" }
+  client_side:
+    - 버튼은 서버 응답까지 잠근다 (두 번 누르기 방지)
+    - 누르면 0.1초 안에 눈에 보이는 반응
+
+secrets:
+  never_sent:
+    - game.truth
+    - game.moves
+    - game.last_round
+    - 다른 모둠의 hints / pin / answered.correct
+    - question.answer (채점 전)
+  note: "화면에서 감추는 게 아니라 응답에 안 담는다. 개발자 도구를 열어도 안 보인다"
+
+tests:
+  - name: 난이도 선택 → 힌트 획득
+    when: 어려움 선택 후 정답 제출
+    then: [⭕ 정답 표시, 힌트 탭으로 자동 전환, 힌트 카드 1개 추가, 배지 표시]
+  - name: 오답
+    when: 틀린 답 제출
+    then: [❌ + 정답·해설 표시, 힌트 추가 안 됨]
+  - name: 3코인 초과 차단
+    when: 4번째 + 클릭
+    then: [+ 버튼 흐려짐, 서버 호출 안 감]
+  - name: 정답 유출 없음
+    when: getState 응답 JSON 문자열 검사
+    then: [truth·moves·last_round 문자열이 0회 등장]
+  - name: 일시정지 중 제출
+    when: 선생님이 멈춘 상태에서 베팅 확정
+    then: [PAUSED 안내, 상태 변화 없음]
+
+notes:
+  - 힌트 탭이 이 앱에서 제일 많이 읽히는 화면이다. 글자 크기 결정이 그래서 중요
+  - 문제 텍스트도 크게 — 4~5명이 폰 하나를 같이 봐야 한다

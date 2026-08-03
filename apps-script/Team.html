@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html><head><base target="_top"><?!= include('Shared'); ?>
+<style>
+/* 폰용 — 4~5명이 한 대를 가운데 놓고 같이 본다 */
+body{background:var(--bg-light);color:var(--text-dark);font-size:16px}
+.wrap{max-width:520px;margin:0 auto;padding:12px 12px 40px}
+.card{background:var(--card-light);border-radius:14px;padding:18px;margin-bottom:12px;
+      box-shadow:0 2px 8px rgba(0,0,0,.07)}
+h1{font-size:22px;margin-bottom:6px}
+p.sub{color:#67788A;font-size:13px;margin-bottom:14px}
+input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8px;
+      border:2px solid #C8D4DE;border-radius:10px}
+.big{width:100%;padding:18px;font-size:18px;font-weight:700;background:var(--gold);color:#1B2734;margin-top:14px}
+.teamgrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.teamgrid button{padding:20px 8px;font-size:16px;background:#EDF2F7;color:var(--text-dark);font-weight:700}
+
+/* 게임 화면 */
+.bar{height:8px;background:#DCE4EC;border-radius:4px;overflow:hidden;margin-bottom:8px}
+.bar > div{height:100%;background:var(--run);transition:width 1s linear}
+.now{font-size:16px;font-weight:800;padding:10px 0}
+.now.paused{color:var(--wait)}
+.me{display:flex;justify-content:space-between;font-size:15px;color:#4B5D6E;padding-bottom:10px;
+    border-bottom:1px solid #E4EAF0}
+.tabs{display:flex;gap:6px;margin:12px 0}
+.tabs button{flex:1;padding:14px 4px;font-size:15px;font-weight:700;background:#E7EDF3;color:#5A6B7C}
+.tabs button.on{background:var(--text-dark);color:#fff}
+.badge{display:inline-block;background:var(--goal);color:#fff;border-radius:10px;padding:0 7px;font-size:12px;margin-left:4px}
+
+/* 문제 */
+.levels button{width:100%;height:88px;margin-bottom:10px;font-size:18px;font-weight:800;
+               background:#fff;border:3px solid;border-radius:12px}
+.lv-easy{border-color:var(--easy);color:var(--easy)}
+.lv-normal{border-color:var(--normal);color:var(--normal)}
+.lv-hard{border-color:var(--hard);color:var(--hard)}
+.q{font-size:18px;line-height:1.6;margin-bottom:16px;font-weight:600}
+.choice{width:100%;text-align:left;padding:16px;margin-bottom:8px;background:#F1F5F9;
+        color:var(--text-dark);font-size:16px;line-height:1.5}
+.choice.sel{background:var(--text-dark);color:#fff}
+.result{padding:18px;border-radius:12px;font-size:18px;font-weight:700;line-height:1.6}
+.result.o{background:#E6F4EA;color:#1E7E34}
+.result.x{background:#FDECEA;color:#B3261E}
+
+/* 힌트 — 이 앱에서 제일 많이 읽히는 화면 */
+.hint{background:#FFF8E7;border-left:6px solid var(--gold);border-radius:10px;
+      padding:16px;margin-bottom:12px}
+.hint .meta{font-size:12px;color:#8A7433;margin-bottom:6px}
+.hint .txt{font-size:20px;line-height:1.8;font-weight:600}
+.empty{color:#8494A4;text-align:center;padding:34px;font-size:15px}
+
+/* 베팅 */
+.brow{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #EDF1F5}
+.bname{flex:1;font-size:16px;font-weight:700}
+.bodds{color:#B8860B;font-weight:800;font-size:15px;width:64px;text-align:right}
+.step{width:52px;height:52px;font-size:24px;background:#EDF2F7;color:var(--text-dark);font-weight:800}
+.cnt{width:34px;text-align:center;font-size:20px;font-weight:800}
+.used{text-align:center;padding:12px;color:#5A6B7C;font-size:15px}
+#toast{position:fixed;bottom:16px;left:16px;right:16px;background:#1B2734;color:#fff;
+       padding:14px;border-radius:10px;font-size:15px;text-align:center;z-index:98}
+</style></head>
+<body><div class="wrap">
+
+<!-- ══ S4 접속 ══ -->
+<div id="join">
+  <div class="card">
+    <h1>🧬 와일드 더비</h1>
+    <div id="j1">
+      <p class="sub">칠판에 적힌 판 코드 4자리를 넣어주세요</p>
+      <input id="jcode" maxlength="4" style="text-transform:uppercase" autocomplete="off">
+      <button class="big" onclick="step1()">다음</button>
+    </div>
+    <div id="j2" class="hidden">
+      <p class="sub">우리 모둠을 골라주세요</p>
+      <div class="teamgrid" id="jteams"></div>
+    </div>
+    <div id="j3" class="hidden">
+      <p class="sub" id="j3sub">암호 4자리를 넣어주세요</p>
+      <input id="jpin" maxlength="4" inputmode="numeric" autocomplete="off">
+      <button class="big" onclick="step3()">들어가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S5 게임 ══ -->
+<div id="game" class="hidden">
+  <div class="card" style="padding:14px 16px">
+    <div class="bar"><div id="tbar" style="width:100%"></div></div>
+    <div class="now" id="now"></div>
+    <div class="me"><span id="mname"></span><span id="mcoins"></span></div>
+  </div>
+  <div class="tabs">
+    <button id="t0" class="on" onclick="tab(0)">문제</button>
+    <button id="t1" onclick="tab(1)">힌트<span id="hb" class="badge hidden"></span></button>
+    <button id="t2" onclick="tab(2)">베팅</button>
+  </div>
+  <div class="card" id="pane"></div>
+</div>
+
+<!-- ══ S6 결과 ══ -->
+<div id="result" class="hidden"></div>
+
+<div class="ver" id="ver"></div>
+<div id="toast" class="hidden"></div>
+</div>
+
+<script>
+var CODE=null, TEAM=null, PIN=null, D=null, TAB=0, sel=null, draft={}, seenHints=0;
+
+/* ── S4 ── */
+var saved = null;
+try { saved = JSON.parse(localStorage.getItem('wd') || 'null'); } catch(e){}
+if(saved){ document.getElementById('jcode').value = saved.code; }
+
+function step1(){
+  var c = (document.getElementById('jcode').value||'').toUpperCase().trim();
+  if(c.length!==4){ toast('판 코드 4자리를 넣어주세요'); return; }
+  call('gwLobby', [c], function(d){
+    CODE = c;
+    document.getElementById('jteams').innerHTML = d.teams.map(function(t){
+      return '<button onclick="step2('+t.no+',\''+esc(t.name).replace(/'/g,"")+'\')">'+t.no+'모둠<br>'+esc(t.name)+'</button>'; }).join('');
+    document.getElementById('j1').classList.add('hidden');
+    document.getElementById('j2').classList.remove('hidden');
+  });
+}
+function step2(no, name){
+  TEAM = no;
+  document.getElementById('j3sub').textContent = no+'모둠 ' + name + ' — 암호 4자리';
+  document.getElementById('j2').classList.add('hidden');
+  document.getElementById('j3').classList.remove('hidden');
+}
+function step3(){
+  var p = (document.getElementById('jpin').value||'').trim();
+  call('gwJoinGame', [CODE, TEAM, p], function(d){
+    PIN = p;
+    try { localStorage.setItem('wd', JSON.stringify({code:CODE, team:TEAM})); } catch(e){}
+    document.getElementById('join').classList.add('hidden');
+    document.getElementById('game').classList.remove('hidden');
+    startPolling('gwGetState', function(){ return [CODE, 'team:'+TEAM]; }, render, tick);
+  });
+}
+
+/* ── S5 ── */
+var PHASE_KO = { waiting:'다음 라운드를 기다려요', moving:'동물들이 달리는 중',
+  quiz:'문제 풀 때예요', discuss:'힌트 보고 이야기할 때예요', betting:'베팅할 때예요',
+  paused:'선생님이 잠시 멈췄어요', done:'게임 끝!' };
+
+function render(d){
+  D = d;
+  if(d.isOver){ showResult(d); return; }
+  document.getElementById('ver').textContent = '배포 ' + d.deployVersion;
+  document.getElementById('mname').textContent = d.me.no + '모둠 ' + d.me.name;
+  document.getElementById('mcoins').textContent = '💰 ' + d.me.coins + '코인';
+  var n = document.getElementById('now');
+  n.textContent = '지금은 ▸ ' + (PHASE_KO[d.phase]||'');
+  n.className = 'now' + (d.phase==='paused' ? ' paused' : '');
+
+  // 새 힌트가 오면 힌트 탭으로. 토론 단계에도 힌트 탭을 연다
+  if(d.me.hints.length > seenHints){
+    var isNew = seenHints > 0;
+    seenHints = d.me.hints.length;
+    if(isNew) TAB = 1;
+  }
+  if(d.phase==='discuss' && TAB===0) TAB = 1;
+
+  var b = document.getElementById('hb');
+  b.textContent = d.me.hints.length; b.classList.toggle('hidden', !d.me.hints.length);
+  drawTab();
+}
+function tick(d){
+  var pct = d.secondsLeft==null ? 100 : Math.max(0, Math.min(100, d.secondsLeft/totalFor(d.phase)*100));
+  document.getElementById('tbar').style.width = pct + '%';
+  var n = document.getElementById('now');
+  if(d.secondsLeft!=null) n.textContent = '지금은 ▸ ' + (PHASE_KO[d.phase]||'') + '  ·  ' + d.secondsLeft + '초';
+}
+function totalFor(p){ return p==='quiz'?90 : p==='discuss'?180 : p==='betting'?60 : 100; }
+
+function tab(i){ TAB = i; drawTab(); }
+function drawTab(){
+  ['t0','t1','t2'].forEach(function(id,i){ document.getElementById(id).className = i===TAB?'on':''; });
+  var p = document.getElementById('pane');
+  if(TAB===0) p.innerHTML = quizHtml();
+  else if(TAB===1) p.innerHTML = hintHtml();
+  else p.innerHTML = betHtml();
+}
+
+/* 탭 1 — 문제 */
+function quizHtml(){
+  var d = D, me = d.me;
+  if(d.phase==='paused') return '<div class="empty">선생님이 잠시 멈췄어요</div>';
+  if(d.phase!=='quiz'){
+    if(me.answerResult) return '<div class="result '+(me.answerResult.correct?'o':'x')+'">'+
+      (me.answerResult.correct?'⭕ 정답! 힌트를 받았어요':'❌ 오답이었어요')+'</div>';
+    return '<div class="empty">지금은 '+(PHASE_KO[d.phase]||'')+'</div>';
+  }
+  if(!me.canAnswer){
+    if(me.answerResult) return '<div class="result '+(me.answerResult.correct?'o':'x')+'">'+
+      (me.answerResult.correct?'⭕ 정답! 힌트 탭을 보세요':'❌ 오답 — 다음 라운드를 기다려요')+'</div>';
+    return '<div class="empty">시간이 지났어요</div>';
+  }
+  if(!me.chosenLevel && !window._q){
+    return '<p class="sub">어려울수록 좋은 힌트를 받아요</p><div class="levels">' +
+      '<button class="lv-easy" onclick="chooseLevel(\'쉬움\')">쉬움 · 힌트 약</button>' +
+      '<button class="lv-normal" onclick="chooseLevel(\'중간\')">중간 · 힌트 중</button>' +
+      '<button class="lv-hard" onclick="chooseLevel(\'어려움\')">어려움 · 힌트 강</button></div>';
+  }
+  var q = window._q;
+  if(!q) return '<div class="empty">문제를 불러오는 중…</div>';
+  return '<div class="q">'+esc(q.text)+'</div>' + q.choices.map(function(c,i){
+    return '<button class="choice'+(sel===i+1?' sel':'')+'" onclick="pick('+(i+1)+')">'+(i+1)+'. '+esc(c)+'</button>'; }).join('') +
+    '<button class="big" onclick="submit()"'+(sel?'':' disabled')+'>제출하기</button>';
+}
+function chooseLevel(lv){
+  confirmBox(lv+'로 정할까요?\n이번 라운드에는 못 바꿔요.', function(){
+    call('gwChooseLevel', [CODE, TEAM, lv], function(d){ window._q = d.question; window._lv = lv; drawTab(); });
+  });
+}
+function pick(i){ sel = i; drawTab(); }
+function submit(){
+  if(!sel) return;
+  call('gwSubmitAnswer', [CODE, TEAM, window._lv, sel], function(r){
+    window._q = null; sel = null;
+    var p = document.getElementById('pane');
+    p.innerHTML = r.correct
+      ? '<div class="result o">⭕ 정답! 힌트를 받았어요</div>'
+      : '<div class="result x">❌ 오답 — 정답은 '+r.answer+'번<br><span style="font-weight:400;font-size:15px">'+esc(r.explanation||'')+'</span></div>';
+    forceRefresh();
+  });
+}
+
+/* 탭 2 — 힌트 (게임의 심장) */
+function hintHtml(){
+  var h = D.me.hints;
+  if(!h.length) return '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
+  return h.slice().reverse().map(function(x){
+    return '<div class="hint"><div class="meta">'+x.round+'라운드 · '+esc(x.level)+'</div>'+
+           '<div class="txt">'+esc(x.text)+'</div></div>'; }).join('');
+}
+
+/* 탭 3 — 베팅 */
+function betHtml(){
+  var d = D, me = d.me;
+  if(d.phase==='paused') return '<div class="empty">선생님이 잠시 멈췄어요</div>';
+  if(!me.canBet){
+    if(me.myBets[d.round]) return '<div class="empty">✅ 이번 라운드 베팅을 확정했어요</div>';
+    if(d.phase!=='betting') return '<div class="empty">지금은 '+(PHASE_KO[d.phase]||'')+'</div>';
+    return '<div class="empty">베팅 시간이 지났어요</div>';
+  }
+  var used = 0; for(var k in draft) used += draft[k];
+  var rows = Object.keys(d.animals).map(function(c){
+    var v = draft[c]||0;
+    var plus = (used >= d.maxBet || used >= me.coins) ? ' disabled' : '';
+    return '<div class="brow"><span>'+(d.emojis[c]||'')+'</span><span class="bname">'+esc(d.animals[c])+'</span>'+
+      '<span class="bodds num">'+d.odds[c].toFixed(2)+'배</span>'+
+      '<button class="step" onclick="bet(\''+c+'\',-1)"'+(v?'':' disabled')+'>−</button>'+
+      '<span class="cnt num">'+v+'</span>'+
+      '<button class="step" onclick="bet(\''+c+'\',1)"'+plus+'>+</button></div>'; }).join('');
+  return rows + '<div class="used">이번 라운드 '+used+'/'+d.maxBet+' 사용 · 보유 '+me.coins+'코인</div>' +
+    '<button class="big" onclick="confirmBet()"'+(used?'':' disabled')+'>베팅 확정하기</button>';
+}
+function bet(c, delta){
+  draft[c] = Math.max(0, (draft[c]||0) + delta);
+  if(!draft[c]) delete draft[c];
+  drawTab();
+}
+function confirmBet(){
+  var used = 0; for(var k in draft) used += draft[k];
+  confirmBox('코인 '+used+'개를 겁니다.\n확정하면 되돌릴 수 없어요.', function(){
+    call('gwPlaceBet', [CODE, TEAM, draft], function(){ draft = {}; forceRefresh(); });
+  });
+}
+
+/* ── S6 ── */
+function showResult(d){
+  document.getElementById('game').classList.add('hidden');
+  var r = document.getElementById('result');
+  r.classList.remove('hidden');
+  var mine = (d.settlement||[]).filter(function(s){ return s.teamNo===TEAM; })[0];
+  var medal = ['🥇','🥈','🥉'];
+  var html = '<div class="card"><h1>🏁 최종 결과</h1><div style="font-size:20px;line-height:2;margin-top:10px">' +
+    d.truth.slice(0,3).map(function(c,i){ return medal[i]+' '+(i+1)+'등 '+(d.emojis[c]||'')+' '+esc(d.animals[c]); }).join('<br>') + '</div></div>';
+  if(mine){
+    html += '<div class="card"><h1>우리 모둠</h1>' + mine.lines.map(function(l){
+      return '<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">'+(l.gained?'✅':'❌')+' '+esc(d.animals[l.animalCode])+
+             ' ('+l.finalRank+'등) '+l.coins+'코인 → <b>'+l.gained+'코인</b></div>'; }).join('') +
+      '<div style="margin-top:14px;font-size:20px;font-weight:800">최종 '+mine.finalCoins+'코인 · 전체 '+mine.rank+'위</div></div>';
+  }
+  r.innerHTML = html;
+}
+</script>
+</body></html>

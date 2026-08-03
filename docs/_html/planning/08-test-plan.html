@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>08. 확인 계획 — 뭘 어떻게 검사하나</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">08. 확인 계획 — 뭘 어떻게 검사하나</div><div class="sub">08-test-plan.md</div><a class="lvl1" href="#08-확인-계획-뭘-어떻게-검사하나">08. 확인 계획 — 뭘 어떻게 검사하나</a><a class="lvl2" href="#1-게임이-무너지는-것부터-제일-중요">1. 게임이 무너지는 것부터 (제일 중요)</a><a class="lvl2" href="#2-규칙-계산">2. 규칙 계산</a><a class="lvl2" href="#3-동시에-몰릴-때">3. 동시에 몰릴 때</a><a class="lvl2" href="#4-끊기고-복구되는-것">4. 끊기고 복구되는 것</a><a class="lvl2" href="#5-시트가-잘못됐을-때">5. 시트가 잘못됐을 때</a><a class="lvl2" href="#6-화면">6. 화면</a><a class="lvl2" href="#7-수업-전-점검표-매-수업-5분">7. 수업 전 점검표 (매 수업, 5분)</a><a class="lvl2" href="#8-첫-수업에서-볼-것">8. 첫 수업에서 볼 것</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="08-확인-계획-뭘-어떻게-검사하나">08. 확인 계획 — 뭘 어떻게 검사하나</h1>
+<ul><li>상위 문서: 02-trd, 04-database, 07-coding-convention</li></ul>
+<hr>
+<h2 id="1-게임이-무너지는-것부터-제일-중요">1. 게임이 무너지는 것부터 (제일 중요)</h2>
+<p>이 넷 중 하나라도 깨지면 수업에서 게임을 못 쓴다.</p>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>확인할 것</th><th>방법</th><th>통과 기준</th></tr></thead><tbody><tr><td>G1</td><td>최종 도착 순서 = 정답 순위</td><td><code>Test.gs</code>에서 판 100개 생성 후 6라운드 다 굴려 비교</td><td><strong>100/100 일치</strong></td></tr><tr><td>G2</td><td>모든 힌트가 참</td><td>판 100개, 생성된 힌트 전부를 정답 순위에 대조</td><td>거짓 힌트 <strong>0개</strong></td></tr><tr><td>G3-a</td><td>전체 힌트로 1·2·3등을 좁힐 수 있다</td><td>판 100개, 전체 힌트를 합쳐 8! 순열을 걸러냄</td><td>1·2·3등이 유일하게 결정 <strong>100/100</strong></td></tr><tr><td>G3-b</td><td><strong>어려움만 6번 고른 모둠</strong>이 좁힐 수 있다</td><td>그 모둠이 받을 힌트 6개만으로 같은 검사</td><td>1·2·3등을 좁힐 수 있음 <strong>100/100</strong>. 안 되면 어려움을 고를 이유가 없다 (리뷰 반영)</td></tr><tr><td>G4</td><td>모둠 응답에 정답이 안 담김</td><td><code>toTeamView</code> 결과 JSON을 문자열로 만들어 검사</td><td><code>truth</code>·<code>moves</code>·<code>lastRound</code> 문자열 <strong>0회 등장</strong></td></tr></tbody></table></div>
+<p>G1이 이 프로젝트의 최대 위험이다. PDF 원본 코드가 바로 여기서 깨져 있었다.</p>
+<hr>
+<h2 id="2-규칙-계산">2. 규칙 계산</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>확인할 것</th><th>통과 기준</th></tr></thead><tbody><tr><td>R1</td><td>라운드당 3코인 초과 거부</td><td>4코인 시도 → <code>TOO_MANY_COINS</code></td></tr><tr><td>R2</td><td>보유 코인 초과 거부</td><td>코인 1개인데 2개 → <code>NOT_ENOUGH_COINS</code></td></tr><tr><td>R3</td><td>마감 후 베팅 거부</td><td>시간 지난 뒤 → <code>BET_CLOSED</code></td></tr><tr><td>R4</td><td>확정 후 재베팅 거부</td><td>두 번째 → <code>ALREADY_BET</code></td></tr><tr><td>R5</td><td>라운드당 문제 1회</td><td>두 번째 제출 → <code>ALREADY_ANSWERED</code></td></tr><tr><td>R6</td><td>배당률 계산</td><td>손으로 계산한 값과 소수 둘째 자리까지 일치</td></tr><tr><td>R7</td><td>정산 계산</td><td>1등 100%·2등 70%·3등 50%·나머지 0으로 손계산과 일치</td></tr><tr><td>R8</td><td>이동값 범위</td><td>모든 라운드 이동이 0~3 안</td></tr><tr><td>R9</td><td>1차시 골인 없음</td><td>3라운드까지 10칸 도달 동물 0마리</td></tr><tr><td>R10</td><td>같은 힌트 중복 지급 안 함</td><td>한 모둠이 같은 문장을 두 번 안 받음</td></tr></tbody></table></div>
+<hr>
+<h2 id="3-동시에-몰릴-때">3. 동시에 몰릴 때</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>상황</th><th>통과 기준</th></tr></thead><tbody><tr><td>C1</td><td>6모둠이 같은 순간 베팅 확정</td><td>동물별 누적 코인 합계가 어긋나지 않음</td></tr><tr><td>C2</td><td>6모둠 동시 제출 + TV 폴링</td><td>모든 요청이 10초 안에 응답</td></tr><tr><td>C3</td><td>잠금 대기 초과</td><td><code>LOCK_TIMEOUT</code>이 뜨고 화면에 안내가 나옴 (조용히 실패하지 않음)</td></tr><tr><td>C4</td><td>폰 6대 + TV 1대 2초 폴링</td><td>상태 조회 평균 응답 <strong>0.3초 이하</strong></td></tr></tbody></table></div>
+<p>C1은 실제 폰 6대로 &quot;하나 둘 셋&quot; 하고 동시에 눌러 확인한다.</p>
+<hr>
+<h2 id="4-끊기고-복구되는-것">4. 끊기고 복구되는 것</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>상황</th><th>통과 기준</th></tr></thead><tbody><tr><td>B1</td><td>모둠 폰 새로고침</td><td>판코드+모둠+암호 재입력으로 힌트·코인 그대로. <strong>점유 때문에 막히지 않음</strong></td></tr><tr><td>B1-b</td><td>같은 모둠에 폰 2대 동시 접속</td><td>둘 다 들어가지고 상태가 같음 (점유를 두지 않기로 함)</td></tr><tr><td>B2</td><td>폰 비행기모드 30초 후 복귀</td><td>자동으로 상태 따라잡음</td></tr><tr><td>B3</td><td>교사 노트북 브라우저 종료 후 재접속</td><td>판 코드로 마지막 라운드 시작 시점부터 복구</td></tr><tr><td>B4</td><td><strong>라운드 중간에</strong> 캐시 강제 삭제 후 조회</td><td>스냅샷 + <code>기록</code> 탭 사건 재생으로 <strong>손실 0</strong> — 그 라운드 답과 베팅이 전부 살아 있어야 함</td></tr><tr><td>B5</td><td>1차시 종료 → 다음 날 2차시 이어하기</td><td>코인·힌트·베팅·트랙 위치 전부 그대로</td></tr><tr><td>B6</td><td>일시정지 → 3분 후 재개</td><td>멈춘 지점의 남은 시간부터 이어감. 멈춘 동안 제출은 <code>PAUSED</code>로 거부</td></tr></tbody></table></div>
+<p><strong>B5가 이 프로젝트의 두 번째 위험이다.</strong> 2차시 분할이 안 되면 기획 전체가 무너진다.</p>
+<hr>
+<h2 id="5-시트가-잘못됐을-때">5. 시트가 잘못됐을 때</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>상황</th><th>통과 기준</th></tr></thead><tbody><tr><td>S1</td><td>어려움 문항 2개뿐 (6 필요)</td><td>판 만들기 전 경고, 계속/취소 선택 가능</td></tr><tr><td>S2</td><td><code>동물</code> 탭이 7줄</td><td>시작 불가 + 어디가 문제인지 안내</td></tr><tr><td>S3</td><td><code>힌트문구</code>에서 <code>{X}</code>를 지움</td><td>시작 불가 + 몇 번째 줄인지 안내</td></tr><tr><td>S4</td><td>난이도를 <code>상/중/하</code>로 적음</td><td>그 줄은 무시, 문항 수 경고에 반영</td></tr><tr><td>S5</td><td>정답 열에 5를 적음</td><td>그 줄은 무시 + 안내</td></tr><tr><td>S6</td><td>문제 0개인 단원 선택</td><td>시작 불가</td></tr></tbody></table></div>
+<hr>
+<h2 id="6-화면">6. 화면</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>확인할 것</th><th>통과 기준</th></tr></thead><tbody><tr><td>U1</td><td>교실 뒷자리 가독성</td><td>8m 뒤에서 배당률 숫자가 읽힘 (실제 교실에서)</td></tr><tr><td>U2</td><td>폰 세로 360px</td><td>잘리는 부분 없음</td></tr><tr><td>U3</td><td>버튼 두 번 누르기</td><td>중복 요청 안 감</td></tr><tr><td>U4</td><td>오류 메시지</td><td>전부 &quot;뭘 하라&quot;까지 적혀 있음</td></tr><tr><td>U5</td><td>색 없이도 구분</td><td>흑백으로 캡처해도 정답/오답, 난이도 구분됨</td></tr><tr><td>U6</td><td>정답 순위 실수 노출</td><td>&quot;정답 순위 보기&quot;가 눈에 안 띄고, 열면 확인을 한 번 받음</td></tr></tbody></table></div>
+<hr>
+<h2 id="7-수업-전-점검표-매-수업-5분">7. 수업 전 점검표 (매 수업, 5분)</h2>
+<blockquote>이건 코드 검사가 아니라 <strong>선생님이 수업 직전에 하는 확인</strong>이다. 이 목록을 앱 시작 화면에도 넣는다.</blockquote>
+<ul><li class="task"><input type="checkbox" disabled> 코드를 고쳤다면 <strong>새 버전으로 재배포</strong>했는가 (제일 흔한 사고)</li><li class="task"><input type="checkbox" disabled> 화면 하단 배포 버전이 오늘 것인가</li><li class="task"><input type="checkbox" disabled> 이번 단원 문항이 18개 이상인가</li><li class="task"><input type="checkbox" disabled> 교사 노트북에서 학생 주소가 열리는가</li><li class="task"><input type="checkbox" disabled> <strong>내 폰(학교 와이파이)에서 학생 주소가 열리는가</strong> ← 학교망 차단 확인</li><li class="task"><input type="checkbox" disabled> 모둠별 암호를 인쇄했는가</li><li class="task"><input type="checkbox" disabled> TV에 화면이 잘리지 않고 뜨는가</li></ul>
+<hr>
+<h2 id="8-첫-수업에서-볼-것">8. 첫 수업에서 볼 것</h2>
+<p>첫 판은 검사가 아니라 <strong>관찰</strong>이다.</p>
+<div class="table-wrap"><table><thead><tr><th>볼 것</th><th>어긋나면</th></tr></thead><tbody><tr><td>접속에 몇 분 걸리나</td><td>10분 넘으면 1차시 라운드를 2개로 줄임</td></tr><tr><td>문제 90초가 맞나</td><td>남으면 줄이고, 모자라면 늘림 (<code>설정</code> 탭에서 바로)</td></tr><tr><td>베팅 60초가 맞나</td><td>같음</td></tr><tr><td>힌트로 실제 추론이 되나</td><td>너무 어려우면 어려움 힌트 비중을 늘림</td></tr><tr><td>하위권 모둠이 포기하나</td><td>포기하면 정산 규칙 완화를 재검토 (지금은 PDF 그대로)</td></tr><tr><td><strong>초반에 코인을 안 쓰고 버티나</strong></td><td>최종 배당률만 쓰기로 한 결과. 다들 마지막에 몰빵하면 <code>01-prd §6-2</code>의 (가)~(다) 중 하나로 조정</td></tr><tr><td>배당률이 너무 튀나</td><td>시드 15가 여전히 낮으면 20으로, 밋밋하면 10으로 (<code>설정</code> 탭)</td></tr><tr><td>폰 1대를 한 명이 독점하나</td><td>독점하면 모둠 메모장을 <code>Must</code>로 올리거나 A4 병행을 수업 규칙으로</td></tr><tr><td>옆 모둠 답을 베끼나</td><td>같은 문제를 주기로 한 결과. 심하면 모둠별 다른 문제 배정으로 전환 (문항 3배 필요)</td></tr><tr><td>조용하던 학생이 말하나</td><td><strong>이게 안 되면 기획 자체를 다시 본다</strong></td></tr></tbody></table></div>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 02-trd, 04-database, 07-coding-convention</li><li>영향 주는 하위 문서: 06-tasks</li><li>아직 안 정한 것: 실제 교실 TV 크기·해상도를 몰라 U1은 현장에서만 확인 가능</li><li>전제: 폰 6대로 동시 조작 시험을 할 수 있다 (선생님 + 동료 도움 또는 브라우저 창 6개)</li><li>확인 기준: G1~G4 전부 통과 전에는 수업에 쓰지 않는다</li><li>위험: 동시성(C1)은 브라우저 창 6개로는 완전히 재현되지 않을 수 있음 → 첫 수업에서 코인 합계를 직접 대조</li></ul>
+<div class="meta-foot">원본: <code>08-test-plan.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

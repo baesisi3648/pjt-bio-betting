@@ -1,0 +1,129 @@
+version: "2.0"
+
+screen:
+  id: S2
+  name: 선생님 — 진행 화면
+  route: "?role=teacher&code={code}"
+  viewer: teacher
+  device: tv-1920x1080
+  layout: header / track(50%) / odds+progress(2col) / controls
+  musts: [M9, M10, M11, M12, M15]
+  note: 수업 내내 TV에 띄워두는 화면. 교실 뒤 8m에서 읽혀야 한다
+
+data_requirements:
+  - resource: game
+    needs: [code, class_name, unit, round, last_round, phase, phase_ends_at, paused_at, positions, state_version, truth]
+    note: teacher viewer라 truth·last_round도 받는다 (기본은 화면에 안 그림)
+  - resource: team
+    needs: [no, name, coins, answered, bet_locked]
+    note: 완료 여부만. 무엇을 골랐는지·맞았는지는 표시하지 않는다
+  - resource: odds
+    needs: [animal_code, total_bet, value]
+  - resource: animal
+    needs: [code, name, emoji]
+
+polling:
+  interval_ms: 2000
+  action: getState(code, viewer="teacher")
+  rerender_when: state_version 변경
+  always_update: 남은 시간 표시
+
+components:
+  - id: header
+    type: bar
+    position: top
+    contents:
+      - "{class_name} · {unit}"
+      - { id: round_label, value: "{round}라운드", size: 64px }
+      - { id: timer, value: "⏱ {seconds_left}", size: 64px,
+          style_when: "10초 이하 → --goal 색 + 1초마다 살짝 커짐" }
+
+  - id: race_track
+    type: custom
+    position: main
+    height_ratio: 0.5
+    function: 동물 8마리 × 10칸 트랙
+    data_source: { resource: game.positions }
+    row: "[{emoji} {name}] ▓×pos ░×(10-pos) 🏁"
+    rules:
+      - 지나온 칸 --run, 남은 칸 어둡게, 마지막 칸 --goal
+      - 이동은 CSS transition 0.6s만
+      - 골인한 동물은 줄이 빛남. **정산 전에는 등수 배지를 안 붙인다** (골인 순서만 보임)
+
+  - id: odds_board
+    type: table
+    position: bottom-left
+    data_source: { resource: odds }
+    columns: [동물, 걸린 코인, 배당률]
+    rules:
+      - 배당률 --gold, 28px 굵게, tabular-nums
+      - 값이 바뀐 줄은 0.4초 배경 강조
+      - "정렬은 동물 순서 고정 — 코인 순으로 재정렬하면 눈이 못 따라감"
+
+  - id: team_progress
+    type: list
+    position: bottom-right
+    data_source: { resource: team, needs: [no, name, answered, bet_locked] }
+    row: "{no}모둠 {name}  {answered ? '✅ 제출' : '⏳ 푸는중'}  {bet_locked ? '💰 확정' : '⏳'}"
+    rules:
+      - 완료 --ok, 대기 --wait
+      - "내용은 절대 표시하지 않는다 (뭘 골랐는지·맞았는지)"
+
+  - id: controls
+    type: button_row
+    position: bottom
+    buttons:
+      - { id: start_round, label: "🎲 라운드 시작", action: advanceRound,
+          enabled_when: "phase == waiting", size: large }
+      - { id: pause, label: "⏸ 일시정지", action: togglePause,
+          toggle_label: "▶ 이어하기", enabled_when: "phase in [quiz, betting]" }
+      - { id: reveal, label: "정답 순위 보기", size: small, style: muted,
+          note: "실수로 TV에 띄우지 않게 작고 눈에 안 띄게. 누르면 확인 1회" }
+      - { id: finalize, label: "정산하기", size: small, action: finalize }
+
+phases:
+  waiting: 가운데 크게 "{round}라운드 준비 — [라운드 시작]"
+  moving:  말이 움직임 (0.6초). 타이머 없음
+  quiz:    상단 "문제 푸는 중" + 타이머. team_progress 제출 표시가 하나씩 켜짐
+  discuss: 상단 "모둠 토론 중" + 타이머. 조작 없음 — 학생들이 서로 보는 시간
+  betting: 상단 "베팅 중" + 타이머. odds_board가 계속 움직임
+  paused:  회색 덮개 + "일시정지 중". 타이머 멈춤
+  done:    정산 화면으로 가는 버튼만 크게
+
+validations:
+  - id: double_start
+    rule: 라운드 진행 중 start_round 재클릭 방지
+    handling: 버튼 잠금
+  - id: early_finalize
+    rule: 마지막 라운드 전 정산 시도
+    message: "아직 3등이 안 들어왔어요. 그래도 정산할까요?"
+    choices: [정산, 취소]
+  - id: reveal_confirm
+    rule: 정답 순위 보기
+    message: "정답 순위를 화면에 띄웁니다. TV에 보여도 괜찮나요?"
+    choices: [보기, 취소]
+    on_show: 반투명 덮개로 트랙을 가림
+  - id: connection_lost
+    rule: getState 3회 연속 실패
+    handling: 상단 빨간 띠 "연결이 불안정해요. 인터넷을 확인해주세요". 성공하면 자동 제거
+
+tests:
+  - name: 라운드 진행
+    when: 라운드 시작 클릭
+    then: [말 8마리가 이동, phase가 quiz로, 타이머 90초 시작]
+  - name: 베팅 실시간 반영
+    when: 모둠 폰에서 베팅 확정
+    then: [2초 안에 odds_board 값 변경 + 해당 줄 강조, team_progress에 💰 표시]
+  - name: 일시정지
+    when: 일시정지 클릭 후 3분 뒤 재개
+    then: [타이머가 멈춰 있었음, 재개 시 멈춘 지점 남은 시간부터, 멈춘 동안 모둠 제출은 거부됨]
+  - name: 타이머 자동 마감
+    when: 한 모둠이 제출 안 한 채 90초 경과
+    then: [자동으로 betting 단계로, 미제출 모둠은 오답 처리 + 힌트 없음]
+  - name: 정답 순위 실수 방지
+    when: 정답 순위 보기 클릭
+    then: [확인 대화 표시, 취소 시 아무것도 안 보임]
+
+notes:
+  - 트랙에 화면 절반을 강제 배분한다. 정보가 많아 답답해 보이지 않게
+  - "골인 = 1등"이 아니다. 정산 전까지 등수 배지를 안 붙이는 이유

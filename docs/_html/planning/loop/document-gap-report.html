@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>갭 리포트 — 라운드 1</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">갭 리포트 — 라운드 1</div><div class="sub">document-gap-report.md</div><a class="lvl1" href="#갭-리포트-라운드-1">갭 리포트 — 라운드 1</a><a class="lvl2" href="#요약">요약</a><a class="lvl2" href="#g-02-라운드-소요-시간이-문서-안에서-모순-그-결과-2차시-분할-근거가-흔들린다">🔴 G-02 · 라운드 소요 시간이 문서 안에서 모순, 그 결과 **2차시 분할 근거가 흔들린다**</a><a class="lvl2" href="#g-01-문제를-어떻게-고르는지-정한-태스크가-없다">🟠 G-01 · 문제를 어떻게 고르는지 정한 태스크가 없다</a><a class="lvl2" href="#g-03-난이도별-힌트-풀-크기가-요구와-충돌">🟠 G-03 · 난이도별 힌트 풀 크기가 요구와 충돌</a><a class="lvl2" href="#g-04-must-task-직접-참조가-없다">🟡 G-04 · Must → Task 직접 참조가 없다</a><a class="lvl2" href="#g-05-qr-코드가-외부-라이브러리-금지와-충돌-미결">🟡 G-05 · QR 코드가 &quot;외부 라이브러리 금지&quot;와 충돌 (미결)</a><a class="lvl2" href="#검사-통과">✅ 검사 통과</a><a class="lvl2" href="#라우팅">라우팅</a></nav>
+<main><h1 id="갭-리포트-라운드-1">갭 리포트 — 라운드 1</h1>
+<ul><li>모드: <strong>Standard</strong> (표준 docs/planning 구조 존재)</li><li>검토 문서: 12개 (01-prd ~ council-report) + specs 9개</li><li>코드: 0줄 (설계 단계)</li><li>일자: 2026-08-01</li></ul>
+<hr>
+<h2 id="요약">요약</h2>
+<div class="table-wrap"><table><thead><tr><th>판정</th><th>개수</th></tr></thead><tbody><tr><td>🔴 Blocker (게이트 파생 전 해결)</td><td>1</td></tr><tr><td>🟠 Major (빌드 전 해결)</td><td>2</td></tr><tr><td>🟡 Minor (빌드 중 해결 가능)</td><td>2</td></tr><tr><td>✅ 검사 통과</td><td>6</td></tr></tbody></table></div>
+<hr>
+<h2 id="g-02-라운드-소요-시간이-문서-안에서-모순-그-결과-2차시-분할-근거가-흔들린다">🔴 G-02 · 라운드 소요 시간이 문서 안에서 모순, 그 결과 <strong>2차시 분할 근거가 흔들린다</strong></h2>
+<p><strong>근거</strong></p>
+<div class="table-wrap"><table><thead><tr><th>위치</th><th>내용</th></tr></thead><tbody><tr><td><code>03-user-flow.md:16-18</code></td><td>1라운드 13~25분, 2라운드 25~37분 → <strong>라운드당 약 12분</strong></td></tr><tr><td><code>03-user-flow.md:37</code></td><td>&quot;## 3. 한 라운드 안 (<strong>약 4분</strong>)&quot;</td></tr><tr><td><code>03-user-flow.md</code> §3 계산</td><td>이동 20초 + 문제 90초 + 베팅 60초 = <strong>170초 ≈ 3분</strong></td></tr></tbody></table></div>
+<p>같은 문서 안에서 12분과 4분이 충돌한다.</p>
+<p><strong>더 중요한 함의</strong></p>
+<p>2차시 분할은 기획 대화에서 이렇게 결정됐다 — <em>&quot;6팀 순차 진행이면 라운드당 10분, 50분에 3라운드밖에 못 돈다.&quot;</em> 그런데 이후 <strong>모둠 폰 동시 진행</strong>으로 바꾸면서 라운드가 4분이 됐다. 그러면:</p>
+<pre class="code"><code>규칙 설명   8분
+6라운드 × 4분 = 24분
+정산        8분
+─────────────────
+합계       40분   → 1차시에 전부 끝난다</code></pre>
+<p><strong>2차시 분할을 만든 이유가 사라졌는데 결정은 그대로 남아 있다.</strong> 그리고 2차시 분할 때문에 <code>M1</code>(판 코드 이어하기)·<code>P1-R2-T3</code>(사건 기록 복구)·<code>B5</code>(이어하기 검사)라는 <strong>적지 않은 구현량</strong>이 붙어 있다.</p>
+<p><strong>영향받는 문서</strong>: 01-prd §2·§4(M1), 02-trd §5, 03-user-flow §1·§2, 06-tasks P1-R2-T3·P6-T2, 08-test-plan B5</p>
+<p><strong>필요한 것</strong>: 사용자 결정. 아래 세 갈래 중 하나.</p>
+<ol><li>2차시 유지 — 그러면 라운드당 12분이 되도록 <strong>모둠 토론 시간을 별도 단계로 명시</strong>해야 한다 (지금은 토론 시간이 어느 단계에도 없다)</li><li>1차시 완결로 전환 — M1·복구 로직이 &quot;있으면 좋은 것&quot;으로 내려가고 구현량이 줄어든다</li><li>1차시 목표 + 2차시 대비 — 기본은 1차시 완결, 못 끝내면 이어하기. 구현은 유지하되 시간표를 다시 씀</li></ol>
+<blockquote>참고: 토론 시간을 명시하는 게 기획 목적(&quot;조용하던 애들이 말한다&quot;)에는 오히려 맞다. 지금 흐름에는 힌트를 받고 <strong>이야기할 시간이 따로 잡혀 있지 않다</strong> — 베팅 60초 안에 토론까지 하라는 셈이다.</blockquote>
+<hr>
+<h2 id="g-01-문제를-어떻게-고르는지-정한-태스크가-없다">🟠 G-01 · 문제를 어떻게 고르는지 정한 태스크가 없다</h2>
+<p><strong>근거</strong></p>
+<div class="table-wrap"><table><thead><tr><th>위치</th><th>내용</th></tr></thead><tbody><tr><td><code>04-database.md:148</code></td><td>상태에 <code>usedQuestions: {쉬움:[3,7], 중간:[1,5], 어려움:[2,9]}</code> 필드가 있다</td></tr><tr><td><code>teacher-setup.yaml:85</code></td><td>경고 문구가 &quot;모자라면 <strong>앞 라운드 문제를 다시 냅니다</strong>&quot;라고 약속한다</td></tr><tr><td><code>03-user-flow.md:150</code></td><td>같은 약속</td></tr><tr><td><code>06-tasks.md</code></td><td><strong>이 동작을 구현하는 태스크가 없다</strong></td></tr></tbody></table></div>
+<p>라운드 N에서 난이도 X를 고른 모둠에게 <strong>어느 문항</strong>을 줄지 정한 곳이 없다. <code>usedQuestions</code>를 읽고 쓰는 주체도 없다.</p>
+<p><strong>필요한 것</strong>: <code>P2-R4-T4 · 문제 선택기</code> 태스크 추가. 규칙은 다음을 정해야 한다 —</p>
+<ul><li>라운드×난이도 조합마다 문항 1개 배정 (같은 난이도를 고른 모둠은 같은 문제 — 선생님 결정)</li><li>이미 낸 문항은 <code>usedQuestions</code>에 기록</li><li>남은 문항이 없으면 가장 오래된 것부터 재사용</li><li>문항 배정은 판 생성 시 미리 다 정한다 (라운드마다 뽑으면 캐시 복구 시 달라진다)</li></ul>
+<hr>
+<h2 id="g-03-난이도별-힌트-풀-크기가-요구와-충돌">🟠 G-03 · 난이도별 힌트 풀 크기가 요구와 충돌</h2>
+<p><strong>근거</strong></p>
+<div class="table-wrap"><table><thead><tr><th>위치</th><th>내용</th></tr></thead><tbody><tr><td><code>04-database.md:149</code></td><td><code>hintPlan: {어려움:[0,3,5], 중간:[1,2,6], 쉬움:[4,7,8]}</code> — 난이도별 <strong>3개</strong></td></tr><tr><td><code>06-tasks.md P2-R3-T3</code></td><td>acceptance: &quot;한 모둠이 6라운드 힌트 지급 시 <strong>같은 문장이 두 번 안 나옴</strong>&quot;</td></tr><tr><td><code>06-tasks.md P2-R3-T4</code></td><td>G3-b: &quot;<strong>어려움만 6번</strong> 고른 모둠이 1·2·3등을 좁힐 수 있음&quot;</td></tr></tbody></table></div>
+<p>어려움을 6번 고른 모둠은 서로 다른 어려움 힌트 6개가 필요한데 풀에는 3개뿐이다. <strong>acceptance 두 개가 동시에 만족될 수 없다.</strong></p>
+<p><strong>필요한 것</strong>: <code>02-trd §6-2</code>와 <code>04-database §6</code>에 <strong>난이도별 힌트 풀 최소 6개</strong> 명시. 그리고 힌트문구 탭의 종류가 난이도별로 3종뿐이므로(어려움: 순위확정/상위확정/부정확정), 같은 종류를 <strong>다른 동물에 적용해</strong> 6개를 만들어야 한다. 예: &quot;B는 최종 1등입니다&quot; / &quot;F는 최종 5등입니다&quot; — 같은 틀, 다른 대상.</p>
+<hr>
+<h2 id="g-04-must-task-직접-참조가-없다">🟡 G-04 · Must → Task 직접 참조가 없다</h2>
+<p><strong>근거</strong>: <code>06-tasks.md</code>가 명시적으로 부르는 Must는 <code>M2 M3 M13 M16</code> 4개뿐. 나머지 12개는 화면 ID(S1~S6)를 거쳐 간접 연결된다.</p>
+<p>체인 자체는 끊기지 않았다 — <code>specs/screens/*.yaml</code>의 <code>musts:</code> 필드가 다리를 놓는다. 다만 태스크만 보고는 어느 Must를 만드는지 알 수 없어, 빌드 중 누락을 눈치채기 어렵다.</p>
+<p><strong>필요한 것</strong>: 각 태스크에 <code>Must:</code> 한 줄 추가. 기계적 수정.</p>
+<hr>
+<h2 id="g-05-qr-코드가-외부-라이브러리-금지와-충돌-미결">🟡 G-05 · QR 코드가 &quot;외부 라이브러리 금지&quot;와 충돌 (미결)</h2>
+<p><strong>근거</strong>: <code>06-tasks.md P4-S1-T2</code>가 &quot;QR(외부 라이브러리 없이 직접 생성)&quot;이라고 적고, 비고에 &quot;순수 JS 구현 또는 주소만 크게 (판단 필요)&quot;로 미결 표시.</p>
+<p>QR 인코더를 직접 짜는 건 만만치 않다(리드-솔로몬 오류정정 포함). <code>07-coding-convention §10</code>은 CDN을 금지한다.</p>
+<p><strong>필요한 것</strong>: 결정. 실용적으로는 <strong>주소만 크게 표시 + 짧은 단축 경로</strong>로 충분하다 — 학생은 어차피 판 코드 4자리를 손으로 입력해야 하므로 QR이 절약하는 건 주소 입력 한 번뿐이다.</p>
+<hr>
+<h2 id="검사-통과">✅ 검사 통과</h2>
+<div class="table-wrap"><table><thead><tr><th>검사</th><th>결과</th></tr></thead><tbody><tr><td>수치 일관성 (시드 15·타이머 90/60·코인 20/3·트랙 10)</td><td>전 문서 일치. 옛 시드 5 잔존 없음</td></tr><tr><td>council 지적 반영</td><td>C1~C10 전부 문서에 반영됨. 결정과 근거가 <code>10-desire-map §6-2</code>에 기록</td></tr><tr><td>접속 점유 모순 (C2)</td><td>03·06·07·08 전부에서 제거 확인. <code>TEAM_TAKEN</code> 잔존 없음</td></tr><tr><td>ICV (화면↔리소스)</td><td>필드 커버리지 100%, 미정의 참조 0</td></tr><tr><td>화면↔Must</td><td><code>specs/screens/*.yaml</code> musts로 16/16 배정</td></tr><tr><td>비밀 유지 설계</td><td><code>truth</code>/<code>moves</code>/<code>lastRound</code> 차단이 02·04·07·types.yaml·team-play.yaml 5곳에서 일관</td></tr></tbody></table></div>
+<hr>
+<h2 id="라우팅">라우팅</h2>
+<div class="table-wrap"><table><thead><tr><th>갭</th><th>되돌릴 곳</th><th>방식</th></tr></thead><tbody><tr><td>G-02</td><td><code>socrates</code>(01-prd §2) + 03-user-flow</td><td><strong>사용자 결정 필요</strong> → 결정 후 patch</td></tr><tr><td>G-01</td><td><code>tasks-generator</code> (patch)</td><td>P2에 태스크 1개 추가</td></tr><tr><td>G-03</td><td>02-trd §6-2, 04-database §6 (patch)</td><td>최소 개수 명시</td></tr><tr><td>G-04</td><td><code>tasks-generator</code> (patch)</td><td>각 태스크에 Must 한 줄</td></tr><tr><td>G-05</td><td><code>tasks-generator</code> (patch)</td><td>결정 후 acceptance 확정</td></tr></tbody></table></div>
+<div class="meta-foot">원본: <code>document-gap-report.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

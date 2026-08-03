@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>05. 화면 규칙 — 색·글자·부품</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">05. 화면 규칙 — 색·글자·부품</div><div class="sub">05-design-system.md</div><a class="lvl1" href="#05-화면-규칙-색글자부품">05. 화면 규칙 — 색·글자·부품</a><a class="lvl2" href="#1-두-화면은-완전히-다른-물건이다">1. 두 화면은 완전히 다른 물건이다</a><a class="lvl2" href="#2-색">2. 색</a><a class="lvl2" href="#3-글자">3. 글자</a><a class="lvl2" href="#4-부품">4. 부품</a><a class="lvl3" href="#4-1-레이스-트랙-tv-전용">4-1. 레이스 트랙 (TV 전용)</a><a class="lvl3" href="#4-2-배당률-전광판-tv-전용">4-2. 배당률 전광판 (TV 전용)</a><a class="lvl3" href="#4-3-모둠-현황-tv-전용">4-3. 모둠 현황 (TV 전용)</a><a class="lvl3" href="#4-4-난이도-고르기-폰-전용">4-4. 난이도 고르기 (폰 전용)</a><a class="lvl3" href="#4-5-힌트-카드-폰-전용">4-5. 힌트 카드 (폰 전용)</a><a class="lvl3" href="#4-6-베팅-입력-폰-전용">4-6. 베팅 입력 (폰 전용)</a><a class="lvl3" href="#4-7-타이머">4-7. 타이머</a><a class="lvl2" href="#5-지켜야-할-것">5. 지켜야 할 것</a><a class="lvl2" href="#6-안-하는-것">6. 안 하는 것</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="05-화면-규칙-색글자부품">05. 화면 규칙 — 색·글자·부품</h1>
+<ul><li>상위 문서: 01-prd, 03-user-flow</li><li>원칙: <strong>교실 뒤에서도 보이게, 폰에서는 엄지로 눌리게</strong></li></ul>
+<hr>
+<h2 id="1-두-화면은-완전히-다른-물건이다">1. 두 화면은 완전히 다른 물건이다</h2>
+<div class="table-wrap"><table><thead><tr><th></th><th>교사 화면 (TV)</th><th>모둠 화면 (폰)</th></tr></thead><tbody><tr><td>보는 거리</td><td>3~8m 떨어진 교실 뒤</td><td>30cm</td></tr><tr><td>보는 사람</td><td>30명 동시</td><td>4~5명이 머리 맞대고</td></tr><tr><td>조작</td><td>거의 없음 (라운드 시작 정도)</td><td>계속 누름</td></tr><tr><td>기본 글자 크기</td><td><strong>24px</strong></td><td>16px</td></tr><tr><td>제일 큰 글자</td><td>64px (라운드 번호, 남은 시간)</td><td>28px</td></tr><tr><td>화면 기준</td><td>1920×1080 가로</td><td>390×844 세로</td></tr></tbody></table></div>
+<hr>
+<h2 id="2-색">2. 색</h2>
+<pre class="code"><code>--bg          #0F1720   짙은 남색   (TV 배경 — 형광등 아래 눈부심 방지)
+--bg-light    #F5F7FA   밝은 회색   (폰 배경)
+--card        #1B2734   카드 (TV)
+--card-light  #FFFFFF   카드 (폰)
+--text        #E8EDF2   글자 (TV)
+--text-dark   #1B2734   글자 (폰)
+--muted       #7A8A99   흐린 글자
+
+--gold        #F2B441   코인·배당률·우승        ← 돈에 관한 모든 것
+--run         #4FC3F7   말·트랙 진행
+--goal        #EF5350   결승선·마감 임박
+--ok          #66BB6A   정답·확정 완료
+--wait        #FFA726   대기 중·미제출
+
+난이도
+--easy        #7CB342   쉬움
+--normal      #FB8C00   중간
+--hard        #E53935   어려움</code></pre>
+<p><strong>색만으로 뜻을 전하지 않는다.</strong> 정답/오답은 색 + 글자(⭕/❌)로 같이 표시한다. 색각이상 학생과, 낡은 TV 색감 둘 다를 위해서다.</p>
+<hr>
+<h2 id="3-글자">3. 글자</h2>
+<pre class="code"><code>글꼴: system-ui, -apple-system, &quot;Apple SD Gothic Neo&quot;,
+      &quot;Malgun Gothic&quot;, &quot;Noto Sans KR&quot;, sans-serif</code></pre>
+<p>외부 글꼴을 불러오지 않는다 — 학교망에서 막히면 글자가 깨지고, 그러면 수업이 멈춘다.</p>
+<div class="table-wrap"><table><thead><tr><th>쓰임</th><th>TV</th><th>폰</th></tr></thead><tbody><tr><td>남은 시간·라운드</td><td>64px 굵게</td><td>28px 굵게</td></tr><tr><td>제목</td><td>40px 굵게</td><td>22px 굵게</td></tr><tr><td>동물 이름·모둠 이름</td><td>28px</td><td>18px</td></tr><tr><td>본문</td><td>24px</td><td>16px</td></tr><tr><td>보조 설명</td><td>20px</td><td>13px</td></tr></tbody></table></div>
+<p>숫자(코인·배당률)는 <code>font-variant-numeric: tabular-nums</code>로 자릿수를 고정한다. 안 그러면 배당률이 바뀔 때마다 표가 들썩인다.</p>
+<hr>
+<h2 id="4-부품">4. 부품</h2>
+<h3 id="4-1-레이스-트랙-tv-전용">4-1. 레이스 트랙 (TV 전용)</h3>
+<pre class="code"><code>[🐆 치타 ]  ▓▓▓▓▓▓░░░░ 🏁
+[🦁 사자 ]  ▓▓▓▓░░░░░░ 🏁</code></pre>
+<ul><li>한 줄 높이 64px, 8줄이 화면 절반을 차지</li><li>지나온 칸은 <code>--run</code>, 남은 칸은 어둡게, 마지막 칸은 <code>--goal</code></li><li>골인한 동물은 줄 전체가 살짝 빛나고 왼쪽에 순위 배지 (단, <strong>정산 전에는 등수를 안 보여준다</strong> — 골인 순서만 보임)</li><li>이동은 CSS <code>transition 0.6s</code>만. 복잡한 연출은 이번 범위 밖</li></ul>
+<h3 id="4-2-배당률-전광판-tv-전용">4-2. 배당률 전광판 (TV 전용)</h3>
+<div class="table-wrap"><table><thead><tr><th>동물</th><th>걸린 코인</th><th>배당률</th></tr></thead><tbody><tr><td>🐆 치타</td><td>12</td><td><strong>2.14배</strong></td></tr><tr><td>🦁 사자</td><td>3</td><td><strong>5.80배</strong></td></tr></tbody></table></div>
+<ul><li>배당률은 <code>--gold</code>, 28px 굵게</li><li>값이 바뀐 줄은 0.4초 동안 배경이 잠깐 밝아진다 (뭐가 움직였는지 보이게)</li><li>코인이 많이 걸린 순서로 정렬하지 <strong>않는다</strong> — 동물 순서 고정. 순서가 바뀌면 눈이 못 따라감</li></ul>
+<h3 id="4-3-모둠-현황-tv-전용">4-3. 모둠 현황 (TV 전용)</h3>
+<pre class="code"><code>1모둠 미토콘드리아  ✅ 제출   💰 확정
+2모둠 엽록체        ⏳ 푸는중  ⏳</code></pre>
+<ul><li>완료 <code>--ok</code>, 대기 <code>--wait</code></li><li><strong>내용은 절대 안 보인다</strong> — 뭘 골랐는지, 맞았는지는 표시하지 않는다</li></ul>
+<h3 id="4-4-난이도-고르기-폰-전용">4-4. 난이도 고르기 (폰 전용)</h3>
+<pre class="code"><code>┌─────────┐ ┌─────────┐ ┌─────────┐
+│  쉬움    │ │  중간    │ │ 어려움   │
+│ 힌트 약  │ │ 힌트 중  │ │ 힌트 강  │
+└─────────┘ └─────────┘ └─────────┘</code></pre>
+<ul><li>세로 88px 이상 (엄지로 정확히 눌리는 크기)</li><li>각 난이도 색으로 테두리, 고르면 채워짐</li><li>한 번 고르면 그 라운드에는 못 바꿈 — 누르기 전 확인 한 번 받는다</li></ul>
+<h3 id="4-5-힌트-카드-폰-전용">4-5. 힌트 카드 (폰 전용)</h3>
+<pre class="code"><code>┌──────────────────────────────┐
+│ 2라운드 · 어려움              │
+│ 사자는 1·2·3등 안에 반드시    │
+│ 듭니다.                      │
+└──────────────────────────────┘</code></pre>
+<ul><li>최신이 위로</li><li>난이도 색 왼쪽 띠</li><li>여기가 이 게임에서 <strong>제일 많이 읽히는 화면</strong>이다. <strong>글자 20px, 줄간격 1.8</strong> — 폰의 다른 곳(16px)보다 크게 잡는다. 폰 1대를 4~5명이 가운데 놓고 같이 읽어야 하기 때문 (리뷰 반영)</li><li>새 힌트가 도착하면 자동으로 이 탭으로 넘어간다</li></ul>
+<h3 id="4-6-베팅-입력-폰-전용">4-6. 베팅 입력 (폰 전용)</h3>
+<pre class="code"><code>🐆 치타   2.14배    [ − ]  2  [ + ]
+🦁 사자   5.80배    [ − ]  0  [ + ]
+────────────────────────────────
+이번 라운드 3개 중 2개 사용
+        [ 베팅 확정하기 ]</code></pre>
+<ul><li><code>+</code>/<code>−</code> 버튼 각 56×56px</li><li>3개를 다 쓰면 나머지 <code>+</code>가 흐려짐</li><li>확정 버튼은 <code>--gold</code>, 누르면 <strong>되돌릴 수 없다</strong>는 확인을 한 번 받는다</li><li>확정 후에는 전체가 회색으로 잠기고 &quot;확정됨&quot; 표시</li></ul>
+<h3 id="4-7-타이머">4-7. 타이머</h3>
+<ul><li>TV: 우상단 64px 숫자. 10초 남으면 <code>--goal</code>로 바뀌고 1초마다 살짝 커진다</li><li>폰: 화면 맨 위 얇은 막대가 줄어드는 방식 (숫자는 작게 옆에)</li><li><strong>소리는 이번 범위 밖</strong> (Should로 미뤄둠)</li></ul>
+<hr>
+<h2 id="5-지켜야-할-것">5. 지켜야 할 것</h2>
+<ul><li>버튼은 최소 44×44px (폰), 88px 세로 (주요 동작)</li><li>누르면 0.1초 안에 눈에 보이는 반응이 있어야 한다. 서버 응답이 늦어도 버튼은 즉시 눌린 티를 낸다</li><li>서버를 기다리는 동안 같은 버튼을 두 번 못 누르게 잠근다</li><li>오류 메시지는 뭘 하라는지 적는다: ❌ &quot;오류 발생&quot; → ⭕ &quot;베팅 시간이 지났어요. 다음 라운드를 기다려주세요&quot;</li><li>폰은 세로만 지원. 가로로 돌려도 세로 배치 유지</li><li>애니메이션은 0.6초 넘지 않는다. 수업 시간이 아깝다</li></ul>
+<hr>
+<h2 id="6-안-하는-것">6. 안 하는 것</h2>
+<ul><li>다크/라이트 전환 — TV는 어두운 화면, 폰은 밝은 화면으로 고정</li><li>로고·브랜딩 — 개인 수업 도구다</li><li>외부 아이콘 라이브러리 — 이모지로 충분하고 인터넷 없이도 뜬다</li></ul>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 01-prd, 03-user-flow</li><li>영향 주는 하위 문서: 06-screens, 07-coding-convention</li><li>아직 안 정한 것: 교실 TV의 실제 크기·해상도 (1920×1080 가정) — 첫 수업 전 확인 필요</li><li>전제: 학생 폰은 대부분 세로로 쓴다</li><li>확인 기준: 교실 맨 뒷자리에서 배당률 숫자가 읽힌다</li><li>위험: 낡은 TV는 색이 뭉개져 난이도 색 구분이 안 될 수 있음 → 색 + 글자 병기로 이미 대응</li></ul>
+<div class="meta-foot">원본: <code>05-design-system.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

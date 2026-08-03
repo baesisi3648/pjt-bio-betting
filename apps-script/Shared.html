@@ -1,0 +1,103 @@
+<style>
+/* 05-design-system.md — 외부 글꼴·CDN 없음. 학교망에서 막히면 수업이 멈춘다 */
+:root{
+  --bg:#0F1720; --bg-light:#F5F7FA; --card:#1B2734; --card-light:#FFF;
+  --text:#E8EDF2; --text-dark:#1B2734; --muted:#7A8A99;
+  --gold:#F2B441; --run:#4FC3F7; --goal:#EF5350; --ok:#66BB6A; --wait:#FFA726;
+  --easy:#7CB342; --normal:#FB8C00; --hard:#E53935;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+     -webkit-text-size-adjust:100%}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;border:none;border-radius:8px}
+button:disabled{opacity:.4;cursor:default}
+.hidden{display:none !important}
+
+/* 연결 경고 */
+#conn{position:fixed;top:0;left:0;right:0;background:var(--goal);color:#fff;
+      padding:10px;text-align:center;font-weight:700;z-index:99}
+
+/* 확인 대화 — alert/confirm은 폴링을 막으므로 쓰지 않는다 */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;
+       align-items:center;justify-content:center;z-index:100;padding:20px}
+#modal .box{background:#fff;color:var(--text-dark);border-radius:14px;padding:24px;max-width:420px;width:100%}
+#modal p{font-size:17px;line-height:1.6;margin-bottom:20px;white-space:pre-line}
+#modal .btns{display:flex;gap:10px}
+#modal button{flex:1;padding:14px;font-size:16px;font-weight:700}
+#modal .yes{background:var(--gold);color:#1B2734}
+#modal .no{background:#E3E8EE;color:#48606F}
+.ver{color:var(--muted);font-size:12px;text-align:center;padding:8px}
+</style>
+
+<div id="conn" class="hidden">연결이 불안정해요. 인터넷을 확인해주세요</div>
+<div id="modal" class="hidden"><div class="box">
+  <p id="modal-msg"></p>
+  <div class="btns"><button class="no" id="modal-no">취소</button><button class="yes" id="modal-yes">확인</button></div>
+</div></div>
+
+<script>
+/* ── 확인 대화 ── */
+var _onYes = null;
+function confirmBox(msg, onYes){
+  document.getElementById('modal-msg').textContent = msg;
+  document.getElementById('modal').classList.remove('hidden');
+  _onYes = onYes;
+}
+document.getElementById('modal-yes').onclick = function(){
+  document.getElementById('modal').classList.add('hidden');
+  if(_onYes){ var f=_onYes; _onYes=null; f(); }
+};
+document.getElementById('modal-no').onclick = function(){
+  document.getElementById('modal').classList.add('hidden'); _onYes=null;
+};
+
+/* ── 서버 호출 — 두 번 누르기 방지 ── */
+var busy = {};
+function call(fn, args, done){
+  if(busy[fn]) return;
+  busy[fn] = true;
+  google.script.run
+    .withSuccessHandler(function(res){ busy[fn]=false; handle(res, done); })
+    .withFailureHandler(function(e){ busy[fn]=false; onFail(e); })
+    [fn].apply(null, args||[]);
+}
+function handle(res, done){
+  if(!res || !res.ok){ if(res && res.message) toast(res.message); return; }
+  hideConn();
+  if(done) done(res.data);
+}
+
+/* ── 폴링 — stateVersion이 바뀔 때만 다시 그린다 ── */
+var lastVersion = -1, failCount = 0;
+function startPolling(fn, args, render, tick){
+  function poll(){
+    google.script.run
+      .withSuccessHandler(function(res){
+        if(!res || !res.ok){ onFail(); return; }
+        failCount = 0; hideConn();
+        var d = res.data;
+        if(d.stateVersion !== lastVersion){ lastVersion = d.stateVersion; render(d); }
+        if(tick) tick(d);
+      })
+      .withFailureHandler(function(){ onFail(); })
+      [fn].apply(null, args());
+  }
+  poll();
+  setInterval(poll, 2000);
+}
+function onFail(){ if(++failCount >= 3) document.getElementById('conn').classList.remove('hidden'); }
+function hideConn(){ document.getElementById('conn').classList.add('hidden'); }
+function forceRefresh(){ lastVersion = -1; }
+
+/* ── 표시 ── */
+function toast(msg){
+  var el = document.getElementById('toast');
+  if(!el) return;
+  el.textContent = msg; el.classList.remove('hidden');
+  clearTimeout(el._t); el._t = setTimeout(function(){ el.classList.add('hidden'); }, 3500);
+}
+function esc(s){ return String(s==null?'':s).replace(/[&<>"]/g, function(c){
+  return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function mmss(s){ return s==null ? '' : s + '초'; }
+</script>

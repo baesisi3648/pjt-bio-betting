@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>설계 문서 인덱스</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">📐 설계 문서</div><div class="sub">docs · 2026-07-31</div><a class="lvl1 doc" href="#g-planning">planning</a><a class="lvl1 doc" href="#g-planningloop">planning/loop</a></nav>
+<main><h1>설계 문서 인덱스</h1><p>docs 하위 Markdown 문서를 구조적 HTML로 자동 렌더한 목록입니다.</p><div class="idx-group" id="g-planning">planning</div><a class="idx-card" href="./planning/01-prd.html"><div class="t">01-prd</div><div class="p">planning/01-prd.md</div></a><a class="idx-card" href="./planning/02-trd.html"><div class="t">02-trd</div><div class="p">planning/02-trd.md</div></a><a class="idx-card" href="./planning/03-user-flow.html"><div class="t">03-user-flow</div><div class="p">planning/03-user-flow.md</div></a><a class="idx-card" href="./planning/04-database.html"><div class="t">04-database</div><div class="p">planning/04-database.md</div></a><a class="idx-card" href="./planning/05-design-system.html"><div class="t">05-design-system</div><div class="p">planning/05-design-system.md</div></a><a class="idx-card" href="./planning/06-screens.html"><div class="t">06-screens</div><div class="p">planning/06-screens.md</div></a><a class="idx-card" href="./planning/06-tasks.html"><div class="t">06-tasks</div><div class="p">planning/06-tasks.md</div></a><a class="idx-card" href="./planning/07-coding-convention.html"><div class="t">07-coding-convention</div><div class="p">planning/07-coding-convention.md</div></a><a class="idx-card" href="./planning/08-test-plan.html"><div class="t">08-test-plan</div><div class="p">planning/08-test-plan.md</div></a><a class="idx-card" href="./planning/09-personas.html"><div class="t">09-personas</div><div class="p">planning/09-personas.md</div></a><a class="idx-card" href="./planning/10-desire-map.html"><div class="t">10-desire-map</div><div class="p">planning/10-desire-map.md</div></a><a class="idx-card" href="./planning/council-report.html"><div class="t">council-report</div><div class="p">planning/council-report.md</div></a><div class="idx-group" id="g-planningloop">planning/loop</div><a class="idx-card" href="./planning/loop/00-loop.html"><div class="t">00-loop</div><div class="p">planning/loop/00-loop.md</div></a><a class="idx-card" href="./planning/loop/08-derived-gates.html"><div class="t">08-derived-gates</div><div class="p">planning/loop/08-derived-gates.md</div></a><a class="idx-card" href="./planning/loop/build-verification-report.html"><div class="t">build-verification-report</div><div class="p">planning/loop/build-verification-report.md</div></a><a class="idx-card" href="./planning/loop/document-gap-report.html"><div class="t">document-gap-report</div><div class="p">planning/loop/document-gap-report.md</div></a><a class="idx-card" href="./planning/loop/final-planning-approval.html"><div class="t">final-planning-approval</div><div class="p">planning/loop/final-planning-approval.md</div></a>
+<div class="meta-foot">총 17개 문서 · 자동 생성 2026-07-31</div>
+</main>
+</div>
+
+</body></html>

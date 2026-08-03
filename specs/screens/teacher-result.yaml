@@ -1,0 +1,98 @@
+version: "2.0"
+
+screen:
+  id: S3
+  name: 선생님 — 정산 화면
+  route: "?role=teacher&code={code}&view=result"
+  viewer: teacher
+  device: tv-1920x1080
+  layout: stepped-reveal
+  musts: [M13]
+  note: 수업의 절정. 한 번에 다 보여주면 김빠지므로 선생님이 한 단계씩 넘긴다
+
+data_requirements:
+  - resource: game
+    needs: [truth, positions, code, class_name, unit]
+  - resource: settlement
+    needs: [team_no, lines, gained, final_coins, rank]
+  - resource: team
+    needs: [no, name, coins, bets]
+  - resource: odds
+    needs: [animal_code, value]
+  - resource: animal
+    needs: [code, name, emoji]
+  - resource: question
+    needs: [text, choices, answer, explanation, level]
+    purpose: 문제 다시보기
+
+components:
+  - id: step1_ranking
+    type: reveal_panel
+    step: 1
+    function: 최종 순위 공개
+    contents:
+      - "🥇 1등 {animal} · 🥈 2등 {animal} · 🥉 3등 {animal}"  # 하나씩 순차 공개
+      - { id: rest, value: "4~8등", size: small }
+    interaction: 클릭할 때마다 1등 → 2등 → 3등 → 나머지 순으로 하나씩
+
+  - id: step2_breakdown
+    type: accordion_list
+    step: 2
+    function: 모둠별 계산 내역
+    data_source: { resource: settlement }
+    collapsed_by_default: true
+    note: "6모둠 × 8동물이면 스크롤이 매우 길다. 접어두고 선생님이 하나씩 편다 (리뷰 반영)"
+    row_header: "{no}모둠 {name} — {final_coins}코인"
+    row_body:
+      - "{animal}({rank}등)에 {coins}코인 × {odds}배 × {payout}% = {gained}코인"
+      - "4~8등에 건 {lost}코인은 소멸"
+      - "남은 보유 {coins} + 획득 {gained} = {final_coins}코인"
+
+  - id: step3_winner
+    type: podium
+    step: 3
+    function: 최종 우승 발표
+    contents:
+      - "🏆 {1위 모둠} {coins}코인"
+      - 2위 이하 목록
+
+  - id: question_review
+    type: modal_list
+    trigger: "이번 게임 문제 다시보기" 버튼
+    function: 오답 짚어주기 (수업 마무리 5분)
+    data_source: { resource: question, filter: 이번 판에 출제된 문항 }
+    row: "{round}라운드 {level} — {text} / 정답 {answer}번 / {explanation}"
+
+events:
+  - on: 화면 진입
+    then:
+      - finalize() 호출 → 정산 계산 (최종 배당률 × 순위 배율)
+      - game.is_over = true 로 저장
+      - 모둠 화면들이 자동으로 S6으로 전환됨
+
+rules:
+  payout:
+    rank1: 100%
+    rank2: 70%
+    rank3: 50%
+    rank4_8: 0%  # 건 코인 소멸
+  odds_basis: 최종 배당률 하나만 사용
+  note: "선생님 결정 (01-prd §6-2). bets에 라운드 번호가 남아 있어 나중에 방식 전환 가능"
+
+tests:
+  - name: 정산 계산 정확성
+    when: 1모둠이 2등 동물에 4코인(최종 2.14배), 6등 동물에 2코인
+    then: ["획득 = 4 × 2.14 × 0.7 = 5.99 → 6코인", "6등에 건 2코인은 0", "최종 = 남은코인 + 6"]
+  - name: 단계별 공개
+    when: 화면 진입
+    then: [1등만 보임, 클릭해야 2등, 모둠 계산은 접혀 있음]
+  - name: 모둠 화면 동기화
+    when: 정산 시작
+    then: [모둠 폰들이 2초 안에 S6 결과 화면으로 전환]
+  - name: 문제 다시보기
+    when: 다시보기 버튼
+    then: [이번 판 출제 문항만, 정답·해설 포함]
+
+notes:
+  - step2를 접어두는 건 리뷰 지적 반영이다. 펼친 채로 두면 교실 집중력이 3분간 끊긴다
+  - 반올림은 소수 첫째 자리에서 반올림해 정수 코인으로

@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>루프 차터 — 와일드 더비</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">루프 차터 — 와일드 더비</div><div class="sub">00-loop.md</div><a class="lvl1" href="#루프-차터-와일드-더비">루프 차터 — 와일드 더비</a><a class="lvl2" href="#이-프로젝트의-성격">이 프로젝트의 성격</a><a class="lvl2" href="#완료의-정의">완료의 정의</a><a class="lvl2" href="#이-프로젝트에서-특히-조심할-것">이 프로젝트에서 특히 조심할 것</a><a class="lvl3" href="#1-되돌리면-게임이-무너지는-결정-4개">1. 되돌리면 게임이 무너지는 결정 4개</a><a class="lvl3" href="#2-첫-수업-전-반드시-하는-것">2. 첫 수업 전 반드시 하는 것</a><a class="lvl3" href="#3-첫-수업-후-조정할-값-설정-탭">3. 첫 수업 후 조정할 값 (`설정` 탭)</a><a class="lvl2" href="#루프-규칙">루프 규칙</a><a class="lvl2" href="#상위-원칙과의-연결">상위 원칙과의 연결</a></nav>
+<main><h1 id="루프-차터-와일드-더비">루프 차터 — 와일드 더비</h1>
+<p>이 프로젝트에서 &quot;완료&quot;란 무엇인가를 정한 문서. <code>08-derived-gates.md</code>와 <strong>함께</strong> 완료 기준이 된다.</p>
+<hr>
+<h2 id="이-프로젝트의-성격">이 프로젝트의 성격</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody><tr><td>무엇</td><td>고2 생명과학 단원 마무리용 베팅 레이스 보드게임</td></tr><tr><td>어디서</td><td>교실 (TV 1대 + 모둠 폰 5~6대), 학교 구글 계정</td></tr><tr><td>누가</td><td>선생님 혼자 만들고 혼자 운영. 다른 사용자 없음</td></tr><tr><td>무엇으로</td><td>Google Apps Script + 스프레드시트</td></tr><tr><td>실패의 모습</td><td><strong>수업 중에 안 돌아가서 30명 앞에서 멈추는 것</strong></td></tr></tbody></table></div>
+<p>이 마지막 줄이 모든 우선순위를 정한다. 예쁜 것보다 <strong>안 멈추는 것</strong>이 먼저다.</p>
+<hr>
+<h2 id="완료의-정의">완료의 정의</h2>
+<ol><li><code>08-derived-gates.md</code>의 <strong>Hard 게이트 전부</strong>를 증거와 함께 통과</li><li><strong>Metric 게이트</strong>가 목표 안에 들어옴</li><li><strong>Domain 게이트</strong> 전부 통과</li><li>Rubric은 첫 수업 후 판정 — 통과 전이라도 배포는 가능하되, <strong>R-1(조용하던 학생이 말하는가)이 3점 미만이면 기획을 다시 본다</strong></li></ol>
+<blockquote>구현자의 &quot;됐습니다&quot;는 완료가 아니다. <strong>게이트별 증거</strong>가 완료다.</blockquote>
+<hr>
+<h2 id="이-프로젝트에서-특히-조심할-것">이 프로젝트에서 특히 조심할 것</h2>
+<h3 id="1-되돌리면-게임이-무너지는-결정-4개">1. 되돌리면 게임이 무너지는 결정 4개</h3>
+<p>무심코 &quot;단순하게&quot; 고치면 게임이 통째로 망가지는 곳들이다. 코드에 주석으로 박아둘 것.</p>
+<div class="table-wrap"><table><thead><tr><th>결정</th><th>되돌리면</th></tr></thead><tbody><tr><td>이동을 순위에서 <strong>역산</strong></td><td>힌트가 거짓말이 된다 (PDF 원본의 버그)</td></tr><tr><td><code>toTeamView</code>로 비밀 <strong>제거</strong></td><td>개발자 도구로 정답이 보인다</td></tr><tr><td>답·베팅 <strong>즉시 기록</strong></td><td>캐시 소실 시 수업 중 코인이 증발한다</td></tr><tr><td>접속 점유를 <strong>두지 않음</strong></td><td>새로고침한 모둠이 자기 자신 때문에 이탈한다</td></tr></tbody></table></div>
+<h3 id="2-첫-수업-전-반드시-하는-것">2. 첫 수업 전 반드시 하는 것</h3>
+<ul><li>코드 고쳤으면 <strong>새 버전으로 재배포</strong> (제일 흔한 사고)</li><li><strong>학교 와이파이 폰</strong>으로 학생 주소 열어보기 (H10)</li><li>이번 단원 문항 18개 이상 확인</li><li>모둠별 암호 인쇄</li></ul>
+<h3 id="3-첫-수업-후-조정할-값-설정-탭">3. 첫 수업 후 조정할 값 (<code>설정</code> 탭)</h3>
+<div class="table-wrap"><table><thead><tr><th>값</th><th>기본</th><th>조정 신호</th></tr></thead><tbody><tr><td>시드코인</td><td>15</td><td>배당이 여전히 튀면 20, 밋밋하면 10</td></tr><tr><td>문제시간초</td><td>90</td><td>남으면 줄이고 모자라면 늘림</td></tr><tr><td>토론시간초</td><td>180</td><td>대화가 안 붙으면 늘림</td></tr><tr><td>베팅시간초</td><td>60</td><td>허둥대면 늘림</td></tr></tbody></table></div>
+<hr>
+<h2 id="루프-규칙">루프 규칙</h2>
+<ul><li><strong>최대 3라운드</strong>. 3회 후에도 핵심 게이트 미달이면 통과시키지 않고 잔존 리스크로 명시한다</li><li>검증은 <strong>빌드를 수행하지 않은 쪽</strong>이 한다 (구현자 자기 검증 금지)</li><li>게이트 실패 시 <code>rework-request-NN.md</code>에 <strong>실패한 게이트 + 증거</strong>를 적어 되돌린다</li><li>문서를 통째로 다시 쓰지 않는다. 지목된 부분만 고친다</li></ul>
+<hr>
+<h2 id="상위-원칙과의-연결">상위 원칙과의 연결</h2>
+<div class="table-wrap"><table><thead><tr><th>상위 원칙</th><th>이 프로젝트에서의 뜻</th></tr></thead><tbody><tr><td>증거 없이 완료 선언 금지</td><td><code>Test.gs</code> 실행 로그 원문이 있어야 통과</td></tr><tr><td>있는 척 금지</td><td>안 만든 것은 Won't에 적혀 있다. 만든 척하지 않는다</td></tr><tr><td>최소 패치</td><td>감독 라운드에서 문서를 다시 쓰지 않고 지목 부분만 고쳤다</td></tr><tr><td>사용자 결정 존중</td><td>배당 방식(최종 배당률)은 리뷰 권장과 달라도 선생님 결정을 따른다. 대신 전환 가능하게 데이터를 남긴다</td></tr></tbody></table></div>
+<div class="meta-foot">원본: <code>00-loop.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

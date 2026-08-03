@@ -1,0 +1,104 @@
+version: "2.0"
+
+# 두 화면 이상에서 쓰이는 부품. Shared.html에 한 번만 만든다.
+
+components:
+
+  - id: poller
+    used_in: [S2, S5]
+    type: behavior
+    function: 2초마다 getState 호출, state_version 바뀔 때만 다시 그림
+    contract: |
+      var lastVersion = -1;
+      function poll() {
+        callGetState(function(res) {
+          if (!res.ok) { showConnectionWarning(); return; }
+          if (res.data.stateVersion !== lastVersion) {
+            lastVersion = res.data.stateVersion;
+            render(res.data);
+          }
+          updateTimerOnly(res.data);
+        });
+      }
+      setInterval(poll, 2000);
+    rules:
+      - 실패 3연속 → 경고 띠. 성공 시 자동 제거
+      - render는 전체를 다시 그린다 (부품이 적어 성능 문제 없음)
+
+  - id: timer_display
+    used_in: [S2, S5]
+    type: display
+    function: 서버가 준 seconds_left를 그림
+    variants:
+      tv:    { style: "64px 숫자, 10초 이하 --goal + 맥동" }
+      phone: { style: "상단 막대 + 작은 숫자" }
+    rules:
+      - 폰 시계를 쓰지 않는다. 서버가 준 남은 초만 사용
+      - paused_at이 있으면 멈춘 상태로 표시
+
+  - id: animal_row
+    used_in: [S2, S5, S3, S6]
+    type: display
+    function: "{emoji} {name}" 한 줄 표기 통일
+
+  - id: odds_value
+    used_in: [S2, S5, S3]
+    type: display
+    function: 배당률 숫자
+    style: "--gold, tabular-nums, 소수 둘째 자리"
+
+  - id: locking_button
+    used_in: [S2, S5]
+    type: interaction
+    function: 누르면 즉시 잠그고 서버 응답 오면 푼다
+    rules:
+      - 0.1초 안에 눈에 보이는 반응
+      - 두 번 누르기로 요청이 두 번 가지 않게
+
+  - id: error_banner
+    used_in: [S2, S5, S1, S4]
+    type: display
+    function: 서버 오류 코드를 한국어 안내로
+    rules:
+      - "메시지는 '무엇을 하라'까지 적는다"
+      - 서버가 준 message를 그대로 쓴다 (화면에서 새로 만들지 않음)
+
+  - id: pin_input
+    used_in: [S4]
+    type: input
+    function: 4자리 입력 칸
+    variants:
+      code: { transform: uppercase, exclude_chars: "0O1I" }
+      pin:  { keyboard: numeric }
+
+  - id: confirm_dialog
+    used_in: [S1, S2, S5]
+    type: interaction
+    function: 되돌릴 수 없는 동작 직전 확인 1회
+    used_for:
+      - 난이도 선택 확정
+      - 베팅 확정
+      - 정답 순위 보기
+      - 마지막 라운드 전 정산
+    rules:
+      - "JavaScript alert/confirm 금지 — 화면 안 모달로 (알림창은 폴링을 막는다)"
+
+layout_rules:
+  tv:
+    base_font: 24px
+    max_font: 64px
+    background: "--bg (짙은 남색)"
+    viewport: 1920x1080
+  phone:
+    base_font: 16px
+    hint_font: 20px
+    max_font: 28px
+    background: "--bg-light"
+    viewport: 360w 이상, 세로 고정
+    tap_target: 최소 44x44px, 주요 동작 88px 세로
+
+global_rules:
+  - 외부 라이브러리·CDN·웹폰트를 쓰지 않는다 (학교망 차단 대비)
+  - 색만으로 뜻을 전하지 않는다 (색 + 글자 병기)
+  - 애니메이션은 0.6초를 넘지 않는다
+  - 게임 규칙 계산을 화면에서 하지 않는다 (배당률·정산은 서버 값만 표시)

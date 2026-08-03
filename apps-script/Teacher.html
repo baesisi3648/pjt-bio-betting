@@ -1,0 +1,302 @@
+<!DOCTYPE html>
+<html><head><base target="_top"><?!= include('Shared'); ?>
+<style>
+/* TV용 — 교실 뒤 8m에서 읽혀야 한다 */
+body{background:var(--bg);color:var(--text);font-size:24px}
+.wrap{max-width:1900px;margin:0 auto;padding:16px}
+h1{font-size:34px;margin-bottom:14px}
+h2{font-size:28px;margin-bottom:10px}
+.card{background:var(--card);border-radius:14px;padding:20px;margin-bottom:16px}
+
+/* 시작 화면 */
+.tabs{display:flex;gap:10px;margin-bottom:18px}
+.tabs button{padding:14px 26px;font-size:22px;background:var(--card);color:var(--muted)}
+.tabs button.on{background:var(--gold);color:#1B2734;font-weight:700}
+label{display:block;margin:14px 0 6px;font-size:20px;color:var(--muted)}
+input,select{width:100%;padding:14px;font-size:22px;border-radius:8px;border:2px solid #33475A;
+             background:#0B131B;color:var(--text)}
+.names{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.primary{background:var(--gold);color:#1B2734;padding:18px 34px;font-size:24px;font-weight:700;margin-top:20px}
+.warn{background:#3A2E12;border-left:6px solid var(--wait);padding:14px;border-radius:8px;margin-top:14px;font-size:20px;white-space:pre-line}
+.stop{background:#3A1A1A;border-left:6px solid var(--goal);padding:14px;border-radius:8px;margin-top:14px;font-size:20px;white-space:pre-line}
+
+/* 배포 안내 */
+.code{font-size:96px;font-weight:900;color:var(--gold);letter-spacing:10px;text-align:center;margin:10px 0}
+.url{font-size:48px;font-weight:700;text-align:center;word-break:break-all;color:var(--run);line-height:1.3}
+table{width:100%;border-collapse:collapse;margin-top:16px;font-size:24px}
+th,td{padding:12px;border-bottom:1px solid #2C3E50;text-align:left}
+th{color:var(--muted);font-size:20px}
+
+/* 진행 화면 */
+.hdr{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.round{font-size:64px;font-weight:900}
+.timer{font-size:64px;font-weight:900;color:var(--gold)}
+.timer.urgent{color:var(--goal)}
+.track-row{display:flex;align-items:center;gap:12px;margin:7px 0}
+.track-name{width:180px;font-size:26px;font-weight:700;flex:none}
+.cells{display:flex;flex:1;gap:3px}
+.cell{flex:1;height:44px;background:#22303F;border-radius:4px;display:flex;align-items:center;
+      justify-content:center;font-size:18px;color:#4A6076;transition:background .6s}
+.cell.done{background:var(--run)}
+.cell.goal{background:#4A2020;color:#C97}
+.cell.here{background:var(--gold);color:#1B2734;font-size:24px}
+.finished .track-name{color:var(--gold)}
+.two{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
+.odds{font-size:30px;font-weight:900;color:var(--gold)}
+tr.bump td{animation:bump .4s}
+@keyframes bump{from{background:#2E4257}to{background:transparent}}
+.ok{color:var(--ok)} .wait{color:var(--wait)}
+.controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.btn-red{background:var(--goal);color:#fff;padding:18px 32px;font-size:26px;font-weight:700}
+.btn-pause{background:#3E5468;color:#fff;padding:18px 28px;font-size:22px}
+.btn-small{background:transparent;color:var(--muted);font-size:16px;padding:10px;text-decoration:underline}
+.phase-big{text-align:center;font-size:44px;font-weight:800;padding:30px}
+#toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#000;color:#fff;
+       padding:16px 26px;border-radius:10px;font-size:22px;z-index:98}
+.reveal{background:#241A08;border:3px solid var(--gold);padding:20px;border-radius:12px;font-size:28px;margin-top:14px}
+.step{margin:20px 0;font-size:34px}
+.podium{font-size:44px;font-weight:900;text-align:center;line-height:1.6}
+details{margin:10px 0;background:#16202B;border-radius:10px;padding:12px}
+summary{font-size:26px;font-weight:700;cursor:pointer}
+details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
+</style></head>
+<body>
+<div class="wrap">
+
+<!-- ══ S1 시작 화면 ══ -->
+<div id="s1">
+  <h1>🧬 생명과학 와일드 더비</h1>
+  <div class="tabs">
+    <button id="tab-new" class="on" onclick="tab('new')">새 판 만들기</button>
+    <button id="tab-resume" onclick="tab('resume')">판 코드로 이어하기</button>
+  </div>
+
+  <div id="pane-new" class="card">
+    <label>반 이름</label><input id="cls" placeholder="2학년 3반">
+    <label>단원</label><select id="unit"></select>
+    <label>모둠 수</label><select id="cnt" onchange="drawNames()"></select>
+    <label>모둠 이름 (비우면 1모둠, 2모둠…)</label>
+    <div id="names" class="names"></div>
+    <div id="check"></div>
+    <button class="primary" onclick="create()">판 만들기</button>
+  </div>
+
+  <div id="pane-resume" class="card hidden">
+    <label>판 코드 4자리</label><input id="rcode" maxlength="4" style="text-transform:uppercase">
+    <button class="primary" onclick="resume()">이어하기</button>
+    <h2 style="margin-top:26px">최근 판</h2>
+    <table><tbody id="recent"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ 배포 안내 ══ -->
+<div id="handout" class="hidden">
+  <div class="card">
+    <h2>칠판에 적어주세요</h2>
+    <div class="code" id="out-code"></div>
+    <h2 style="margin-top:20px">학생 주소</h2>
+    <div class="url" id="out-url"></div>
+  </div>
+  <div class="card">
+    <h2>모둠별 암호 — 모둠장에게만 종이로 주세요</h2>
+    <table><thead><tr><th>모둠</th><th>이름</th><th>암호</th></tr></thead><tbody id="out-pins"></tbody></table>
+    <div class="controls" style="margin-top:20px">
+      <button class="btn-pause" onclick="window.print()">인쇄하기</button>
+      <button class="btn-red" onclick="goPlay()">진행 화면으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S2 진행 화면 ══ -->
+<div id="s2" class="hidden">
+  <div class="hdr">
+    <div><span id="p-cls" style="color:var(--muted)"></span> <span class="round" id="p-round"></span></div>
+    <div class="timer num" id="p-timer"></div>
+  </div>
+  <div class="card"><div id="track"></div></div>
+  <div class="two">
+    <div class="card"><h2>💰 배당률</h2><table><tbody id="odds"></tbody></table></div>
+    <div class="card"><h2>모둠 현황</h2><table><tbody id="prog"></tbody></table></div>
+  </div>
+  <div class="card controls">
+    <button class="btn-red" id="btn-round" onclick="nextRound()">🎲 라운드 시작</button>
+    <button class="btn-pause" id="btn-pause" onclick="togglePause()">⏸ 일시정지</button>
+    <span style="flex:1"></span>
+    <button class="btn-small" onclick="askReveal()">정답 순위 보기</button>
+    <button class="btn-small" onclick="askFinalize()">정산하기</button>
+  </div>
+  <div id="reveal" class="reveal hidden"></div>
+</div>
+
+<!-- ══ S3 정산 화면 ══ -->
+<div id="s3" class="hidden">
+  <h1>🏁 최종 결과</h1>
+  <div class="card"><div class="step" id="r-step"></div>
+    <button class="btn-red" id="r-next" onclick="nextStep()">다음</button></div>
+  <div id="r-body"></div>
+</div>
+
+<div class="ver" id="ver"></div>
+<div id="toast" class="hidden"></div>
+</div>
+
+<script>
+var CODE = null, LAST = null, prevOdds = {};
+
+/* ── S1 ── */
+function tab(k){
+  document.getElementById('tab-new').className = k==='new'?'on':'';
+  document.getElementById('tab-resume').className = k==='resume'?'on':'';
+  document.getElementById('pane-new').classList.toggle('hidden', k!=='new');
+  document.getElementById('pane-resume').classList.toggle('hidden', k!=='resume');
+}
+function drawNames(){
+  var n = +document.getElementById('cnt').value, h='';
+  for(var i=1;i<=n;i++) h += '<input id="tn'+i+'" placeholder="'+i+'모둠">';
+  document.getElementById('names').innerHTML = h;
+}
+call('gwListUnits', [], function(d){
+  document.getElementById('unit').innerHTML = d.units.map(function(u){return '<option>'+esc(u)+'</option>';}).join('') || '<option value="">문제를 먼저 넣어주세요</option>';
+  var c=''; for(var i=2;i<=8;i++) c += '<option'+(i===6?' selected':'')+'>'+i+'</option>';
+  document.getElementById('cnt').innerHTML = c;
+  drawNames();
+  document.getElementById('recent').innerHTML = d.recent.length
+    ? d.recent.map(function(g){ return '<tr><td><b>'+esc(g.code)+'</b></td><td>'+esc(g.className)+'</td><td>'+esc(g.unit)+'</td><td>'+g.round+'라운드</td><td>'+(g.isOver?'끝남':'진행중')+'</td></tr>'; }).join('')
+    : '<tr><td colspan="5" style="color:var(--muted)">아직 만든 판이 없어요. 새 판을 만들어 보세요.</td></tr>';
+  checkSheets();
+});
+document.getElementById('unit') && (document.getElementById('unit').onchange = checkSheets);
+
+function checkSheets(){
+  var u = document.getElementById('unit').value;
+  if(!u) return;
+  call('gwPrepare', [u], function(d){
+    var h = '';
+    if(d.blocking.length) h += '<div class="stop">⛔ 시작할 수 없어요\n'+esc(d.blocking.join('\n'))+'</div>';
+    if(d.warnings.length) h += '<div class="warn">⚠️ '+esc(d.warnings.join('\n'))+'</div>';
+    document.getElementById('check').innerHTML = h;
+  });
+}
+
+function create(){
+  var n = +document.getElementById('cnt').value, names=[];
+  for(var i=1;i<=n;i++) names.push((document.getElementById('tn'+i).value||'').trim());
+  var cfg = { className: document.getElementById('cls').value || '우리 반',
+              unit: document.getElementById('unit').value, teamCount: n, teamNames: names };
+  if(!cfg.unit){ toast('단원을 골라주세요'); return; }
+  call('gwCreateGame', [cfg], function(d){
+    CODE = d.code;
+    document.getElementById('out-code').textContent = d.code;
+    document.getElementById('out-url').textContent = d.studentUrl;
+    document.getElementById('out-pins').innerHTML = d.teams.map(function(t){
+      return '<tr><td>'+t.no+'모둠</td><td>'+esc(t.name)+'</td><td style="font-size:32px;font-weight:900;color:var(--gold)">'+d.pins[t.no]+'</td></tr>'; }).join('');
+    document.getElementById('s1').classList.add('hidden');
+    document.getElementById('handout').classList.remove('hidden');
+  });
+}
+function resume(){
+  var c = (document.getElementById('rcode').value||'').toUpperCase().trim();
+  if(c.length!==4){ toast('판 코드 4자리를 입력해주세요'); return; }
+  CODE = c; goPlay();
+}
+function goPlay(){
+  document.getElementById('s1').classList.add('hidden');
+  document.getElementById('handout').classList.add('hidden');   // 암호표를 TV에 남기지 않는다
+  document.getElementById('s2').classList.remove('hidden');
+  startPolling('gwGetState', function(){ return [CODE, 'teacher']; }, render, tick);
+}
+
+/* ── S2 ── */
+function render(d){
+  LAST = d;
+  if(d.isOver){ showResult(d); return; }
+  document.getElementById('p-cls').textContent = d.className + ' · ' + d.unit;
+  document.getElementById('p-round').textContent = d.round + '라운드';
+  document.getElementById('ver').textContent = '배포 ' + d.deployVersion;
+
+  var codes = Object.keys(d.animals);
+  document.getElementById('track').innerHTML = codes.map(function(c){
+    var pos = d.positions[c], fin = pos >= 10;
+    var cells = '';
+    for(var i=1;i<=10;i++){
+      var cls = 'cell' + (i===10?' goal':'') + (i<pos?' done':'') + (i===pos||(fin&&i===10)?' here':'');
+      cells += '<div class="'+cls+'">'+(i===pos||(fin&&i===10)?(d.emojis[c]||'🐎'):(i===10?'🏁':''))+'</div>';
+    }
+    return '<div class="track-row'+(fin?' finished':'')+'"><div class="track-name">'+esc(d.animals[c])+'</div><div class="cells">'+cells+'</div></div>';
+  }).join('');
+
+  document.getElementById('odds').innerHTML = codes.map(function(c){
+    var bumped = prevOdds[c] !== undefined && prevOdds[c] !== d.odds[c];
+    return '<tr class="'+(bumped?'bump':'')+'"><td>'+(d.emojis[c]||'')+' <b>'+esc(d.animals[c])+'</b></td>'+
+           '<td class="num">'+(d.pool[c]-15)+'코인</td><td class="odds num">'+d.odds[c].toFixed(2)+'배</td></tr>';
+  }).join('');
+  prevOdds = {}; codes.forEach(function(c){ prevOdds[c]=d.odds[c]; });
+
+  document.getElementById('prog').innerHTML = d.teams.map(function(t){
+    return '<tr><td>'+t.no+'모둠 '+esc(t.name)+'</td>'+
+           '<td class="'+(t.answered?'ok':'wait')+'">'+(t.answered?'✅ 제출':'⏳ 푸는중')+'</td>'+
+           '<td class="'+(t.betLocked?'ok':'wait')+'">'+(t.betLocked?'💰 확정':'⏳')+'</td></tr>';
+  }).join('');
+
+  var waiting = d.phase==='waiting';
+  document.getElementById('btn-round').classList.toggle('hidden', !waiting);
+  document.getElementById('btn-round').textContent = d.round===1 && !d.secondsLeft ? '🎲 1라운드 시작' : '🎲 다음 라운드';
+  document.getElementById('btn-pause').textContent = d.phase==='paused' ? '▶ 이어하기' : '⏸ 일시정지';
+  document.getElementById('btn-pause').classList.toggle('hidden', waiting);
+}
+var PHASE_KO = { waiting:'준비', moving:'이동 중', quiz:'문제 푸는 중', discuss:'모둠 토론 중', betting:'베팅 중', paused:'일시정지', done:'종료' };
+function tick(d){
+  var t = document.getElementById('p-timer');
+  t.textContent = (PHASE_KO[d.phase]||'') + (d.secondsLeft!=null ? '  ⏱ '+d.secondsLeft : '');
+  t.className = 'timer num' + (d.secondsLeft!=null && d.secondsLeft<=10 ? ' urgent':'');
+}
+function nextRound(){
+  var fn = (LAST && LAST.round===1 && !LAST.secondsLeft) ? 'gwStartRound' : 'gwNextRound';
+  call(fn, [CODE], function(){ forceRefresh(); });
+}
+function togglePause(){ call('gwTogglePause', [CODE], function(){ forceRefresh(); }); }
+function askReveal(){
+  confirmBox('정답 순위를 화면에 띄웁니다.\nTV에 보여도 괜찮나요?', function(){
+    var el = document.getElementById('reveal');
+    el.innerHTML = '<b>정답 순위</b><br>' + LAST.truth.map(function(c,i){ return (i+1)+'등 '+esc(LAST.animals[c]); }).join(' · ');
+    el.classList.remove('hidden');
+    setTimeout(function(){ el.classList.add('hidden'); }, 12000);
+  });
+}
+function askFinalize(){
+  var msg = (LAST && LAST.round < LAST.lastRound)
+    ? '아직 3등이 안 들어왔어요.\n그래도 정산할까요?' : '정산을 시작할까요?\n모둠 화면도 결과로 바뀝니다.';
+  confirmBox(msg, function(){ call('gwFinalize', [CODE], function(){ forceRefresh(); }); });
+}
+
+/* ── S3 ── */
+var step = 0, RES = null;
+function showResult(d){
+  RES = d;
+  document.getElementById('s2').classList.add('hidden');
+  document.getElementById('s3').classList.remove('hidden');
+  if(step===0) nextStep();
+}
+function nextStep(){
+  step++;
+  var d = RES, medal = ['🥇','🥈','🥉'];
+  var body = document.getElementById('r-body');
+  if(step<=3){
+    document.getElementById('r-step').innerHTML = '<div class="podium">' +
+      d.truth.slice(0,step).map(function(c,i){ return medal[i]+' '+(i+1)+'등 '+(d.emojis[c]||'')+' '+esc(d.animals[c]); }).join('<br>') + '</div>';
+    document.getElementById('r-next').textContent = step<3 ? '다음 순위 공개' : '모둠별 계산 보기';
+  } else if(step===4){
+    body.innerHTML = '<div class="card"><h2>모둠별 계산</h2>' + d.settlement.map(function(s){
+      return '<details><summary>'+s.teamNo+'모둠 '+esc(s.teamName)+' — '+s.finalCoins+'코인</summary>' +
+        s.lines.map(function(l){ return '<div class="line">'+esc(d.animals[l.animalCode])+' ('+l.finalRank+'등) '+l.coins+'코인 × '+l.odds.toFixed(2)+'배 × '+Math.round(l.payoutRate*100)+'% = <b>'+l.gained+'</b></div>'; }).join('') +
+        '<div class="line">획득 합계 '+s.gained+'코인</div></details>'; }).join('') + '</div>';
+    document.getElementById('r-next').textContent = '우승 발표';
+  } else {
+    var w = d.settlement[0];
+    body.innerHTML = '<div class="card"><div class="podium">🏆 '+w.teamNo+'모둠 '+esc(w.teamName)+'<br><span style="color:var(--gold)">'+w.finalCoins+'코인</span></div><table><tbody>' +
+      d.settlement.slice(1).map(function(s){ return '<tr><td>'+s.rank+'위</td><td>'+esc(s.teamName)+'</td><td class="num">'+s.finalCoins+'코인</td></tr>'; }).join('') + '</tbody></table></div>';
+    document.getElementById('r-next').classList.add('hidden');
+  }
+}
+</script>
+</body></html>

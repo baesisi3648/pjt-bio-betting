@@ -1,0 +1,95 @@
+version: "2.0"
+
+screen:
+  id: S4
+  name: 모둠 — 접속 화면
+  route: "<웹앱주소>"
+  viewer: team
+  device: phone-360w
+  layout: single-step-wizard
+  musts: [M5]
+
+data_requirements:
+  - resource: game
+    needs: [code, class_name, is_over]
+    note: 존재 여부와 종료 여부만
+  - resource: team
+    needs: [no, name]
+    note: "pin은 검증용으로 서버에서만 쓰고 응답에 담지 않는다"
+
+components:
+  - id: step_code
+    type: pin_input
+    step: 1
+    label: 판 코드 4자리
+    length: 4
+    transform: uppercase
+    hint: 칠판에 적힌 코드예요
+    submit: 다음
+
+  - id: step_team
+    type: button_grid
+    step: 2
+    label: 우리 모둠 고르기
+    data_source: { resource: team, needs: [no, name] }
+    row: "{no}모둠 {name}"
+    note: "전부 선택 가능. 접속 점유를 두지 않는다 (리뷰 C2 반영)"
+
+  - id: step_pin
+    type: pin_input
+    step: 3
+    label: 암호 4자리
+    length: 4
+    keyboard: numeric
+    hint: 모둠장이 받은 종이에 있어요
+    submit: 들어가기
+
+  - id: back_link
+    type: link
+    label: 이전 단계
+    all_steps: true
+
+validations:
+  - id: no_such_game
+    when: 없는 판 코드
+    message: "그런 판이 없어요. 칠판의 코드를 다시 확인해주세요"
+  - id: game_ended
+    when: is_over == true
+    message: "이 판은 이미 끝났어요"
+  - id: wrong_pin
+    when: 암호 불일치
+    message: "암호가 달라요. 모둠장에게 확인해주세요"
+    handling: "잠금 없음. 시도마다 1초 지연만 (리뷰 C10 — 모둠 단위 잠금은 장난 도구가 된다)"
+
+behaviors:
+  - id: reconnect
+    when: 새로고침·재접속
+    then: 같은 판코드+모둠+암호를 다시 넣으면 힌트·코인 그대로 복구
+    note: 점유가 없으므로 자기 자신 때문에 막히지 않는다
+  - id: multi_device
+    when: 같은 모둠에 폰 2대 접속
+    then: 둘 다 들어가지고 같은 상태를 본다
+  - id: remember_last
+    when: 접속 성공
+    then: localStorage에 판코드·모둠번호 저장 → 다음 접속 시 자동 채움 (암호는 저장 안 함)
+
+privacy:
+  - 학생 이름·학번을 받지 않는다
+  - 모둠 이름에 학생 실명을 넣지 말라는 안내를 S1(판 만들기)에 표시
+
+tests:
+  - name: 정상 접속
+    when: 판코드 → 모둠 → 암호 순서대로 입력
+    then: [S5로 이동, 보유 코인 20 표시]
+  - name: 새로고침 복구
+    when: 3라운드 진행 중 새로고침 후 같은 값 재입력
+    then: [힌트 2개와 코인 14가 그대로]
+  - name: 폰 2대 동시 접속
+    when: 같은 모둠으로 두 기기 접속
+    then: [둘 다 들어가지고 상태가 동일]
+  - name: 틀린 암호
+    when: 잘못된 암호 3회
+    then: [매번 안내 메시지, 잠기지 않음, 1초씩 지연]
+  - name: 끝난 판
+    when: 이미 정산 끝난 판 코드
+    then: ["'이 판은 이미 끝났어요' 안내"]

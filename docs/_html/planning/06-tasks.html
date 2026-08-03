@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06. 태스크 — 와일드 더비</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">06. 태스크 — 와일드 더비</div><div class="sub">06-tasks.md</div><a class="lvl1" href="#06-태스크-와일드-더비">06. 태스크 — 와일드 더비</a><a class="lvl2" href="#interface-contract-validation-결과">Interface Contract Validation 결과</a><a class="lvl2" href="#태스크-요약">태스크 요약</a><a class="lvl2" href="#p0-셋업">P0. 셋업</a><a class="lvl3" href="#p0-t01-스프레드시트와-탭-만들기">P0-T0.1 · 스프레드시트와 탭 만들기</a><a class="lvl3" href="#p0-t02-힌트문구-기본-세트-채우기-m14">P0-T0.2 · 힌트문구 기본 세트 채우기 (M14)</a><a class="lvl3" href="#p0-t03-샘플-문제-18문항-유전-단원">P0-T0.3 · 샘플 문제 18문항 (유전 단원)</a><a class="lvl3" href="#p0-t04-apps-script-파일-골격-configgs">P0-T0.4 · Apps Script 파일 골격 + Config.gs</a><a class="lvl2" href="#p1-기반-저장캐시잠금">P1. 기반 — 저장·캐시·잠금</a><a class="lvl3" href="#p1-r1-t1-시트-읽기-문제힌트문구동물설정-m4-m14">P1-R1-T1 · 시트 읽기 (문제·힌트문구·동물·설정) (M4, M14)</a><a class="lvl3" href="#p1-r1-t2-시트-구성-검사기">P1-R1-T2 · 시트 구성 검사기</a><a class="lvl3" href="#p1-r2-t1-캐시-계층-cacheservice">P1-R2-T1 · 캐시 계층 (CacheService)</a><a class="lvl3" href="#p1-r2-t2-잠금-래퍼-withlock">P1-R2-T2 · 잠금 래퍼 (withLock)</a><a class="lvl3" href="#p1-r2-t3-사건-기록-복구-m16">P1-R2-T3 · 사건 기록 + 복구 (M16)</a><a class="lvl2" href="#p2-게임-규칙-코어-최대-위험-구간">P2. 게임 규칙 코어 ⚠️ 최대 위험 구간</a><a class="lvl3" href="#p2-r3-t1-검사-하네스-testgs">P2-R3-T1 · 검사 하네스 (Test.gs)</a><a class="lvl3" href="#p2-r3-t2-정답-순위-확정-이동-역산-m2">P2-R3-T2 · 정답 순위 확정 + 이동 역산 (M2) ⚠️</a><a class="lvl3" href="#p2-r3-t3-힌트-생성-m3">P2-R3-T3 · 힌트 생성 (M3)</a><a class="lvl3" href="#p2-r3-t4-힌트-검산-m3">P2-R3-T4 · 힌트 검산 (M3) ⚠️</a><a class="lvl3" href="#p2-r4-t1-배당률-계산">P2-R4-T1 · 배당률 계산</a><a class="lvl3" href="#p2-r4-t2-베팅-검증">P2-R4-T2 · 베팅 검증</a><a class="lvl3" href="#p2-r4-t4-문제-선택기-m4-감독-단계에서-추가">P2-R4-T4 · 문제 선택기 (M4) — 감독 단계에서 추가</a><a class="lvl3" href="#p2-r4-t3-정산-계산-m13">P2-R4-T3 · 정산 계산 (M13)</a><a class="lvl2" href="#p3-통신-계층-gamegateway">P3. 통신 계층 — GameGateway</a><a class="lvl3" href="#p3-r5-t1-toteamview-비밀-제거">P3-R5-T1 · toTeamView (비밀 제거) ⚠️</a><a class="lvl3" href="#p3-r5-t2-creategame-joingame-m1-m5">P3-R5-T2 · createGame / joinGame (M1, M5)</a><a class="lvl3" href="#p3-r5-t3-getstate-폴링-타이머">P3-R5-T3 · getState (폴링) + 타이머</a><a class="lvl3" href="#p3-r5-t4-submitanswer-placebet-advanceround-togglepause-finalize">P3-R5-T4 · submitAnswer / placeBet / advanceRound / togglePause / finalize</a><a class="lvl2" href="#p4-선생님-화면">P4. 선생님 화면</a><a class="lvl3" href="#p4-s0-t1-sharedhtml-공통-css-폴러">P4-S0-T1 · Shared.html — 공통 CSS + 폴러</a><a class="lvl3" href="#p4-s1-t1-s1-시작-화면-ui-m1-m4">P4-S1-T1 · S1 시작 화면 UI (M1, M4)</a><a class="lvl3" href="#p4-s1-t2-s1-배포용-안내-패널-판-코드암호표-m5">P4-S1-T2 · S1 배포용 안내 패널 (판 코드·암호표) (M5)</a><a class="lvl3" href="#p4-s1-v-s1-연결점-검증">P4-S1-V · S1 연결점 검증</a><a class="lvl3" href="#p4-s2-t1-s2-진행-화면-ui-m9-m10-m11-m12-m15">P4-S2-T1 · S2 진행 화면 UI (M9, M10, M11, M12, M15)</a><a class="lvl3" href="#p4-s2-v-s2-연결점-검증">P4-S2-V · S2 연결점 검증</a><a class="lvl3" href="#p4-s3-t1-s3-정산-화면-m13">P4-S3-T1 · S3 정산 화면 (M13)</a><a class="lvl2" href="#p5-모둠-화면">P5. 모둠 화면</a><a class="lvl3" href="#p5-s4-t1-s4-접속-화면-m5">P5-S4-T1 · S4 접속 화면 (M5)</a><a class="lvl3" href="#p5-s5-t1-s5-뼈대-문제-탭-m6-m12-m15">P5-S5-T1 · S5 뼈대 + 문제 탭 (M6, M12, M15)</a><a class="lvl3" href="#p5-s5-t2-s5-힌트-탭-게임의-심장-m7">P5-S5-T2 · S5 힌트 탭 (게임의 심장) (M7)</a><a class="lvl3" href="#p5-s5-t3-s5-베팅-탭-m8">P5-S5-T3 · S5 베팅 탭 (M8)</a><a class="lvl3" href="#p5-s5-v-s5-연결점-검증">P5-S5-V · S5 연결점 검증 ⚠️</a><a class="lvl3" href="#p5-s6-t1-s6-결과-화면-m13">P5-S6-T1 · S6 결과 화면 (M13)</a><a class="lvl2" href="#p6-통합배포리허설">P6. 통합·배포·리허설</a><a class="lvl3" href="#p6-t1-동시성-실측">P6-T1 · 동시성 실측</a><a class="lvl3" href="#p6-t2-끊김복구-실측">P6-T2 · 끊김·복구 실측</a><a class="lvl3" href="#p6-t3-시트-오류-대응-확인">P6-T3 · 시트 오류 대응 확인</a><a class="lvl3" href="#p6-t4-웹앱-배포-학교망-확인">P6-T4 · 웹앱 배포 + 학교망 확인</a><a class="lvl3" href="#p6-t5-수업-리허설-혼자-6모둠-돌려보기">P6-T5 · 수업 리허설 (혼자 6모둠 돌려보기)</a><a class="lvl2" href="#의존성-순서">의존성 순서</a><a class="lvl2" href="#통과-기준-이걸-못-넘으면-수업에-못-씀">통과 기준 (이걸 못 넘으면 수업에 못 씀)</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="06-태스크-와일드-더비">06. 태스크 — 와일드 더비</h1>
+<ul><li>생성: 2026-08-01 · Domain-Guarded 모드</li><li>입력: <code>specs/screens/*.yaml</code>, <code>specs/domain/resources.yaml</code>, <code>specs/shared/*.yaml</code>, <code>docs/planning/01~08</code></li><li>실행 환경: 일반 터미널 (cmux 아님) → <code>담당</code>으로 라우팅</li></ul>
+<h2 id="interface-contract-validation-결과">Interface Contract Validation 결과</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody><tr><td>화면</td><td>6개 (S1~S6)</td></tr><tr><td>리소스</td><td>10개 정의 / 8개 참조</td></tr><tr><td>필드 커버리지</td><td><strong>100%</strong> (미정의 참조 0)</td></tr><tr><td>Must 커버리지</td><td><strong>16/16</strong> (누락 0)</td></tr><tr><td>판정</td><td>✅ 통과</td></tr></tbody></table></div>
+<h2 id="태스크-요약">태스크 요약</h2>
+<div class="table-wrap"><table><thead><tr><th>Phase</th><th>내용</th><th>태스크 수</th></tr></thead><tbody><tr><td>P0</td><td>셋업 — 시트·프로젝트 골격</td><td>4</td></tr><tr><td>P1</td><td>기반 — 저장·캐시·잠금·검사틀</td><td>5</td></tr><tr><td>P2</td><td><strong>게임 규칙 코어</strong> (여기가 제일 위험)</td><td>8</td></tr><tr><td>P3</td><td>통신 계층 — GameGateway</td><td>4</td></tr><tr><td>P4</td><td>선생님 화면 S1·S2·S3</td><td>6</td></tr><tr><td>P5</td><td>모둠 화면 S4·S5·S6</td><td>6</td></tr><tr><td>P6</td><td>통합·배포·리허설</td><td>5</td></tr><tr><td></td><td><strong>합계</strong></td><td><strong>38</strong></td></tr></tbody></table></div>
+<hr>
+<h2 id="p0-셋업">P0. 셋업</h2>
+<h3 id="p0-t01-스프레드시트와-탭-만들기">P0-T0.1 · 스프레드시트와 탭 만들기</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: 없음</li><li><strong>하는 일</strong>: 구글 스프레드시트 <code>와일드더비</code> 생성 후 탭 6개(<code>문제</code>/<code>힌트문구</code>/<code>동물</code>/<code>설정</code>/<code>게임</code>/<code>기록</code>)와 머리글 행 작성</li><li><strong>참조</strong>: <code>docs/planning/04-database.md</code></li><li><strong>acceptance</strong>:<ul><li>Given 빈 스프레드시트 / When 셋업 실행 / Then 탭 6개가 04-database의 열 구성 그대로 생성됨</li><li>Given <code>동물</code> 탭 / When 열어봄 / Then A~H 8행이 기본 동물로 채워져 있음</li><li>Given <code>설정</code> 탭 / When 열어봄 / Then 시드코인 15, 문제시간 90, 토론시간 180, 베팅시간 60이 들어 있음</li></ul></li><li><strong>비고</strong>: 시드코인 기본값은 <strong>15</strong> (PDF의 5 아님 — 리뷰 C6)</li></ul>
+<h3 id="p0-t02-힌트문구-기본-세트-채우기-m14">P0-T0.2 · 힌트문구 기본 세트 채우기 (M14)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P0-T0.1</li><li><strong>하는 일</strong>: <code>힌트문구</code> 탭에 난이도×종류 8줄 기본값 입력</li><li><strong>acceptance</strong>:<ul><li>Given <code>힌트문구</code> 탭 / When 읽음 / Then 어려움 3종·중간 2종·쉬움 3종이 자리표시 <code>{X}{Y}{Z}{N}</code>을 포함해 존재</li></ul></li></ul>
+<h3 id="p0-t03-샘플-문제-18문항-유전-단원">P0-T0.3 · 샘플 문제 18문항 (유전 단원)</h3>
+<ul><li><strong>담당</strong>: docs-specialist</li><li><strong>의존</strong>: P0-T0.1</li><li><strong>하는 일</strong>: 개발·테스트용 4지선다 18문항(난이도별 6개) 작성</li><li><strong>acceptance</strong>:<ul><li>Given <code>문제</code> 탭 / When 유전 단원 필터 / Then 쉬움·중간·어려움 각 6문항, 정답이 1~4 범위</li></ul></li><li><strong>비고</strong>: 실제 수업 문제는 선생님이 나중에 교체. 여기선 개발용</li></ul>
+<h3 id="p0-t04-apps-script-파일-골격-configgs">P0-T0.4 · Apps Script 파일 골격 + Config.gs</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P0-T0.1</li><li><strong>하는 일</strong>: <code>Code.gs</code>/<code>Game.gs</code>/<code>Sheet.gs</code>/<code>Config.gs</code>/<code>Test.gs</code> + <code>Teacher.html</code>/<code>Team.html</code>/<code>Shared.html</code> 빈 파일 생성, Config에 상수·탭이름 정의</li><li><strong>참조</strong>: <code>docs/planning/07-coding-convention.md §1</code></li><li><strong>acceptance</strong>:<ul><li>Given 앱스 스크립트 편집기 / When 파일 목록 확인 / Then 8개 파일 존재</li><li>Given <code>Config.gs</code> / When 읽음 / Then 탭 이름이 문자열 상수로만 정의되어 있고 다른 파일에 하드코딩된 탭 이름이 없음</li></ul></li></ul>
+<hr>
+<h2 id="p1-기반-저장캐시잠금">P1. 기반 — 저장·캐시·잠금</h2>
+<h3 id="p1-r1-t1-시트-읽기-문제힌트문구동물설정-m4-m14">P1-R1-T1 · 시트 읽기 (문제·힌트문구·동물·설정) (M4, M14)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P0-T0.4</li><li><strong>하는 일</strong>: <code>Sheet.gs</code>에 4개 마스터 탭 읽기 함수. 잘못된 행은 건너뛰고 목록으로 보고</li><li><strong>acceptance</strong>:<ul><li>Given 난이도가 <code>상</code>인 행 / When 문제 읽기 / Then 그 행은 무시되고 무시 사유가 반환값에 담김</li><li>Given 정답이 5인 행 / When 문제 읽기 / Then 그 행 무시</li><li>Given <code>동물</code> 탭 7행 / When 동물 읽기 / Then <code>SHEET_INVALID</code> 오류 + 몇 행인지 안내</li></ul></li></ul>
+<h3 id="p1-r1-t2-시트-구성-검사기">P1-R1-T2 · 시트 구성 검사기</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P1-R1-T1</li><li><strong>하는 일</strong>: 판 만들기 전 실행하는 검사 — 동물 8행, 자리표시 온전성, 단원별 문항 수</li><li><strong>참조</strong>: <code>specs/screens/teacher-setup.yaml</code> validations</li><li><strong>acceptance</strong>:<ul><li>Given <code>힌트문구</code>에서 <code>{X}</code> 삭제 / When 검사 / Then 차단 + 몇 번째 줄인지 반환</li><li>Given 어려움 2문항 단원 / When 검사 / Then 경고(차단 아님) + <code>have=2, need=6</code> 반환</li></ul></li></ul>
+<h3 id="p1-r2-t1-캐시-계층-cacheservice">P1-R2-T1 · 캐시 계층 (CacheService)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P0-T0.4</li><li><strong>하는 일</strong>: 게임 상태 JSON을 캐시에서 읽고 쓰는 래퍼. 없으면 시트에서 복원</li><li><strong>참조</strong>: <code>docs/planning/02-trd.md §5</code></li><li><strong>acceptance</strong>:<ul><li>Given 캐시에 상태 있음 / When 조회 / Then 시트를 건드리지 않고 0.1초 안에 반환</li><li>Given 캐시 비어 있음 / When 조회 / Then 시트에서 읽어 캐시에 채우고 반환</li><li>Given 상태 JSON / When 저장 / Then 크기가 15KB 이하</li></ul></li></ul>
+<h3 id="p1-r2-t2-잠금-래퍼-withlock">P1-R2-T2 · 잠금 래퍼 (withLock)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P0-T0.4</li><li><strong>하는 일</strong>: 상태 변경 함수를 감싸는 <code>withLock</code>. 10초 대기 후 실패</li><li><strong>acceptance</strong>:<ul><li>Given 잠금이 이미 잡혀 있음 / When 10초 초과 / Then <code>LOCK_TIMEOUT</code> + &quot;잠시 후 다시 눌러주세요&quot;</li><li>Given 잠금 안에서 예외 발생 / When 종료 / Then finally에서 반드시 해제됨</li></ul></li></ul>
+<h3 id="p1-r2-t3-사건-기록-복구-m16">P1-R2-T3 · 사건 기록 + 복구 (M16)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P1-R2-T1, P1-R2-T2</li><li><strong>하는 일</strong>: <code>기록</code> 탭 즉시 append + 캐시 소실 시 스냅샷+사건 재생 복구</li><li><strong>참조</strong>: <code>docs/planning/02-trd.md §5</code>, 리뷰 C3</li><li><strong>acceptance</strong>:<ul><li>Given 베팅 확정 / When 처리 완료 / Then <code>기록</code> 탭에 즉시 한 줄 추가됨 (라운드 끝을 안 기다림)</li><li>Given 라운드 중간에 캐시 강제 삭제 / When 상태 조회 / Then 그 라운드 답과 베팅이 <strong>전부 복구됨</strong> (손실 0)</li><li>Given 사건 12건 append / When 소요 시간 측정 / Then 총 5초 이내</li></ul></li><li><strong>⚠️ 위험</strong>: 이게 안 되면 수업 중 &quot;우리 코인 어디 갔어요&quot; 사고</li></ul>
+<hr>
+<h2 id="p2-게임-규칙-코어-최대-위험-구간">P2. 게임 규칙 코어 ⚠️ 최대 위험 구간</h2>
+<blockquote><code>Game.gs</code>는 <strong>순수 함수만</strong>. 시트·캐시·시각을 건드리지 않는다. 상태를 받아 새 상태를 돌려준다. 이 Phase의 G-검사를 통과하기 전에는 다음 Phase로 넘어가지 않는다.</blockquote>
+<h3 id="p2-r3-t1-검사-하네스-testgs">P2-R3-T1 · 검사 하네스 (Test.gs)</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P0-T0.4</li><li><strong>하는 일</strong>: <code>test_모두()</code> 골격 + 판 100개를 돌리는 반복 검사 틀</li><li><strong>참조</strong>: <code>docs/planning/07-coding-convention.md §9</code></li><li><strong>acceptance</strong>:<ul><li>Given 편집기에서 <code>test_모두</code> 실행 / When 완료 / Then 통과/실패가 Logger에 항목별로 출력됨</li></ul></li></ul>
+<h3 id="p2-r3-t2-정답-순위-확정-이동-역산-m2">P2-R3-T2 · 정답 순위 확정 + 이동 역산 (M2) ⚠️</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2-R3-T1</li><li><strong>하는 일</strong>: 1~8등 무작위 확정 → 마지막 라운드 5/6 선택 → 라운드별 이동량 역산 → 검산</li><li><strong>참조</strong>: <code>docs/planning/02-trd.md §6-1</code>, <code>01-prd.md §6-(1)</code></li><li><strong>acceptance</strong> (= <strong>G1</strong>):<ul><li>Given 판 100개 생성 후 끝까지 굴림 / When 최종 도착 순서 비교 / Then <code>truth</code>와 <strong>100/100 일치</strong></li><li>Given 아무 판 / When 모든 라운드 이동값 검사 / Then 전부 0~3 범위</li><li>Given 아무 판 / When 3라운드까지 굴림 / Then 10칸 도달 동물 <strong>0마리</strong> (1차시에 골인 없음)</li><li>Given 역산 실패 / When 50회 재시도 후에도 실패 / Then 명시적 오류 (조용히 넘어가지 않음)</li></ul></li><li><strong>⚠️ PDF 원본이 여기서 깨져 있었다.</strong> 랜덤 이동으로 되돌리면 힌트가 거짓말이 된다</li></ul>
+<h3 id="p2-r3-t3-힌트-생성-m3">P2-R3-T3 · 힌트 생성 (M3)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2-R3-T2</li><li><strong>하는 일</strong>: <code>힌트문구</code> 틀에 A~H를 매핑해 난이도별 힌트 풀 생성. 모두 <code>truth</code> 기준 참</li><li><strong>acceptance</strong> (= <strong>G2</strong>):<ul><li>Given 판 100개 / When 생성된 모든 힌트를 <code>truth</code>에 대조 / Then 거짓 힌트 <strong>0개</strong></li><li>Given 난이도별 힌트 풀 / When 개수 확인 / Then <strong>각 6개 이상</strong> (같은 틀 다른 동물로 채움)</li><li>Given 어려움만 6번 고른 모둠 / When 6라운드 힌트 지급 / Then 같은 문장이 두 번 안 나옴</li></ul></li></ul>
+<h3 id="p2-r3-t4-힌트-검산-m3">P2-R3-T4 · 힌트 검산 (M3) ⚠️</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P2-R3-T3</li><li><strong>하는 일</strong>: 8! 순열을 힌트로 걸러 1·2·3등이 좁혀지는지 확인. 안 되면 어려움 힌트 추가</li><li><strong>acceptance</strong> (= <strong>G3</strong>):<ul><li><strong>G3-a</strong>: Given 판 100개 / When 전체 힌트로 순열 필터 / Then 1·2·3등 유일 결정 <strong>100/100</strong></li><li><strong>G3-b</strong>: Given 어려움만 6번 고른 모둠 / When 그 6개 힌트로 필터 / Then 1·2·3등을 좁힐 수 있음 <strong>100/100</strong></li><li>Given 8! 전수 검사 / When 시간 측정 / Then 1초 이내</li></ul></li><li><strong>비고</strong>: G3-b가 실패하면 어려움을 고를 이유가 없어진다 (리뷰 C8)</li></ul>
+<h3 id="p2-r4-t1-배당률-계산">P2-R4-T1 · 배당률 계산</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2-R3-T1</li><li><strong>하는 일</strong>: <code>(전체 pool) / (해당 동물 pool)</code>, 시드 15, 소수 둘째 자리</li><li><strong>acceptance</strong> (= <strong>R6</strong>):<ul><li>Given pool이 손계산 가능한 상태 / When 배당률 계산 / Then 손계산 값과 소수 둘째 자리까지 일치</li><li>Given 아무도 안 건 동물 / When 최대 베팅 상황 / Then 배당률이 <strong>16배 이하</strong> (시드 15 효과)</li></ul></li></ul>
+<h3 id="p2-r4-t2-베팅-검증">P2-R4-T2 · 베팅 검증</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2-R4-T1</li><li><strong>하는 일</strong>: 라운드당 3코인·보유 코인·마감·중복 확정 검사</li><li><strong>acceptance</strong> (= <strong>R1~R5</strong>):<ul><li>Given 라운드당 3코인 상태 / When 4코인 시도 / Then <code>TOO_MANY_COINS</code></li><li>Given 코인 1개 / When 2코인 시도 / Then <code>NOT_ENOUGH_COINS</code></li><li>Given 베팅 마감 후 / When 제출 / Then <code>BET_CLOSED</code></li><li>Given 이미 확정 / When 재확정 / Then <code>ALREADY_BET</code></li><li>Given 이미 답 제출 / When 재제출 / Then <code>ALREADY_ANSWERED</code></li></ul></li></ul>
+<h3 id="p2-r4-t4-문제-선택기-m4-감독-단계에서-추가">P2-R4-T4 · 문제 선택기 (M4) — 감독 단계에서 추가</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P1-R1-T1, P2-R3-T1</li><li><strong>하는 일</strong>: 판 생성 시 라운드×난이도마다 문항을 미리 배정해 <code>questionPlan</code>에 저장</li><li><strong>참조</strong>: <code>docs/planning/04-database.md §6</code>, 갭 리포트 G-01</li><li><strong>acceptance</strong>:<ul><li>Given 단원에 난이도별 6문항 / When 판 생성 / Then <code>questionPlan</code>에 6라운드 × 3난이도 = 18칸이 서로 다른 문항으로 채워짐</li><li>Given 난이도별 4문항뿐 / When 판 생성 / Then 부족분은 가장 먼저 쓴 문항부터 재사용 (<code>03-user-flow §6</code>의 약속 이행)</li><li>Given 같은 판 / When 캐시 삭제 후 복구 / Then <strong>같은 라운드에 같은 문제</strong>가 나옴 (미리 배정하는 이유)</li><li>Given 같은 난이도를 고른 두 모둠 / When 문제 확인 / Then 같은 문항 (선생님 결정 — 모둠별 다른 문제는 Won't)</li></ul></li><li><strong>비고</strong>: 라운드마다 그때그때 뽑으면 캐시 복구 시 문제가 바뀐다. 반드시 판 생성 시 확정</li></ul>
+<h3 id="p2-r4-t3-정산-계산-m13">P2-R4-T3 · 정산 계산 (M13)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2-R4-T1</li><li><strong>하는 일</strong>: 최종 배당률 × 순위 배율(1.0/0.7/0.5/0)</li><li><strong>참조</strong>: <code>docs/planning/02-trd.md §6-5</code> — 최종 배당률만 사용 (선생님 결정)</li><li><strong>acceptance</strong> (= <strong>R7</strong>):<ul><li>Given 2등 동물에 4코인, 최종 배당 2.14배 / When 정산 / Then <code>4 × 2.14 × 0.7 = 5.99 → 6코인</code></li><li>Given 6등 동물에 2코인 / When 정산 / Then 0코인 (소멸)</li><li>Given 모든 모둠 / When 정산 / Then <code>최종 = 남은 보유 + 획득</code></li></ul></li><li><strong>비고</strong>: <code>bets</code>에 라운드 번호가 남아 있어야 함 (나중에 배당 방식 전환 대비)</li></ul>
+<hr>
+<h2 id="p3-통신-계층-gamegateway">P3. 통신 계층 — GameGateway</h2>
+<h3 id="p3-r5-t1-toteamview-비밀-제거">P3-R5-T1 · toTeamView (비밀 제거) ⚠️</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P2 전부</li><li><strong>하는 일</strong>: 모둠 응답에서 <code>truth</code>/<code>moves</code>/<code>lastRound</code>/타 모둠 힌트·암호·정답 제거</li><li><strong>참조</strong>: <code>specs/shared/types.yaml</code> invariants</li><li><strong>acceptance</strong> (= <strong>G4</strong>):<ul><li>Given 아무 게임 상태 / When <code>toTeamView</code> 후 JSON 문자열화 / Then <code>truth</code>·<code>moves</code>·<code>lastRound</code> 문자열 <strong>0회 등장</strong></li><li>Given 3모둠 시점 / When 응답 확인 / Then 다른 모둠 <code>hints</code>·<code>pin</code>이 없음</li><li>Given 채점 전 문제 / When 응답 확인 / Then <code>answer</code> 필드가 없음</li><li>Given <code>isOver == true</code> / When 응답 확인 / Then <code>truth</code>가 <strong>이때만</strong> 포함됨</li></ul></li><li><strong>⚠️ 이걸 어기면 개발자 도구로 정답이 보인다</strong></li></ul>
+<h3 id="p3-r5-t2-creategame-joingame-m1-m5">P3-R5-T2 · createGame / joinGame (M1, M5)</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P1 전부, P2-R3-T4, P3-R5-T1</li><li><strong>하는 일</strong>: 판 코드(혼동문자 제외 4자리) 발급, 모둠 암호 발급, 초기 상태 저장 / 모둠 입장</li><li><strong>acceptance</strong>:<ul><li>Given 반 이름·단원·모둠 6개 / When <code>createGame</code> / Then 판 코드 + 암호 6개 + 학생 주소 반환</li><li>Given 판 코드에 <code>0 O 1 I</code> / When 100회 생성 / Then 한 번도 안 나옴</li><li>Given 같은 모둠에 두 기기 / When 둘 다 <code>joinGame</code> / Then <strong>둘 다 성공</strong> (점유 없음 — 리뷰 C2)</li><li>Given 틀린 암호 / When <code>joinGame</code> / Then <code>WRONG_PIN</code>, 잠기지 않고 1초 지연</li></ul></li></ul>
+<h3 id="p3-r5-t3-getstate-폴링-타이머">P3-R5-T3 · getState (폴링) + 타이머</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P3-R5-T1</li><li><strong>하는 일</strong>: viewer별 상태 반환, 서버 시각 기준 <code>secondsLeft</code> 계산, 마감 도달 시 자동 다음 단계</li><li><strong>acceptance</strong>:<ul><li>Given viewer=teacher / When 조회 / Then <code>truth</code> 포함</li><li>Given viewer=team:3 / When 조회 / Then <code>toTeamView</code> 통과본</li><li>Given 문제 90초 경과 / When 조회 / Then 자동으로 <code>discuss</code> 단계 + 미제출 모둠 오답 처리</li><li>Given 토론 180초 경과 / When 조회 / Then 자동으로 <code>betting</code> 단계</li><li>Given <code>discuss</code> 단계 / When 베팅 시도 / Then 거부됨 (토론 중엔 조작 없음)</li><li>Given 폰 7대 동시 폴링 / When 응답 시간 측정 / Then 평균 <strong>0.3초 이하</strong> (= C4)</li></ul></li></ul>
+<h3 id="p3-r5-t4-submitanswer-placebet-advanceround-togglepause-finalize">P3-R5-T4 · submitAnswer / placeBet / advanceRound / togglePause / finalize</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P3-R5-T3, P1-R2-T3</li><li><strong>하는 일</strong>: 나머지 5개 함수. 전부 <code>withLock</code> + 즉시 기록</li><li><strong>acceptance</strong>:<ul><li>Given 6모둠 동시 베팅 확정 / When 완료 / Then 동물별 누적 코인 합계가 어긋나지 않음 (= <strong>C1</strong>)</li><li>Given 일시정지 중 / When 베팅 시도 / Then <code>PAUSED</code></li><li>Given 일시정지 3분 후 재개 / When 타이머 확인 / Then 멈춘 지점 남은 시간부터 (= <strong>B6</strong>)</li><li>Given 상태 변경 함수 전부 / When 코드 검사 / Then 모두 <code>withLock</code> 안에 있음</li></ul></li></ul>
+<hr>
+<h2 id="p4-선생님-화면">P4. 선생님 화면</h2>
+<h3 id="p4-s0-t1-sharedhtml-공통-css-폴러">P4-S0-T1 · Shared.html — 공통 CSS + 폴러</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P3 전부</li><li><strong>하는 일</strong>: 색·글자 변수, <code>poller</code>, <code>timer_display</code>, <code>locking_button</code>, <code>error_banner</code>, <code>confirm_dialog</code></li><li><strong>참조</strong>: <code>specs/shared/components.yaml</code>, <code>docs/planning/05-design-system.md</code></li><li><strong>acceptance</strong>:<ul><li>Given 상태 미변경 / When 폴링 / Then <code>render</code>가 호출되지 않음 (<code>stateVersion</code> 비교)</li><li>Given 응답 3회 연속 실패 / When 확인 / Then 경고 띠 표시, 성공 시 자동 제거</li><li>Given 확인 대화 / When 코드 검사 / Then <code>alert</code>/<code>confirm</code> 미사용 (폴링을 막으므로)</li><li>Given 외부 요청 / When 코드 검사 / Then CDN·웹폰트 참조 0건</li></ul></li></ul>
+<h3 id="p4-s1-t1-s1-시작-화면-ui-m1-m4">P4-S1-T1 · S1 시작 화면 UI (M1, M4)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P4-S0-T1</li><li><strong>하는 일</strong>: 새 판 만들기 / 이어하기 탭, 폼, 최근 판 목록</li><li><strong>참조</strong>: <code>specs/screens/teacher-setup.yaml</code></li><li><strong>acceptance</strong>:<ul><li>Given 단원 드롭다운 / When 열기 / Then <code>문제</code> 탭 단원이 중복 없이 나옴</li><li>Given 모둠 수 6 선택 / When 확인 / Then 모둠 이름 입력칸 6개 생성</li><li>Given 판이 없음 / When 이어하기 탭 / Then &quot;아직 만든 판이 없어요&quot;</li></ul></li></ul>
+<h3 id="p4-s1-t2-s1-배포용-안내-패널-판-코드암호표-m5">P4-S1-T2 · S1 배포용 안내 패널 (판 코드·암호표) (M5)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P4-S1-T1</li><li><strong>하는 일</strong>: 판 코드 96px, 학생 주소 크게 표시, 암호표 인쇄</li><li><strong>acceptance</strong>:<ul><li>Given 판 생성 직후 / When 화면 확인 / Then 판 코드가 96px로 표시</li><li>Given 학생 주소 / When 화면 확인 / Then 폰으로 보고 칠 수 있게 48px 이상</li><li>Given 인쇄 / When 미리보기 / Then 모둠별로 잘라 쓸 수 있게 점선 구분</li><li>Given 진행 화면으로 이동 / When 확인 / Then 암호표가 자동으로 닫힘 (TV 노출 방지)</li></ul></li><li><strong>비고</strong>: QR은 만들지 않기로 확정 (감독 단계 결정 G-05). 어차피 판 코드 4자리는 손으로 입력해야 하므로 QR이 아끼는 건 주소 입력 한 번뿐</li></ul>
+<h3 id="p4-s1-v-s1-연결점-검증">P4-S1-V · S1 연결점 검증</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P4-S1-T2</li><li><strong>acceptance</strong>: <code>teacher-setup.yaml</code> tests 5개 전부 통과</li></ul>
+<h3 id="p4-s2-t1-s2-진행-화면-ui-m9-m10-m11-m12-m15">P4-S2-T1 · S2 진행 화면 UI (M9, M10, M11, M12, M15)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P4-S0-T1</li><li><strong>하는 일</strong>: 트랙(화면 절반)·배당률 전광판·모둠 현황·제어 버튼·단계별 표시(waiting/moving/quiz/discuss/betting/paused/done)</li><li><strong>참조</strong>: <code>specs/screens/teacher-play.yaml</code></li><li><strong>acceptance</strong>:<ul><li>Given 베팅 발생 / When 2초 경과 / Then 전광판 값 변경 + 해당 줄 0.4초 강조</li><li>Given 골인한 동물 / When 정산 전 / Then 등수 배지가 <strong>안 붙음</strong> (골인 순서만)</li><li>Given 배당률 변동 / When 표 확인 / Then 동물 순서가 재정렬되지 않음</li><li>Given &quot;정답 순위 보기&quot; / When 클릭 / Then 확인 대화 1회, 취소 시 아무것도 안 보임</li><li>Given 8m 거리 / When 배당률 읽기 / Then 읽힘 (실제 교실에서 확인)</li></ul></li></ul>
+<h3 id="p4-s2-v-s2-연결점-검증">P4-S2-V · S2 연결점 검증</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P4-S2-T1</li><li><strong>acceptance</strong>: <code>teacher-play.yaml</code> tests 5개 전부 통과 (일시정지 포함)</li></ul>
+<h3 id="p4-s3-t1-s3-정산-화면-m13">P4-S3-T1 · S3 정산 화면 (M13)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P4-S0-T1, P2-R4-T3</li><li><strong>하는 일</strong>: 3단계 순차 공개 + 접힌 모둠별 내역 + 문제 다시보기</li><li><strong>참조</strong>: <code>specs/screens/teacher-result.yaml</code></li><li><strong>acceptance</strong>:<ul><li>Given 화면 진입 / When 확인 / Then 1등만 보이고 모둠 내역은 접혀 있음</li><li>Given 클릭 / When 반복 / Then 1등→2등→3등→나머지 순으로 하나씩</li><li>Given 정산 시작 / When 2초 경과 / Then 모둠 폰이 S6으로 전환됨</li><li>Given 문제 다시보기 / When 열기 / Then 이번 판 출제 문항만 정답·해설 포함</li></ul></li></ul>
+<hr>
+<h2 id="p5-모둠-화면">P5. 모둠 화면</h2>
+<h3 id="p5-s4-t1-s4-접속-화면-m5">P5-S4-T1 · S4 접속 화면 (M5)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P4-S0-T1, P3-R5-T2</li><li><strong>하는 일</strong>: 3단계 입력(판코드→모둠→암호), localStorage 기억</li><li><strong>참조</strong>: <code>specs/screens/team-join.yaml</code></li><li><strong>acceptance</strong>:<ul><li>Given 판 코드 입력 / When 소문자 입력 / Then 대문자로 변환</li><li>Given 3라운드 진행 중 새로고침 / When 재입력 / Then 힌트·코인 그대로 (= <strong>B1</strong>)</li><li>Given 같은 모둠 두 기기 / When 둘 다 접속 / Then 둘 다 성공, 상태 동일 (= <strong>B1-b</strong>)</li><li>Given 틀린 암호 3회 / When 확인 / Then 잠기지 않고 매번 1초 지연</li></ul></li></ul>
+<h3 id="p5-s5-t1-s5-뼈대-문제-탭-m6-m12-m15">P5-S5-T1 · S5 뼈대 + 문제 탭 (M6, M12, M15)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P5-S4-T1</li><li><strong>하는 일</strong>: 타이머 막대·&quot;지금은 ▸ …&quot;(상단)·모둠 바·탭 3개 + 문제 탭 6개 상태. 토론 단계에는 힌트 탭 자동 전환 + 베팅 잠금</li><li><strong>참조</strong>: <code>specs/screens/team-play.yaml</code></li><li><strong>acceptance</strong>:<ul><li>Given 어려움 선택 / When 확인 대화 / Then &quot;이번 라운드에는 못 바꿔요&quot; 표시</li><li>Given 정답 제출 / When 결과 / Then ⭕ + 힌트 탭 자동 전환 + 배지</li><li>Given 오답 제출 / When 결과 / Then ❌ + 정답·해설, 힌트 없음</li><li>Given &quot;지금 뭘 할 때인지&quot; / When 위치 확인 / Then <strong>상단</strong> 타이머 아래 (하단 아님)</li></ul></li></ul>
+<h3 id="p5-s5-t2-s5-힌트-탭-게임의-심장-m7">P5-S5-T2 · S5 힌트 탭 (게임의 심장) (M7)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P5-S5-T1</li><li><strong>하는 일</strong>: 누적 힌트 카드 목록</li><li><strong>acceptance</strong>:<ul><li>Given 힌트 카드 / When 글자 크기 확인 / Then <strong>20px, 줄간격 1.8</strong> (다른 곳 16px보다 큼)</li><li>Given 힌트 6개 / When 화면 확인 / Then 스크롤 없이 들어옴 (360px 폭 기준)</li><li>Given 힌트 없음 / When 탭 열기 / Then &quot;문제를 맞히면 힌트를 받아요&quot;</li></ul></li><li><strong>비고</strong>: 폰 1대를 4~5명이 같이 본다 (리뷰 C4)</li></ul>
+<h3 id="p5-s5-t3-s5-베팅-탭-m8">P5-S5-T3 · S5 베팅 탭 (M8)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P5-S5-T1</li><li><strong>하는 일</strong>: 동물 8행 + 배당률 + 스테퍼 + 확정</li><li><strong>acceptance</strong>:<ul><li>Given 3코인 사용 / When 4번째 + / Then 버튼 흐려지고 서버 호출 안 감</li><li>Given 확정 / When 확인 대화 후 / Then 전체 회색 잠김 + &quot;확정됨&quot;</li><li>Given 스테퍼 / When 크기 측정 / Then 56×56px 이상</li></ul></li></ul>
+<h3 id="p5-s5-v-s5-연결점-검증">P5-S5-V · S5 연결점 검증 ⚠️</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P5-S5-T3</li><li><strong>acceptance</strong>:<ul><li><code>team-play.yaml</code> tests 5개 전부 통과</li><li>Given <code>getState</code> 응답 원문 / When 문자열 검사 / Then <code>truth</code>·<code>moves</code>·<code>lastRound</code> <strong>0회 등장</strong></li></ul></li></ul>
+<h3 id="p5-s6-t1-s6-결과-화면-m13">P5-S6-T1 · S6 결과 화면 (M13)</h3>
+<ul><li><strong>담당</strong>: frontend-specialist</li><li><strong>의존</strong>: P5-S5-T1, P4-S3-T1</li><li><strong>하는 일</strong>: 최종 순위·우리 내역·전체 등수</li><li><strong>acceptance</strong>:<ul><li>Given 정산 전 / When 상태 조회 / Then <code>truth</code> 없음</li><li>Given <code>isOver == true</code> / When 확인 / Then <code>truth</code> 포함되고 1·2·3등 표시</li><li>Given 선생님 화면 값 / When 비교 / Then <code>gained</code>·<code>finalCoins</code>·<code>rank</code> 완전 일치</li></ul></li></ul>
+<hr>
+<h2 id="p6-통합배포리허설">P6. 통합·배포·리허설</h2>
+<h3 id="p6-t1-동시성-실측">P6-T1 · 동시성 실측</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P5 전부</li><li><strong>하는 일</strong>: 브라우저 창 6개 + TV 1개로 동시 조작</li><li><strong>acceptance</strong> (= <strong>C1~C4</strong>):<ul><li>Given 6모둠 동시 베팅 확정 / When 코인 합계 확인 / Then 어긋나지 않음</li><li>Given 6모둠 동시 제출 + TV 폴링 / When 시간 측정 / Then 모든 요청 10초 이내</li><li>Given 폰 6 + TV 1 폴링 / When 평균 측정 / Then 0.3초 이하</li><li>Given 잠금 초과 / When 발생 / Then 화면에 안내 (조용히 실패 금지)</li></ul></li></ul>
+<h3 id="p6-t2-끊김복구-실측">P6-T2 · 끊김·복구 실측</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P6-T1</li><li><strong>acceptance</strong> (= <strong>B1~B6</strong>): <code>08-test-plan.md §4</code> 7개 항목 전부 통과. 특히 <strong>B4 손실 0</strong>, <strong>B5 2차시 이어하기</strong></li></ul>
+<h3 id="p6-t3-시트-오류-대응-확인">P6-T3 · 시트 오류 대응 확인</h3>
+<ul><li><strong>담당</strong>: test-specialist</li><li><strong>의존</strong>: P6-T1</li><li><strong>acceptance</strong> (= <strong>S1~S6</strong>): <code>08-test-plan.md §5</code> 6개 항목 전부 통과</li></ul>
+<h3 id="p6-t4-웹앱-배포-학교망-확인">P6-T4 · 웹앱 배포 + 학교망 확인</h3>
+<ul><li><strong>담당</strong>: backend-specialist</li><li><strong>의존</strong>: P6-T1, P6-T2, P6-T3</li><li><strong>하는 일</strong>: 웹앱 배포(실행: 소유자 / 접근: 링크가 있는 모든 사용자), 화면 하단에 배포 버전 표시</li><li><strong>참조</strong>: <code>docs/planning/02-trd.md §9</code></li><li><strong>acceptance</strong>:<ul><li>Given 배포 완료 / When 교사·학생 주소 접속 / Then 둘 다 열림</li><li>Given <strong>학교 와이파이의 폰</strong> / When 학생 주소 접속 / Then 열림</li><li>Given 화면 하단 / When 확인 / Then 배포 버전이 표시됨 (재배포 누락 감지용)</li></ul></li></ul>
+<h3 id="p6-t5-수업-리허설-혼자-6모둠-돌려보기">P6-T5 · 수업 리허설 (혼자 6모둠 돌려보기)</h3>
+<ul><li><strong>담당</strong>: qa-manager</li><li><strong>의존</strong>: P6-T4</li><li><strong>하는 일</strong>: 1차시 3라운드 → 저장 → 2차시 3라운드 → 정산 전 과정을 혼자 돌려봄</li><li><strong>acceptance</strong>:<ul><li>Given 전 과정 / When 완주 / Then 중단 없이 정산까지 도달</li><li>Given 1차시 종료 후 다음 날 / When 이어하기 / Then 전부 그대로</li><li>Given <code>08-test-plan §7</code> 수업 전 점검표 / When 실행 / Then 7개 항목 전부 확인됨</li></ul></li></ul>
+<hr>
+<h2 id="의존성-순서">의존성 순서</h2>
+<pre class="code"><code>P0 (셋업, 병렬 가능)
+ └→ P1 (기반)  R1-T1 → R1-T2
+              R2-T1 ┐
+              R2-T2 ┴→ R2-T3
+ └→ P2 (게임 규칙) ⚠️ G1~G3 통과 전 진행 금지
+      R3-T1 → R3-T2 → R3-T3 → R3-T4
+      R3-T1 → R4-T1 → R4-T2
+                    → R4-T3
+      R1-T1 + R3-T1 → R4-T4 (문제 선택기)
+ └→ P3 (통신)  R5-T1 → R5-T2 → R5-T3 → R5-T4
+ └→ P4 (교사)  S0-T1 → S1-T1 → S1-T2 → S1-V
+                     → S2-T1 → S2-V
+                     → S3-T1
+ └→ P5 (모둠)  S4-T1 → S5-T1 → S5-T2 → S5-V
+                             → S5-T3 ┘
+                     → S6-T1
+ └→ P6 (통합)  T1 ┬→ T2 ┐
+                  ├→ T3 ┴→ T4 → T5</code></pre>
+<p><strong>병렬 가능</strong>: P0 내부 / P1의 R1계열과 R2계열 / P2의 R3계열과 R4계열 / P4와 P5 (둘 다 P3 완료 후)</p>
+<hr>
+<h2 id="통과-기준-이걸-못-넘으면-수업에-못-씀">통과 기준 (이걸 못 넘으면 수업에 못 씀)</h2>
+<div class="table-wrap"><table><thead><tr><th>게이트</th><th>태스크</th><th>기준</th></tr></thead><tbody><tr><td><strong>G1</strong> 도착 순서 = 정답 순위</td><td>P2-R3-T2</td><td>100/100</td></tr><tr><td><strong>G2</strong> 모든 힌트가 참</td><td>P2-R3-T3</td><td>거짓 0개</td></tr><tr><td><strong>G3-a/b</strong> 힌트로 좁혀짐</td><td>P2-R3-T4</td><td>각 100/100</td></tr><tr><td><strong>G4</strong> 정답 유출 없음</td><td>P3-R5-T1</td><td>0회 등장</td></tr><tr><td><strong>B4</strong> 캐시 소실 복구</td><td>P1-R2-T3</td><td>손실 0</td></tr><tr><td><strong>B5</strong> 2차시 이어하기</td><td>P6-T2</td><td>전부 그대로</td></tr><tr><td><strong>C1</strong> 동시 베팅 정합</td><td>P6-T1</td><td>합계 일치</td></tr></tbody></table></div>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 01-prd(Must 16), 02-trd, 04-database, 06-screens, 07-coding-convention, 08-test-plan, council-report</li><li>참조한 명세: <code>specs/screens/*.yaml</code>, <code>specs/domain/resources.yaml</code>, <code>specs/shared/*.yaml</code></li><li>ICV: 통과 (필드 커버리지 100%, Must 16/16)</li><li>아직 안 정한 것:<ul><li>P4-S1-T2의 QR 코드 — 외부 라이브러리 금지 원칙과 충돌. 순수 JS 구현 vs 주소만 크게 표시 중 선택 필요</li><li>P6-T1의 동시성을 브라우저 창 6개로 완전히 재현할 수 있는지</li></ul></li><li>전제: 개발은 선생님 + AI 1명. 병렬 표시는 순서 자유도를 뜻하지 동시 인력을 뜻하지 않음</li><li>위험:<ul><li>P2가 이 프로젝트의 전부다. 여기 G1~G3가 안 되면 나머지를 아무리 잘 만들어도 게임이 안 됨</li><li>P6-T4의 학교망 확인이 실패하면 스택 자체를 다시 봐야 함</li></ul></li></ul>
+<div class="meta-foot">원본: <code>06-tasks.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

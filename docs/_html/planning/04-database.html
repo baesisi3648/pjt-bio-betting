@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>04. 데이터 — 시트 구조와 게임 상태</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">04. 데이터 — 시트 구조와 게임 상태</div><div class="sub">04-database.md</div><a class="lvl1" href="#04-데이터-시트-구조와-게임-상태">04. 데이터 — 시트 구조와 게임 상태</a><a class="lvl2" href="#1-시트-탭-한눈에">1. 시트 탭 한눈에</a><a class="lvl2" href="#2-문제-탭-선생님이-채우는-곳">2. `문제` 탭 — 선생님이 채우는 곳</a><a class="lvl2" href="#3-힌트문구-탭-문장-틀">3. `힌트문구` 탭 — 문장 틀</a><a class="lvl2" href="#4-동물-탭">4. `동물` 탭</a><a class="lvl2" href="#5-설정-탭">5. `설정` 탭</a><a class="lvl2" href="#6-게임-탭-앱이-쓰는-곳-건드리지-말-것">6. `게임` 탭 — 앱이 쓰는 곳 (건드리지 말 것)</a><a class="lvl3" href="#d열-상태json-모양">D열 상태JSON 모양</a><a class="lvl2" href="#7-기록-탭-사건-기록-겸-복구-재료">7. `기록` 탭 — 사건 기록 겸 복구 재료</a><a class="lvl2" href="#8-모둠-폰에-내려보내는-것-아주-중요">8. 모둠 폰에 내려보내는 것 (아주 중요)</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="04-데이터-시트-구조와-게임-상태">04. 데이터 — 시트 구조와 게임 상태</h1>
+<ul><li>상위 문서: 02-trd</li><li>저장소: 구글 스프레드시트 1개 (<code>와일드더비</code>)</li></ul>
+<hr>
+<h2 id="1-시트-탭-한눈에">1. 시트 탭 한눈에</h2>
+<div class="table-wrap"><table><thead><tr><th>탭 이름</th><th>누가 채우나</th><th>용도</th></tr></thead><tbody><tr><td><code>문제</code></td><td><strong>선생님이 직접</strong></td><td>문제은행</td></tr><tr><td><code>힌트문구</code></td><td>선생님 (수정 가능)</td><td>힌트 문장 틀</td></tr><tr><td><code>동물</code></td><td>선생님 (수정 가능)</td><td>등장 동물 목록</td></tr><tr><td><code>설정</code></td><td>선생님 (수정 가능)</td><td>타이머 초, 초기 코인 등</td></tr><tr><td><code>게임</code></td><td>앱이 자동</td><td>판별 게임 상태</td></tr><tr><td><code>기록</code></td><td>앱이 자동</td><td>라운드별 로그 (나중에 리포트 만들 때 씀)</td></tr></tbody></table></div>
+<hr>
+<h2 id="2-문제-탭-선생님이-채우는-곳">2. <code>문제</code> 탭 — 선생님이 채우는 곳</h2>
+<div class="table-wrap"><table><thead><tr><th>A 단원</th><th>B 난이도</th><th>C 문제</th><th>D 보기1</th><th>E 보기2</th><th>F 보기3</th><th>G 보기4</th><th>H 정답</th><th>I 해설</th></tr></thead><tbody><tr><td>유전</td><td>어려움</td><td>다음 중 반성유전에 해당하는 것은?</td><td>혈우병</td><td>ABO식 혈액형</td><td>낫모양적혈구</td><td>페닐케톤뇨증</td><td>1</td><td>X염색체에 유전자가 있어…</td></tr><tr><td>유전</td><td>중간</td><td>사람의 성염색체 구성으로 옳은 것은?</td><td>…</td><td>…</td><td>…</td><td>…</td><td>3</td><td></td></tr><tr><td>유전</td><td>쉬움</td><td>DNA의 기본 단위는?</td><td>뉴클레오타이드</td><td>아미노산</td><td>포도당</td><td>지방산</td><td>1</td><td></td></tr></tbody></table></div>
+<p><strong>규칙</strong></p>
+<ul><li>난이도는 <code>쉬움</code> / <code>중간</code> / <code>어려움</code> 세 글자 중 하나 (다르게 쓰면 무시됨)</li><li>정답은 보기 번호 <strong>1~4</strong> 숫자</li><li>해설은 비워도 됨 (정산 후 다시보기에만 쓰임)</li><li>4지선다 고정. 주관식은 이번 범위 밖 (자동 채점이 안 되므로)</li></ul>
+<p><strong>필요한 문항 수</strong></p>
+<ul><li>한 단원 = 최대 6라운드 × 3난이도 = <strong>최소 18문항</strong></li><li>모둠이 같은 난이도를 겹쳐 고르면 같은 문제를 받는다 (모둠 간 형평은 유지됨)</li><li>판 만들 때 부족하면 경고: <code>&quot;유전 단원 — 어려움 4문항 부족. 그래도 시작할까요?&quot;</code></li></ul>
+<hr>
+<h2 id="3-힌트문구-탭-문장-틀">3. <code>힌트문구</code> 탭 — 문장 틀</h2>
+<div class="table-wrap"><table><thead><tr><th>A 난이도</th><th>B 종류</th><th>C 문장 틀</th></tr></thead><tbody><tr><td>어려움</td><td>순위확정</td><td><code>{X}는 최종 {N}등입니다.</code></td></tr><tr><td>어려움</td><td>상위확정</td><td><code>{X}는 1·2·3등 안에 반드시 듭니다.</code></td></tr><tr><td>어려움</td><td>부정확정</td><td><code>{X}는 최종 1등이 아닙니다.</code></td></tr><tr><td>중간</td><td>둘비교</td><td><code>{X}가 {Y}보다 순위가 높습니다.</code></td></tr><tr><td>중간</td><td>사이끼움</td><td><code>{X}는 {Y}보다 빠르고 {Z}보다 느립니다.</code></td></tr><tr><td>쉬움</td><td>범위</td><td><code>{X}는 {N}등 이하입니다.</code></td></tr><tr><td>쉬움</td><td>제외</td><td><code>{X}는 1·2·3등에 들지 못합니다.</code></td></tr><tr><td>쉬움</td><td>둘중하나</td><td><code>{X} 또는 {Y} 중 하나는 {N}등 안에 듭니다.</code></td></tr></tbody></table></div>
+<ul><li><code>{X}</code> <code>{Y}</code> <code>{Z}</code> 자리에는 동물의 <strong>표시 이름</strong>이 들어간다 (예: 치타)</li><li><code>{N}</code>은 앱이 계산해서 채운다</li><li>선생님이 문장 표현을 고쳐도 되지만 <strong><code>{X}</code> 같은 자리표시는 지우면 안 됨</strong></li><li>종류(B열)는 앱이 논리를 판단하는 열쇠라 <strong>바꾸면 안 됨</strong>. 새 문장을 추가하려면 기존 종류 중 하나를 골라 쓴다</li></ul>
+<hr>
+<h2 id="4-동물-탭">4. <code>동물</code> 탭</h2>
+<div class="table-wrap"><table><thead><tr><th>A 코드</th><th>B 이름</th><th>C 그림</th></tr></thead><tbody><tr><td>A</td><td>치타</td><td>🐆</td></tr><tr><td>B</td><td>사자</td><td>🦁</td></tr><tr><td>C</td><td>호랑이</td><td>🐯</td></tr><tr><td>D</td><td>늑대</td><td>🐺</td></tr><tr><td>E</td><td>얼룩말</td><td>🦓</td></tr><tr><td>F</td><td>타조</td><td>🦩</td></tr><tr><td>G</td><td>개구리</td><td>🐸</td></tr><tr><td>H</td><td>거북이</td><td>🐢</td></tr></tbody></table></div>
+<ul><li><strong>정확히 8줄</strong>이어야 함</li><li>이름과 그림은 마음대로 바꿔도 됨 — 세포소기관·효소·생태계 생물로 갈아 끼우면 단원마다 다른 테마가 된다</li><li>코드(A~H)는 고정. 힌트 생성 내부에서 쓰인다</li></ul>
+<blockquote>주의: 이름을 실제 달리기 속도와 무관하게 지어도 된다. 순위는 매 판 무작위라 &quot;치타가 당연히 1등&quot;은 성립하지 않는다. 오히려 학생이 상식으로 찍는 걸 막으려면 속도 이미지가 비슷한 것들로 채우는 게 좋다.</blockquote>
+<hr>
+<h2 id="5-설정-탭">5. <code>설정</code> 탭</h2>
+<div class="table-wrap"><table><thead><tr><th>A 항목</th><th>B 값</th><th>설명</th></tr></thead><tbody><tr><td>초기코인</td><td>20</td><td>모둠당 시작 코인</td></tr><tr><td>라운드당최대베팅</td><td>3</td><td>한 라운드에 걸 수 있는 코인</td></tr><tr><td>시드코인</td><td><strong>15</strong></td><td>배당률 0으로 나누기 방지 + <strong>배당 상한 조절</strong>. PDF는 5였으나 리뷰에서 &quot;한 방 역전이 추론을 무의미하게 만든다&quot;는 지적으로 15로 올림. 첫 수업 후 조정</td></tr><tr><td>문제시간초</td><td>90</td><td>문제 풀이 제한 시간</td></tr><tr><td>토론시간초</td><td>180</td><td>모둠 토론 시간 (베팅 잠김)</td></tr><tr><td>베팅시간초</td><td>60</td><td>베팅 제한 시간</td></tr><tr><td>트랙칸수</td><td>10</td><td>결승선까지 칸 수</td></tr><tr><td>배율1등</td><td>1.0</td><td>정산 배율</td></tr><tr><td>배율2등</td><td>0.7</td><td></td></tr><tr><td>배율3등</td><td>0.5</td><td></td></tr></tbody></table></div>
+<hr>
+<h2 id="6-게임-탭-앱이-쓰는-곳-건드리지-말-것">6. <code>게임</code> 탭 — 앱이 쓰는 곳 (건드리지 말 것)</h2>
+<div class="table-wrap"><table><thead><tr><th>A 판코드</th><th>B 반이름</th><th>C 단원</th><th>D 상태JSON</th><th>E 만든시각</th><th>F 갱신시각</th><th>G 종료여부</th></tr></thead><tbody><tr><td>2H4K</td><td>2학년 3반</td><td>유전</td><td><code>{...}</code></td><td>2026-08-20 09:12</td><td>2026-08-20 09:48</td><td>FALSE</td></tr><tr><td>7QMZ</td><td>2학년 5반</td><td>유전</td><td><code>{...}</code></td><td>2026-08-20 11:05</td><td>2026-08-20 11:52</td><td>TRUE</td></tr></tbody></table></div>
+<p>한 반이 한 줄이다. 반이 여러 개여도 서로 안 섞인다.</p>
+<h3 id="d열-상태json-모양">D열 상태JSON 모양</h3>
+<pre class="code lang-json"><code>{
+  &quot;version&quot;: 1,
+  &quot;code&quot;: &quot;2H4K&quot;,
+  &quot;className&quot;: &quot;2학년 3반&quot;,
+  &quot;unit&quot;: &quot;유전&quot;,
+  &quot;round&quot;: 3,
+  &quot;lastRound&quot;: 6,
+  &quot;phase&quot;: &quot;betting&quot;,
+  &quot;phaseEndsAt&quot;: 1787654321000,
+  &quot;pausedAt&quot;: null,
+  &quot;eventSeq&quot;: 128,
+  &quot;stateVersion&quot;: 47,
+
+  &quot;truth&quot;: [&quot;C&quot;,&quot;A&quot;,&quot;F&quot;,&quot;B&quot;,&quot;H&quot;,&quot;D&quot;,&quot;G&quot;,&quot;E&quot;],
+  &quot;moves&quot;: {
+    &quot;A&quot;: [2,1,3,2,1,1],
+    &quot;B&quot;: [1,2,2,1,3,1]
+  },
+  &quot;positions&quot;: { &quot;A&quot;: 6, &quot;B&quot;: 5, &quot;C&quot;: 7 },
+
+  &quot;teams&quot;: [
+    {
+      &quot;no&quot;: 1,
+      &quot;name&quot;: &quot;미토콘드리아&quot;,
+      &quot;pin&quot;: &quot;4821&quot;,
+      &quot;coins&quot;: 14,
+      &quot;hints&quot;: [
+        { &quot;round&quot;: 1, &quot;level&quot;: &quot;중간&quot;, &quot;text&quot;: &quot;치타가 늑대보다 순위가 높습니다.&quot; },
+        { &quot;round&quot;: 2, &quot;level&quot;: &quot;어려움&quot;, &quot;text&quot;: &quot;사자는 1·2·3등 안에 반드시 듭니다.&quot; }
+      ],
+      &quot;answered&quot;: { &quot;3&quot;: { &quot;level&quot;: &quot;어려움&quot;, &quot;choice&quot;: 2, &quot;correct&quot;: false } },
+      &quot;bets&quot;:     { &quot;1&quot;: {&quot;A&quot;:2,&quot;C&quot;:1}, &quot;2&quot;: {&quot;C&quot;:3} },
+      &quot;betLocked&quot;: { &quot;1&quot;: true, &quot;2&quot;: true, &quot;3&quot;: false }
+    }
+  ],
+
+  &quot;pool&quot;: { &quot;A&quot;: 9, &quot;B&quot;: 5, &quot;C&quot;: 12, &quot;D&quot;: 5, &quot;E&quot;: 5, &quot;F&quot;: 7, &quot;G&quot;: 5, &quot;H&quot;: 5 },
+  &quot;questionPlan&quot;: {
+    &quot;1&quot;: { &quot;쉬움&quot;: 3, &quot;중간&quot;: 1, &quot;어려움&quot;: 2 },
+    &quot;2&quot;: { &quot;쉬움&quot;: 7, &quot;중간&quot;: 5, &quot;어려움&quot;: 9 }
+  },
+  &quot;hintPool&quot;: {
+    &quot;어려움&quot;: [&quot;C는 최종 1등입니다.&quot;, &quot;A는 1·2·3등 안에 반드시 듭니다.&quot;, &quot;…6개 이상&quot;],
+    &quot;중간&quot;:   [&quot;…6개 이상&quot;],
+    &quot;쉬움&quot;:   [&quot;…6개 이상&quot;]
+  },
+  &quot;hintGiven&quot;: { &quot;1&quot;: [&quot;어려움#0&quot;], &quot;3&quot;: [&quot;중간#2&quot;, &quot;어려움#1&quot;] }
+}</code></pre>
+<p><strong>중요한 항목</strong></p>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>뜻</th></tr></thead><tbody><tr><td><code>truth</code></td><td>1등부터 8등까지 동물 코드 순서. <strong>절대 학생 화면으로 안 나감</strong></td></tr><tr><td><code>moves</code></td><td>동물별 라운드 이동량 (역산으로 미리 다 정해둠)</td></tr><tr><td><code>lastRound</code></td><td>5 또는 6. 학생 화면으로 안 나감</td></tr><tr><td><code>phase</code></td><td><code>waiting</code> / <code>moving</code> / <code>quiz</code> / <strong><code>discuss</code></strong> / <code>betting</code> / <code>paused</code> / <code>done</code></td></tr><tr><td><code>phaseEndsAt</code></td><td>서버 시각 기준 마감 시각 (폰 시계와 무관)</td></tr><tr><td><code>pausedAt</code></td><td>일시정지 시작 시각. <code>null</code>이면 진행 중</td></tr><tr><td><code>eventSeq</code></td><td><code>기록</code> 탭에 마지막으로 반영된 사건 번호. 캐시 복구의 기준점</td></tr><tr><td><code>stateVersion</code></td><td>바뀔 때마다 +1. 화면은 이게 바뀔 때만 다시 그림</td></tr><tr><td><code>pool</code></td><td>동물별 누적 베팅 (시드 포함) — 배당률 계산 원본</td></tr><tr><td><code>betLocked</code></td><td>라운드별 베팅 확정 여부. 확정 후 되돌리기 불가</td></tr><tr><td><code>questionPlan</code></td><td><strong>판 생성 시 미리 다 정한다.</strong> 라운드×난이도마다 문항 번호 1개. 라운드마다 그때그때 뽑으면 캐시 복구 시 다른 문제가 나온다</td></tr><tr><td><code>hintPool</code></td><td>난이도별 힌트 문장. <strong>각 6개 이상</strong> — 한 모둠이 6라운드 내내 같은 난이도를 골라도 중복이 안 나게</td></tr><tr><td><code>hintGiven</code></td><td>모둠별로 이미 준 힌트 번호. 중복 지급 방지</td></tr></tbody></table></div>
+<blockquote><code>bets</code>는 <strong>반드시 라운드별로 나눠 저장한다.</strong> 나중에 라운드별 보너스 배율이나 베팅 시점 배당률 고정으로 바꿀 수 있게 남겨두는 것이다 (<code>01-prd.md §6-2</code>).</blockquote>
+<p><strong>크기 관리</strong>: 힌트는 문장을 통째로 저장한다(모둠당 최대 6개). 8모둠 기준 대략 8~12KB로, 캐시 한도 100KB 안쪽이다.</p>
+<hr>
+<h2 id="7-기록-탭-사건-기록-겸-복구-재료">7. <code>기록</code> 탭 — 사건 기록 겸 복구 재료</h2>
+<div class="table-wrap"><table><thead><tr><th>A 번호</th><th>B 판코드</th><th>C 라운드</th><th>D 모둠</th><th>E 종류</th><th>F 내용(JSON)</th><th>G 시각</th></tr></thead><tbody><tr><td>126</td><td>2H4K</td><td>3</td><td>1</td><td><code>answer</code></td><td><code>{&quot;level&quot;:&quot;어려움&quot;,&quot;choice&quot;:2,&quot;correct&quot;:false}</code></td><td>09:41:22</td></tr><tr><td>127</td><td>2H4K</td><td>3</td><td>1</td><td><code>bet</code></td><td><code>{&quot;A&quot;:2,&quot;C&quot;:1}</code></td><td>09:42:10</td></tr></tbody></table></div>
+<p><strong>두 가지 일을 한다.</strong></p>
+<ol><li><strong>즉시 기록</strong> — 답 제출과 베팅 확정이 일어나는 <strong>그 순간</strong> 한 줄이 붙는다. 라운드 끝까지 안 기다린다</li><li><strong>복구 재료</strong> — 캐시가 날아가면 <code>게임</code> 탭의 마지막 스냅샷을 읽고, 그 뒤 <code>번호</code>가 큰 사건들을 순서대로 다시 적용해 원상 복구한다</li></ol>
+<p><code>종류</code>는 <code>answer</code> / <code>bet</code> / <code>round_start</code> / <code>pause</code> 넷.</p>
+<p>한 반 한 판이 끝나면 최대 <code>6모둠 × 2건 × 6라운드 = 72줄</code>. 학기 내내 쌓으면 수천 줄이 되므로, <strong>끝난 판은 학기말에 다른 시트로 옮기거나 지운다</strong> (정리 안 하면 판 만들기가 느려진다).</p>
+<hr>
+<h2 id="8-모둠-폰에-내려보내는-것-아주-중요">8. 모둠 폰에 내려보내는 것 (아주 중요)</h2>
+<p>서버는 요청자를 보고 <strong>다른 내용</strong>을 돌려준다.</p>
+<pre class="code lang-js"><code>// 모둠 폰이 받는 것
+{
+  round, lastRoundHidden: true,       // lastRound 값 자체를 안 보냄
+  phase, secondsLeft,
+  positions,                           // 모든 동물 위치 (공개)
+  odds,                                // 배당률 (공개)
+  teamProgress: [{no,name,answered,betLocked}],  // 이름과 완료여부만
+  me: { no, name, coins, hints, myBets, canAnswer, canBet },
+  question: { text, choices } | null   // 지금 라운드에 고른 난이도 문제만
+}</code></pre>
+<p><strong>절대 안 내려보내는 것</strong>: <code>truth</code>, <code>moves</code>, <code>lastRound</code>, 다른 모둠의 <code>hints</code>·<code>pin</code>·<code>answered.correct</code>, 문제 정답 번호(채점 전).</p>
+<blockquote>화면에서 감추는 게 아니라 응답에 담지 않는다. 브라우저 개발자 도구를 열어도 안 보인다.</blockquote>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 02-trd</li><li>영향 주는 하위 문서: 06-screens, 07-coding-convention, 08-test-plan</li><li>아직 안 정한 것:<ul><li>같은 난이도를 여러 모둠이 고르면 같은 문제를 주는데, 옆 모둠 답을 베끼는 문제가 생길지 (첫 수업 관찰 후 모둠별 다른 문제 배정 검토)</li><li><code>기록</code> 탭이 학기 내내 쌓이면 시트가 무거워질 수 있음 — 정리 주기 미정</li></ul></li><li>전제: 선생님이 <code>게임</code>·<code>기록</code> 탭을 손으로 고치지 않는다</li><li>확인 기준:<ul><li>문제 18문항 미만인 단원으로 판을 만들면 반드시 경고가 뜬다</li><li>모둠 폰 응답 어디에도 <code>truth</code>가 없다 (테스트로 확인)</li></ul></li><li>위험: 선생님이 <code>힌트문구</code> 탭에서 <code>{X}</code> 자리표시를 지우면 힌트가 깨짐 → 판 만들 때 검사하고 경고</li></ul>
+<div class="meta-foot">원본: <code>04-database.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

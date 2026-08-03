@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>06. 화면 목록</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">06. 화면 목록</div><div class="sub">06-screens.md</div><a class="lvl1" href="#06-화면-목록">06. 화면 목록</a><a class="lvl2" href="#화면-지도">화면 지도</a><a class="lvl2" href="#s1-교사-시작-화면">S1. 교사 — 시작 화면</a><a class="lvl2" href="#s2-교사-진행-화면">S2. 교사 — 진행 화면</a><a class="lvl2" href="#s3-교사-정산-화면">S3. 교사 — 정산 화면</a><a class="lvl2" href="#s4-모둠-접속-화면">S4. 모둠 — 접속 화면</a><a class="lvl2" href="#s5-모둠-게임-화면">S5. 모둠 — 게임 화면</a><a class="lvl3" href="#탭-1-문제">탭 1 — 문제</a><a class="lvl3" href="#탭-2-힌트-게임의-심장">탭 2 — 힌트 (게임의 심장)</a><a class="lvl3" href="#탭-3-베팅">탭 3 — 베팅</a><a class="lvl2" href="#s6-모둠-결과-화면">S6. 모둠 — 결과 화면</a><a class="lvl2" href="#화면-must-기능-대응-확인">화면 ↔ Must 기능 대응 확인</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="06-화면-목록">06. 화면 목록</h1>
+<ul><li>상위 문서: 01-prd, 03-user-flow, 05-design-system</li><li>하위: <code>/screen-spec</code> 이 문서를 읽어 <code>specs/screens/*.yaml</code> 생성</li></ul>
+<hr>
+<h2 id="화면-지도">화면 지도</h2>
+<pre class="code"><code>[교사 · 노트북→TV]                      [모둠 · 폰]
+
+  S1 시작 화면                            S4 접속 화면
+   ├ 새 판 만들기 ──┐                      판코드→모둠→암호
+   └ 판 코드로 이어하기                          │
+            │                                   │
+            ▼                                   ▼
+  S2 진행 화면  ◄────── 같은 판 ──────►  S5 모둠 화면
+   트랙/전광판/현황/제어                   [문제][힌트][베팅]
+            │                                   │
+            ▼ (마지막 라운드 끝)                 ▼
+  S3 정산 화면                            S6 모둠 결과 화면</code></pre>
+<hr>
+<h2 id="s1-교사-시작-화면">S1. 교사 — 시작 화면</h2>
+<p><strong>하는 일</strong>: 판을 새로 만들거나, 지난 시간 판을 이어받는다.</p>
+<p><strong>Must 기능</strong>: M1</p>
+<p><strong>보이는 것</strong></p>
+<ul><li>제목 &quot;🧬 와일드 더비&quot;</li><li>탭 두 개: <code>새 판 만들기</code> / <code>판 코드로 이어하기</code></li><li>[새 판 만들기]<ul><li>반 이름 입력 (예: <code>2학년 3반</code>)</li><li>단원 고르기 (드롭다운 — <code>문제</code> 탭의 A열에서 자동으로 목록을 뽑음)</li><li>모둠 수 고르기 (2~8)</li><li>모둠 이름 입력칸 (모둠 수만큼 생김. 비우면 <code>1모둠</code>, <code>2모둠</code>…)</li><li><code>판 만들기</code> 버튼</li></ul></li><li>[판 코드로 이어하기]<ul><li>판 코드 4자리 입력 + <code>이어하기</code> 버튼</li><li>아래에 최근 판 목록 (반 이름 / 만든 날짜 / 몇 라운드까지 갔는지 / 끝났는지)</li></ul></li></ul>
+<p><strong>판을 만든 직후 보이는 것</strong> (이게 제일 중요)</p>
+<pre class="code"><code>판 코드      2H4K        ← 아주 크게. 칠판에 적을 것
+학생 주소    ...exec      ← 아주 크게 (QR은 이번 범위 밖 — 외부 라이브러리 금지 원칙)
+
+모둠별 암호 (모둠장에게만 알려주세요)
+  1모둠 미토콘드리아  4821
+  2모둠 엽록체        1937
+  ...
+                      [인쇄하기]  [진행 화면으로]</code></pre>
+<p><strong>필요한 데이터</strong>: <code>문제</code> 탭 단원 목록, <code>동물</code> 탭, <code>설정</code> 탭</p>
+<p><strong>막아야 하는 것</strong></p>
+<ul><li>문항 부족: <code>&quot;유전 단원 — 어려움 4문항 부족(2/6). 그래도 시작할까요?&quot;</code> → 계속/취소</li><li><code>동물</code> 탭이 8줄이 아님: 시작 불가, 고치라고 안내</li><li><code>힌트문구</code> 탭에 <code>{X}</code> 자리표시가 깨짐: 시작 불가, 어느 줄인지 알려줌</li><li>모둠 이름 중복: 뒤에 번호 자동으로 붙임</li></ul>
+<p><strong>비었을 때</strong>: 이어하기 목록이 비면 &quot;아직 만든 판이 없어요. 새 판을 만들어 보세요.&quot;</p>
+<hr>
+<h2 id="s2-교사-진행-화면">S2. 교사 — 진행 화면</h2>
+<p><strong>하는 일</strong>: 수업 내내 TV에 띄워두는 화면. 게임의 중계석.</p>
+<p><strong>Must 기능</strong>: M9, M10, M11, M12, M15</p>
+<p><strong>화면 배치 (1920×1080)</strong></p>
+<pre class="code"><code>┌──────────────────────────────────────────────────────────┐
+│ 🧬 와일드 더비   2학년 3반 · 유전        3라운드      ⏱ 47 │
+├──────────────────────────────────────────────────────────┤
+│ [🐆 치타 ] ▓▓▓▓▓▓░░░░ 🏁                                  │
+│ [🦁 사자 ] ▓▓▓▓░░░░░░ 🏁                                  │
+│ ... 8줄 ...                                    (화면 절반) │
+├────────────────────────────┬─────────────────────────────┤
+│ 배당률 전광판                │ 모둠 현황                    │
+│ 🐆 치타   12코인   2.14배   │ 1모둠 미토콘드리아 ✅ 💰      │
+│ 🦁 사자    3코인   5.80배   │ 2모둠 엽록체       ⏳ ⏳      │
+│ ...                        │ ...                          │
+├────────────────────────────┴─────────────────────────────┤
+│  [라운드 시작]  [⏸ 일시정지]   (작게) 정답 순위 보기 · 정산 │
+└──────────────────────────────────────────────────────────┘</code></pre>
+<p><strong>⏸ 일시정지</strong> (리뷰 반영) — 누르면 타이머가 멈추고, 학생 화면에도 &quot;선생님이 잠시 멈췄어요&quot;가 뜬다. 멈춘 동안 답 제출·베팅이 거부된다. 다시 누르면 <strong>멈춘 지점의 남은 시간부터</strong> 이어간다. 자동 마감 방침은 그대로 두고 비상구만 남기는 것이다.</p>
+<p><strong>단계마다 달라지는 것</strong></p>
+<div class="table-wrap"><table><thead><tr><th>단계</th><th>화면</th></tr></thead><tbody><tr><td><code>waiting</code></td><td>가운데 크게 &quot;3라운드 준비 — [라운드 시작]&quot;</td></tr><tr><td><code>moving</code></td><td>말이 움직임 (0.6초). 타이머 없음</td></tr><tr><td><code>quiz</code></td><td>상단에 &quot;문제 푸는 중&quot; + 타이머. 모둠 현황의 제출 표시가 하나씩 켜짐</td></tr><tr><td><code>discuss</code></td><td>상단에 &quot;모둠 토론 중&quot; + 타이머. 트랙·전광판은 그대로, 조작 없음</td></tr><tr><td><code>betting</code></td><td>상단에 &quot;베팅 중&quot; + 타이머. 전광판이 계속 움직임</td></tr><tr><td><code>paused</code></td><td>타이머가 멈춘 채 회색 덮개 + &quot;일시정지 중&quot;</td></tr><tr><td><code>done</code></td><td>정산 화면으로 넘어가는 버튼만 크게</td></tr></tbody></table></div>
+<p><strong>&quot;정답 순위 보기&quot;</strong> — 선생님만. 누르면 비밀번호 없이 바로 뜨지만, <strong>작고 눈에 안 띄게</strong> 둔다 (실수로 TV에 띄우지 않게). 뜰 때는 반투명 덮개로 트랙을 가린다.</p>
+<p><strong>필요한 데이터</strong>: 게임 상태 전체 (교사 권한)</p>
+<p><strong>막아야 하는 것</strong></p>
+<ul><li>라운드 진행 중에 <code>라운드 시작</code> 다시 누르기 → 버튼 잠금</li><li>마지막 라운드가 안 끝났는데 <code>정산하기</code> → &quot;아직 3등이 안 들어왔어요. 그래도 정산할까요?&quot; 확인</li><li>서버 응답 실패 3회 연속 → 화면 상단에 빨간 띠 &quot;연결이 불안정해요. 인터넷을 확인해주세요&quot;</li></ul>
+<hr>
+<h2 id="s3-교사-정산-화면">S3. 교사 — 정산 화면</h2>
+<p><strong>하는 일</strong>: 정답 공개하고 우승 모둠을 발표한다. 수업의 절정.</p>
+<p><strong>Must 기능</strong>: M13</p>
+<p><strong>보이는 순서</strong> (선생님이 한 단계씩 넘김 — 한 번에 다 보여주면 김빠짐)</p>
+<pre class="code"><code>1단계  최종 순위 공개
+       🥇 1등 호랑이(C)   🥈 2등 치타(A)   🥉 3등 타조(F)
+       (4~8등도 아래에 작게)
+
+2단계  모둠별 계산 내역
+       1모둠 미토콘드리아
+         치타(2등)에 4코인 × 2.14배 × 70% =  5.9 → 6코인
+         사자(6등)에 2코인                  =  0코인
+         남은 코인 8 + 획득 6              = 14코인
+
+3단계  최종 순위 발표
+       🏆 3모둠 리보솜  27코인
+          1모둠 미토콘드리아 14코인
+          ...</code></pre>
+<p><strong>추가로</strong>: <code>이번 게임 문제 다시보기</code> — 라운드별 문제·정답·해설을 띄운다. 오답 짚어주는 용도. (문제·정답·해설은 이미 시트에 있으므로 만들기 부담 작음)</p>
+<p><strong>필요한 데이터</strong>: 게임 상태 전체 + <code>문제</code> 탭 해설</p>
+<hr>
+<h2 id="s4-모둠-접속-화면">S4. 모둠 — 접속 화면</h2>
+<p><strong>하는 일</strong>: 우리 모둠으로 들어간다.</p>
+<p><strong>Must 기능</strong>: M5</p>
+<p><strong>단계 3개</strong> (한 화면에 하나씩)</p>
+<pre class="code"><code>1) 판 코드 4자리        [ 2 H 4 K ]
+2) 우리 모둠 고르기      1모둠 ● / 2모둠 ● / 3모둠 ●   (전부 선택 가능)
+3) 암호 4자리           [ 4 8 2 1 ]</code></pre>
+<p><strong>접속 점유는 두지 않는다</strong> (리뷰 반영). 처음 설계에는 &quot;다른 폰이 잡은 모둠은 회색&quot;이 있었는데, 그러면 <strong>새로고침한 폰이 자기 자신 때문에 재접속을 못 한다.</strong> 수업 중 이게 터지면 그 모둠은 게임에서 이탈한다.</p>
+<p>→ 암호만 맞으면 몇 대든 들어온다. 모둠이 폰 2대를 쓰고 싶을 수도 있고, 어차피 방어선은 암호다.</p>
+<p><strong>막아야 하는 것</strong></p>
+<ul><li>없는 판 코드: &quot;그런 판이 없어요. 칠판의 코드를 다시 확인해주세요&quot;</li><li>이미 끝난 판: &quot;이 판은 이미 끝났어요&quot;</li><li>암호 틀림: &quot;암호가 달라요. 모둠장에게 확인해주세요&quot; — <strong>잠금은 두지 않고</strong> 시도마다 1초씩 지연만 준다 (모둠 단위로 잠그면 장난치는 학생이 남의 모둠을 계속 잠글 수 있다)</li><li>새로고침·재접속: 같은 셋을 다시 넣으면 그대로 복구 (힌트·코인 유지)</li></ul>
+<p><strong>주의</strong>: 학생 이름이나 학번은 받지 않는다.</p>
+<hr>
+<h2 id="s5-모둠-게임-화면">S5. 모둠 — 게임 화면</h2>
+<p><strong>하는 일</strong>: 문제 풀고, 힌트 보고, 베팅한다. 학생이 45분 내내 보는 화면.</p>
+<p><strong>Must 기능</strong>: M6, M7, M8, M12, M15</p>
+<p><strong>구조</strong></p>
+<pre class="code"><code>┌────────────────────────────┐
+│ ▓▓▓▓▓▓▓░░░  남은 47초       │ ← 타이머 막대
+│ 지금은 ▸ 베팅할 때예요       │ ← 지금 뭘 할 때인지 (상단!)
+│ 3모둠 리보솜      💰 14코인  │
+├────────────────────────────┤
+│  [문제]   [힌트 3]  [베팅]   │ ← 탭. 지금 할 일에 점 표시
+├────────────────────────────┤
+│                            │
+│         (탭 내용)           │
+│                            │
+└────────────────────────────┘</code></pre>
+<blockquote>&quot;지금 뭘 할 때인지&quot;는 <strong>상단 타이머 바로 아래</strong>에 둔다. 처음엔 하단에 두려 했으나, 폰에서 하단은 잘 안 본다 (리뷰 반영). 일시정지 중에는 이 자리에 &quot;선생님이 잠시 멈췄어요&quot;가 뜨고 탭 전체가 흐려진다.</blockquote>
+<h3 id="탭-1-문제">탭 1 — 문제</h3>
+<div class="table-wrap"><table><thead><tr><th>상태</th><th>화면</th></tr></thead><tbody><tr><td>아직 안 고름</td><td>난이도 버튼 3개 (쉬움/중간/어려움) + &quot;어려울수록 좋은 힌트&quot;</td></tr><tr><td>고른 뒤</td><td>문제 + 4지선다 + <code>제출</code></td></tr><tr><td>제출함</td><td>⭕ 정답! → &quot;힌트 탭에 새 힌트가 도착했어요&quot; / ❌ 오답 → 정답과 해설 표시</td></tr><tr><td>시간 끝</td><td>&quot;시간이 지났어요. 다음 라운드를 기다려주세요&quot;</td></tr><tr><td>이번 라운드 아님</td><td>&quot;지금은 {단계} 시간이에요&quot;</td></tr></tbody></table></div>
+<ul><li>난이도는 <strong>한 라운드에 한 번만</strong>. 고르기 전 확인 한 번</li><li>제출도 한 번만. 제출 후 잠김</li></ul>
+<h3 id="탭-2-힌트-게임의-심장">탭 2 — 힌트 (게임의 심장)</h3>
+<ul><li>지금까지 받은 힌트 <strong>전부</strong>, 최신이 위로</li><li>각 카드에 <code>몇 라운드 · 난이도</code></li><li>아직 없으면: &quot;문제를 맞히면 힌트를 받아요&quot;</li><li>새 힌트가 오면 탭 이름에 숫자 배지</li></ul>
+<blockquote>이 탭이 모둠 토론의 무대다. 스크롤 없이 6개까지 한눈에 들어오는 게 목표. <strong>토론 단계(180초)에는 이 탭이 자동으로 열리고 베팅이 잠긴다</strong> — 조작할 게 없어야 서로 본다.</blockquote>
+<h3 id="탭-3-베팅">탭 3 — 베팅</h3>
+<ul><li>동물 8마리 + 그림 + 현재 배당률 + <code>−</code>/<code>+</code>/현재 건 코인</li><li>하단: &quot;이번 라운드 3개 중 2개 사용&quot; / <code>베팅 확정하기</code></li><li>확정 후 잠김. 확정 전 확인 한 번</li><li>지난 라운드에 건 것도 아래에 작게 (누적 얼마 걸었는지)</li></ul>
+<p><strong>막아야 하는 것</strong></p>
+<ul><li>3코인 초과: <code>+</code> 흐려짐</li><li>보유 코인 초과: <code>+</code> 흐려짐</li><li>시간 지난 뒤 제출: 서버가 거부 → &quot;베팅 시간이 지났어요&quot;</li><li>두 번 누르기: 서버 응답까지 버튼 잠금</li></ul>
+<p><strong>절대 안 보이는 것</strong>: 정답 순위, 다른 모둠 힌트, 다른 모둠이 뭘 골랐는지, 마지막 라운드가 몇인지</p>
+<hr>
+<h2 id="s6-모둠-결과-화면">S6. 모둠 — 결과 화면</h2>
+<p><strong>하는 일</strong>: 우리 모둠이 어떻게 됐는지 본다.</p>
+<ul><li>최종 순위 (1·2·3등 동물)</li><li>우리가 맞힌 것 / 놓친 것</li><li>획득 코인 계산 내역</li><li>전체 모둠 중 우리 등수</li><li>(있으면 좋은 것) &quot;우리가 받은 힌트로 답을 좁힐 수 있었을까?&quot; 되짚어보기 — <strong>이번 범위 밖</strong></li></ul>
+<hr>
+<h2 id="화면-must-기능-대응-확인">화면 ↔ Must 기능 대응 확인</h2>
+<div class="table-wrap"><table><thead><tr><th>Must</th><th>화면</th></tr></thead><tbody><tr><td>M1 판 만들기/이어하기</td><td>S1</td></tr><tr><td>M2 순위 확정+이동 역산</td><td>(화면 없음 — 서버)</td></tr><tr><td>M3 힌트 생성+검산</td><td>(화면 없음 — 서버)</td></tr><tr><td>M4 시트 문제 연동</td><td>S1(단원 고르기), S5 문제탭</td></tr><tr><td>M5 모둠 접속+암호</td><td>S1(암호 발급), S4</td></tr><tr><td>M6 난이도 선택+풀이</td><td>S5 문제탭</td></tr><tr><td>M7 힌트 보관함</td><td>S5 힌트탭</td></tr><tr><td>M8 베팅 입력</td><td>S5 베팅탭</td></tr><tr><td>M9 레이스 트랙</td><td>S2</td></tr><tr><td>M10 배당률 전광판</td><td>S2</td></tr><tr><td>M11 모둠 진행 현황</td><td>S2</td></tr><tr><td>M12 타이머 자동 마감</td><td>S2, S5</td></tr><tr><td>M13 최종 정산</td><td>S3, S6</td></tr><tr><td>M14 동물·힌트 시트 수정</td><td>(화면 없음 — 시트에서 직접)</td></tr><tr><td>M15 일시정지</td><td>S2 (버튼), S5 (멈춤 표시)</td></tr><tr><td>M16 즉시 기록</td><td>(화면 없음 — 서버)</td></tr></tbody></table></div>
+<p>Must 16개 전부 화면이나 서버에 배정됨. 빠진 것 없음.</p>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: 01-prd, 03-user-flow, 05-design-system</li><li>영향 주는 하위 문서: <code>specs/screens/*.yaml</code>, 06-tasks</li><li>아직 안 정한 것:<ul><li>S3 정산의 계산 내역을 모둠별로 다 보여주면 6모둠 × 8동물이라 화면이 길어짐 → 접었다 펴기 필요할 수 있음</li><li>S5 힌트 탭에서 힌트가 6개 넘어가면 스크롤이 생기는데 토론에 불편할지</li></ul></li><li>전제: 모둠 폰 화면 너비 360px 이상</li><li>확인 기준: Must 16개가 전부 화면 또는 서버 기능에 배정됨 (위 표)</li><li>위험: S2가 정보가 많아 TV에서 답답해 보일 수 있음 → 트랙에 화면 절반을 강제 배분</li></ul>
+<div class="meta-foot">원본: <code>06-screens.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

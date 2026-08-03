@@ -1,0 +1,198 @@
+{
+  "version": 1,
+  "mode": "standard",
+  "project": "와일드 더비 (Wild Derby)",
+  "planning_line": "socrates",
+  "iteration": 1,
+  "max_iterations": 3,
+  "updated_at": "2026-08-01",
+  "code_lines": 0,
+  "inventory": {
+    "present": [
+      "01-prd.md",
+      "02-trd.md",
+      "03-user-flow.md",
+      "04-database.md",
+      "05-design-system.md",
+      "06-screens.md",
+      "06-tasks.md",
+      "07-coding-convention.md",
+      "08-test-plan.md",
+      "09-personas.md",
+      "10-desire-map.md",
+      "council-report.md",
+      "specs/domain/resources.yaml",
+      "specs/screens/*.yaml (7)",
+      "specs/shared/*.yaml (2)"
+    ],
+    "missing": [],
+    "note": "표준 구조 완비. 코드 0줄 (설계 단계)"
+  },
+  "scores": {
+    "problem_clarity": {
+      "score": 5,
+      "note": "한 줄 문제 + 성공 기준이 관찰 가능한 형태"
+    },
+    "scope_discipline": {
+      "score": 5,
+      "note": "Must 16 / Won't 5개 명시. 'Won't' 근거까지 기록"
+    },
+    "user_grounding": {
+      "score": 4,
+      "note": "페르소나 2개 + 장면. 학생 관찰은 첫 수업 전까지 미검증"
+    },
+    "flow_completeness": {
+      "score": 5,
+      "note": "G-02 수정 후 시간 배분이 계산과 일치"
+    },
+    "screen_coverage": {
+      "score": 5,
+      "note": "Must 16/16 배정, ICV 100%"
+    },
+    "data_model_soundness": {
+      "score": 5,
+      "note": "questionPlan·hintPool·eventSeq 보강 완료"
+    },
+    "traceability": {
+      "score": 5,
+      "note": "G-04 수정 후 Must→REQ→Task 직접 연결"
+    },
+    "testability": {
+      "score": 5,
+      "note": "G1~G4 + acceptance 전부 G/W/T"
+    },
+    "consistency": {
+      "score": 5,
+      "note": "수치 전 문서 일치, 잔존 모순 0"
+    },
+    "buildability": {
+      "score": 5,
+      "note": "G-01 문제 선택기 추가로 구현 공백 해소"
+    },
+    "risk_awareness": {
+      "score": 5,
+      "note": "되돌리면 무너지는 결정 4개를 명시"
+    },
+    "decision_rationale": {
+      "score": 5,
+      "note": "10-desire-map §6-2에 결정과 근거 기록"
+    },
+    "convention_clarity": {
+      "score": 4,
+      "note": "코드 규칙 명확. 다만 실제 코드가 없어 검증 불가"
+    }
+  },
+  "score_total": 63,
+  "score_max": 65,
+  "score_pct": 96.9,
+  "gaps_round1": [
+    {
+      "id": "G-02",
+      "severity": "blocker",
+      "title": "라운드 시간 모순 → 2차시 분할 근거 흔들림",
+      "status": "resolved",
+      "resolution": "토론 180초를 정식 단계로 추가 → 라운드 7분 → 2차시 유지. 사용자 결정"
+    },
+    {
+      "id": "G-01",
+      "severity": "major",
+      "title": "문제 선택/재사용 태스크 없음",
+      "status": "resolved",
+      "resolution": "P2-R4-T4 문제 선택기 추가. questionPlan을 판 생성 시 미리 배정"
+    },
+    {
+      "id": "G-03",
+      "severity": "major",
+      "title": "힌트 풀 3개 vs 6라운드 중복 금지 충돌",
+      "status": "resolved",
+      "resolution": "난이도별 최소 6개 명시. 같은 틀 다른 동물로 채움"
+    },
+    {
+      "id": "G-04",
+      "severity": "minor",
+      "title": "Must→Task 직접 참조 없음",
+      "status": "resolved",
+      "resolution": "태스크 12개에 Must ID 추가"
+    },
+    {
+      "id": "G-05",
+      "severity": "minor",
+      "title": "QR이 외부 라이브러리 금지와 충돌",
+      "status": "resolved",
+      "resolution": "QR 제외, 주소만 48px 이상으로 표시. 사용자 결정"
+    }
+  ],
+  "gates": {
+    "derived": true,
+    "file": "docs/planning/loop/08-derived-gates.md",
+    "req_count": 13,
+    "hard": 10,
+    "metric": 9,
+    "domain": 11,
+    "rubric": 5,
+    "broken_chains": 0
+  },
+  "gate_pass": true,
+  "readiness": "Ready with Risks",
+  "residual_risks": [
+    {
+      "id": "RR-1",
+      "text": "학교망에서 script.google.com이 막히면 스택 자체를 다시 봐야 함",
+      "gate": "H10",
+      "mitigation": "P6-T4 전에 미리 폰으로 1회 확인"
+    },
+    {
+      "id": "RR-2",
+      "text": "최종 배당률만 쓰면 마지막 라운드 몰빵이 최적 전략이 될 수 있음 (선생님 결정)",
+      "gate": "R-4",
+      "mitigation": "bets에 라운드 번호 보존 → 첫 수업 후 전환 가능"
+    },
+    {
+      "id": "RR-3",
+      "text": "폰 1대를 4~5명이 보는 물리적 제약은 기술로 못 품",
+      "gate": "R-5",
+      "mitigation": "힌트 20px + 토론 단계 + A4 병행(운영)"
+    },
+    {
+      "id": "RR-4",
+      "text": "동시성(H7)을 브라우저 창 6개로 완전히 재현 못 할 수 있음",
+      "gate": "H7",
+      "mitigation": "첫 수업에서 코인 합계 직접 대조"
+    },
+    {
+      "id": "RR-5",
+      "text": "라운드 7분·1차시 3라운드는 계산값이지 실측이 아님",
+      "gate": "M-2, M-3",
+      "mitigation": "첫 수업에서 설정 탭 값 조정"
+    }
+  ],
+  "recommended_first_phase": "P2 (게임 규칙 코어) — H1~H3-b를 통과하기 전에는 화면을 만들 이유가 없다",
+  "build": {
+    "round": 1,
+    "verdict": "conditional-approval",
+    "gate_results": {
+      "code_verifiable": {
+        "pass": 31,
+        "fail": 0
+      },
+      "blocked_until_deploy": [
+        "H10",
+        "M-1",
+        "M-2",
+        "M-3",
+        "M-4",
+        "M-5",
+        "M-8",
+        "D7",
+        "D8",
+        "R-1..R-5"
+      ]
+    },
+    "independence": "미확보 — 서브에이전트 비활성으로 빌드와 검증을 같은 세션이 수행. 대신 재실행 가능한 스크립트로 대체",
+    "commands": [
+      "node test/run-gates.js",
+      "node test/simulate-game.js"
+    ],
+    "note": "H10(학교망 접속)이 최대 위험. 배포 직후 폰으로 먼저 확인할 것"
+  }
+}

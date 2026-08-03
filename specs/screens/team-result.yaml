@@ -1,0 +1,70 @@
+version: "2.0"
+
+screen:
+  id: S6
+  name: 모둠 — 결과 화면
+  route: "<웹앱주소>?code={code}&team={no}&view=result"
+  viewer: team
+  device: phone-360w
+  layout: single-column-scroll
+  musts: [M13]
+
+data_requirements:
+  - resource: game
+    needs: [truth]
+    note: 정산이 끝난 뒤에는 정답 순위가 공개된다 (is_over == true 일 때만)
+  - resource: settlement
+    needs: [team_no, lines, gained, final_coins, rank]
+    scope: 자기 모둠 + 전체 순위
+  - resource: team
+    needs: [no, name, final_coins]
+    scope: 전체
+  - resource: animal
+    needs: [code, name, emoji]
+
+trigger:
+  when: game.is_over == true
+  then: 폴링 중이던 S5가 2초 안에 이 화면으로 자동 전환
+
+components:
+  - id: final_ranking
+    type: podium
+    function: 최종 순위 공개
+    value: "🥇 {1등} 🥈 {2등} 🥉 {3등}"
+
+  - id: my_result
+    type: card
+    function: 우리 모둠이 맞힌 것 / 놓친 것
+    contents:
+      - hit:  "✅ {animal}({rank}등)에 {coins}코인 → {gained}코인"
+      - miss: "❌ {animal}({rank}등)에 {coins}코인 → 0"
+      - total: "남은 {coins} + 획득 {gained} = {final_coins}코인"
+
+  - id: overall_rank
+    type: list
+    function: 전체 모둠 중 우리 등수
+    data_source: { resource: team, sort: final_coins desc }
+    row: "{rank}위 {name} {final_coins}코인"
+    highlight: 우리 모둠
+
+out_of_scope:
+  - id: hint_retrospect
+    label: "우리가 받은 힌트로 답을 좁힐 수 있었을까?"
+    reason: 이번 첫 판에서는 안 만든다 (01-prd Won't)
+
+tests:
+  - name: 자동 전환
+    when: 선생님이 정산 시작
+    then: [2초 안에 S5 → S6 전환]
+  - name: 정답 공개 시점
+    when: 정산 전 게임 상태 조회
+    then: [truth가 응답에 없음]
+  - name: 정산 후 정답 공개
+    when: is_over == true
+    then: [truth가 응답에 포함되고 1·2·3등 표시]
+  - name: 계산 일치
+    when: 선생님 화면(S3)의 우리 모둠 값과 비교
+    then: [gained·final_coins·rank가 완전히 동일]
+
+notes:
+  - truth를 내려보내는 유일한 시점이 여기다. is_over 검사를 빼먹으면 게임이 무너진다

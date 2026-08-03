@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>구현 검증 리포트 — 라운드 1</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">구현 검증 리포트 — 라운드 1</div><div class="sub">build-verification-report.md</div><a class="lvl1" href="#구현-검증-리포트-라운드-1">구현 검증 리포트 — 라운드 1</a><a class="lvl2" href="#결과-요약">결과 요약</a><a class="lvl2" href="#hard-게이트">Hard 게이트</a><a class="lvl2" href="#domain-게이트">Domain 게이트</a><a class="lvl2" href="#metric-게이트">Metric 게이트</a><a class="lvl2" href="#rubric">Rubric</a><a class="lvl2" href="#판정">판정</a><a class="lvl2" href="#구현-요약-이해-부채-방지">구현 요약 (이해 부채 방지)</a></nav>
+<main><h1 id="구현-검증-리포트-라운드-1">구현 검증 리포트 — 라운드 1</h1>
+<ul><li>일자: 2026-08-01</li><li>대상: <code>apps-script/</code> 8개 파일 (약 1,700줄)</li><li>기준: <code>docs/planning/loop/08-derived-gates.md</code></li></ul>
+<blockquote>⚠️ <strong>독립성 한계를 먼저 밝힙니다.</strong> 이 세션은 서브에이전트 자동 호출이 꺼져 있어, 빌드와 검증을 같은 세션이 수행했습니다. 감독 프로토콜이 요구하는 &quot;구현자 ≠ 검증자&quot; 분리가 지켜지지 않았습니다. 대신 <strong>판정을 진술이 아니라 실행 가능한 스크립트</strong>로 만들어, 누구든 다시 돌려 확인할 수 있게 했습니다.  ``<code>bash node test/run-gates.js      # 17개 node test/simulate-game.js  # 14개 </code>``</blockquote>
+<hr>
+<h2 id="결과-요약">결과 요약</h2>
+<div class="table-wrap"><table><thead><tr><th>게이트 묶음</th><th>통과</th><th>실패</th></tr></thead><tbody><tr><td>게임 규칙 (<code>run-gates.js</code>)</td><td><strong>17</strong></td><td>0</td></tr><tr><td>통합 시뮬레이션 (<code>simulate-game.js</code>)</td><td><strong>14</strong></td><td>0</td></tr><tr><td><strong>합계</strong></td><td><strong>31</strong></td><td><strong>0</strong></td></tr></tbody></table></div>
+<hr>
+<h2 id="hard-게이트">Hard 게이트</h2>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>게이트</th><th>결과</th><th>증거</th></tr></thead><tbody><tr><td><strong>H1</strong></td><td>최종 도착 순서 = 정답 순위</td><td>✅</td><td>판 100개 전부 굴려 <code>100/100 일치</code></td></tr><tr><td><strong>H1c</strong></td><td>통합 시뮬레이션에서도 일치</td><td>✅</td><td><code>도착 DBAEGHCF vs 정답 DBAEGHCF</code></td></tr><tr><td><strong>H2</strong></td><td>모든 힌트가 참</td><td>✅</td><td><code>1800개 검사, 거짓 0개</code></td></tr><tr><td><strong>H3-a</strong></td><td>전체 힌트로 1·2·3등 유일 결정</td><td>✅</td><td><code>20/20</code> (8! 전수 필터)</td></tr><tr><td><strong>H3-b</strong></td><td>어려움 6개만으로 유일 결정</td><td>✅</td><td><code>20/20</code></td></tr><tr><td><strong>H4</strong></td><td>모둠 응답에 정답 유출 없음</td><td>✅</td><td><code>유출 0건</code> — truth·moves·lastRound·타 모둠 pin·타 모둠 힌트 전부 미포함</td></tr><tr><td><strong>H4b/c/d</strong></td><td>정산 후에만 정답 공개</td><td>✅</td><td>정산 전 <code>0회 등장</code>, 정산 후 포함</td></tr><tr><td><strong>H5</strong></td><td>라운드 중간 캐시 소실 복구</td><td>✅</td><td>캐시 강제 삭제 후 <code>코인 8,8,8,8,8,8 / 힌트 6,6,6,6,0,0</code> 그대로 복구 (<strong>손실 0</strong>)</td></tr><tr><td><strong>H8</strong></td><td>재접속·다중 기기</td><td>✅</td><td>같은 모둠 두 번째 기기 입장 성공 (점유 없음)</td></tr><tr><td><strong>H9</strong></td><td>정산 계산</td><td>✅</td><td><code>4 × 2.14 × 0.7 = 5.99 → 6코인</code>, 최종 14 — 손계산 일치</td></tr><tr><td><strong>H9c</strong></td><td>최종 = 남은 보유 + 획득</td><td>✅</td><td>전 모둠 일치</td></tr><tr><td><strong>H10</strong></td><td>학교망 접속</td><td>⛔ <strong>미검증</strong></td><td>실제 배포·학교 와이파이가 있어야 확인 가능</td></tr></tbody></table></div>
+<h2 id="domain-게이트">Domain 게이트</h2>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>게이트</th><th>결과</th><th>증거</th></tr></thead><tbody><tr><td><strong>D1</strong></td><td>3라운드까지 골인 0마리</td><td>✅</td><td>판 100개 <code>0마리</code></td></tr><tr><td><strong>D2</strong></td><td>베팅 규칙을 서버가 막는다</td><td>✅</td><td><code>TOO_MANY_COINS / NOT_ENOUGH_COINS / ALREADY_BET</code> 전부 발동</td></tr><tr><td><strong>D3</strong></td><td>토론 단계에 베팅 잠김</td><td>✅</td><td>토론 중 베팅 → <code>BET_CLOSED</code></td></tr><tr><td><strong>D5</strong></td><td>캐시 복구 후에도 같은 문제</td><td>✅</td><td><code>questionPlan</code> 미리 배정, 6라운드 서로 다른 문항 6/6</td></tr><tr><td><strong>D5b</strong></td><td>문항 부족 시 순환 재사용</td><td>✅</td><td>2문항으로 6라운드 → <code>1,2,1,2,1,2</code></td></tr><tr><td><strong>D6</strong></td><td>같은 힌트 두 번 안 감</td><td>✅</td><td>6라운드 내내 어려움 고른 모둠도 중복 0</td></tr><tr><td><strong>D9</strong></td><td>외부 요청 0건</td><td>✅</td><td>CDN·웹폰트·외부 API 참조 없음 (<code>system-ui</code> 계열만)</td></tr><tr><td><strong>D10</strong></td><td>정산 전 등수 배지 없음</td><td>✅</td><td><code>Teacher.html</code> 트랙에 골인 표시만, 등수 미표기</td></tr><tr><td><strong>D11</strong></td><td>학생 개인정보 미저장</td><td>✅</td><td>이름·학번 입력란 없음. 모둠 이름과 4자리 암호만</td></tr><tr><td><strong>D4</strong></td><td>같은 난이도 = 같은 문제</td><td>✅</td><td><code>questionPlan[round][level]</code> 단일 값</td></tr><tr><td><strong>D7</strong></td><td>일시정지 후 남은 시간 유지</td><td>⚠️ <strong>부분</strong></td><td>코드는 구현됨(<code>gwTogglePause</code>). 시간 경과 실측은 미수행</td></tr><tr><td><strong>D8</strong></td><td>시트 오류가 시작 전에 잡힌다</td><td>⚠️ <strong>부분</strong></td><td><code>validateSheets</code> 구현됨. 실제 시트로 3종 오류 재현은 미수행</td></tr></tbody></table></div>
+<h2 id="metric-게이트">Metric 게이트</h2>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>목표</th><th>결과</th><th>증거</th></tr></thead><tbody><tr><td><strong>M-6</strong></td><td>최대 배당 16배 이하</td><td>✅</td><td><code>15.2배</code> (시드 5였다면 29.6배)</td></tr><tr><td><strong>M-7</strong></td><td>난이도별 힌트 6개 이상</td><td>✅</td><td><code>어려움 6 / 중간 6 / 쉬움 6</code></td></tr><tr><td><strong>M-9</strong></td><td>힌트 검산 1초 이내</td><td>✅</td><td>8! 전수 검사 <code>0ms</code></td></tr><tr><td><strong>M-1</strong></td><td>상태 조회 0.3초 이하</td><td>⛔ <strong>미검증</strong></td><td>실제 앱스 스크립트 배포 필요</td></tr><tr><td><strong>M-2~5, M-8</strong></td><td>라운드 7분 · 1차시 3라운드 · JSON 15KB · 준비 15분</td><td>⛔ <strong>미검증</strong></td><td>실제 수업/배포 필요</td></tr></tbody></table></div>
+<h2 id="rubric">Rubric</h2>
+<p>전부 <strong>첫 수업 후 판정</strong>. 다만 시뮬레이션에서 눈에 띈 게 하나 있습니다.</p>
+<blockquote><strong>R-4 (초반에 코인을 쓰는가)</strong> — 시뮬레이션에서 <strong>힌트를 하나도 못 받은 5모둠이 45코인으로 우승</strong>했습니다. 모둠이 기계적으로 베팅한 결과라 그대로 받아들일 건 아니지만, 리뷰 때 지적했던 <strong>C1(최종 배당률만 쓰면 운이 지식을 이긴다)</strong> 이 실제로 나타나는 모습입니다. 첫 수업에서 이 항목을 눈여겨보시고, 그렇다면 <code>01-prd.md §6-2</code>의 (가)~(다) 중 하나로 조정하면 됩니다.</blockquote>
+<hr>
+<h2 id="판정">판정</h2>
+<p><strong>조건부 승인.</strong> 코드로 확인 가능한 게이트는 <strong>31/31 통과</strong>했습니다. 다만 아래는 <strong>실제 배포 없이는 확인 불가</strong>이며, 이것들이 남아 있는 한 &quot;완료&quot;는 아닙니다.</p>
+<div class="table-wrap"><table><thead><tr><th>남은 것</th><th>왜 지금 못 하나</th><th>언제</th></tr></thead><tbody><tr><td><strong>H10 학교망 접속</strong></td><td>학교 와이파이가 필요</td><td>배포 직후 폰으로 1회</td></tr><tr><td><strong>M-1 응답 속도</strong></td><td>실제 앱스 스크립트 서버 필요</td><td>배포 후 폰 6대</td></tr><tr><td><strong>M-2~4 시간 배분</strong></td><td>실제 수업 필요</td><td>첫 수업</td></tr><tr><td><strong>D7·D8 실측</strong></td><td>실제 시트·시계 필요</td><td>배포 후 리허설</td></tr><tr><td><strong>Rubric R-1~5</strong></td><td>학생이 필요</td><td>첫 수업</td></tr></tbody></table></div>
+<p><strong>H10이 가장 위험합니다.</strong> 학교망에서 <code>script.google.com</code>이 막히면 스택 자체를 다시 봐야 하므로, 다른 무엇보다 이걸 먼저 확인하시길 권합니다.</p>
+<hr>
+<h2 id="구현-요약-이해-부채-방지">구현 요약 (이해 부채 방지)</h2>
+<div class="table-wrap"><table><thead><tr><th>파일</th><th>줄 수(대략)</th><th>하는 일</th></tr></thead><tbody><tr><td><code>Config.gs</code></td><td>90</td><td>상수·탭 이름·오류 메시지</td></tr><tr><td><code>Game.gs</code></td><td>330</td><td><strong>게임 규칙 전부. 순수 함수</strong> — 역산·힌트·배당·정산·문제배정</td></tr><tr><td><code>Sheet.gs</code></td><td>250</td><td>시트 읽기·캐시·잠금·사건 기록·복구</td></tr><tr><td><code>Code.gs</code></td><td>380</td><td>doGet + GameGateway 12개 함수 + 뷰 변환</td></tr><tr><td><code>Setup.gs</code></td><td>110</td><td>시트 자동 생성 + 샘플 문제</td></tr><tr><td><code>Test.gs</code></td><td>130</td><td>앱스 스크립트 안에서 돌리는 검사 10개</td></tr><tr><td><code>Shared.html</code></td><td>130</td><td>공통 CSS·폴러·확인대화</td></tr><tr><td><code>Teacher.html</code></td><td>290</td><td>S1 시작 / S2 진행 / S3 정산</td></tr><tr><td><code>Team.html</code></td><td>300</td><td>S4 접속 / S5 게임(3탭) / S6 결과</td></tr></tbody></table></div>
+<p><strong>핵심 결정 두 가지</strong></p>
+<ol><li><code>Game.gs</code>를 순수 함수로 격리해서 <strong>앱스 스크립트 밖(node)에서 그대로 테스트</strong>할 수 있게 했습니다. 앱스 스크립트에는 테스트 도구가 없어서, 이게 아니었으면 H1~H3를 확인할 방법이 없었습니다.</li><li>사건을 <strong>즉시 기록</strong>하고 캐시 소실 시 재생해 복구합니다. 라운드 끝에 몰아 쓰는 원래 설계였다면 캐시가 날아갈 때 그 라운드가 통째로 증발했을 겁니다.</li></ol>
+<p><strong>가장 조심할 곳</strong>: <code>Code.gs</code>의 <code>teamView()</code>. 여기서 필드 하나만 잘못 흘리면 학생이 개발자 도구로 정답을 봅니다. <code>H4</code>가 이걸 지킵니다 — 고칠 때마다 검사를 다시 돌리세요.</p>
+<div class="meta-foot">원본: <code>build-verification-report.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

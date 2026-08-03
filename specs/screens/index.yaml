@@ -1,0 +1,75 @@
+version: "2.0"
+
+project:
+  name: 와일드 더비 (Wild Derby)
+  platform: Google Apps Script 웹앱 (HtmlService)
+  source: docs/planning/06-screens.md
+
+routes:
+  teacher: "<웹앱주소>?role=teacher"
+  team:    "<웹앱주소>"
+
+screens:
+  - id: S1
+    key: teacher-setup
+    name: 선생님 — 시작 화면
+    file: teacher-setup.yaml
+    viewer: teacher
+    device: laptop
+    musts: [M1, M4, M5]
+
+  - id: S2
+    key: teacher-play
+    name: 선생님 — 진행 화면
+    file: teacher-play.yaml
+    viewer: teacher
+    device: tv-1920x1080
+    musts: [M9, M10, M11, M12, M15]
+
+  - id: S3
+    key: teacher-result
+    name: 선생님 — 정산 화면
+    file: teacher-result.yaml
+    viewer: teacher
+    device: tv-1920x1080
+    musts: [M13]
+
+  - id: S4
+    key: team-join
+    name: 모둠 — 접속 화면
+    file: team-join.yaml
+    viewer: team
+    device: phone-360w
+    musts: [M5]
+
+  - id: S5
+    key: team-play
+    name: 모둠 — 게임 화면
+    file: team-play.yaml
+    viewer: team
+    device: phone-360w
+    musts: [M6, M7, M8, M12, M15]
+
+  - id: S6
+    key: team-result
+    name: 모둠 — 결과 화면
+    file: team-result.yaml
+    viewer: team
+    device: phone-360w
+    musts: [M13]
+
+# 화면 없이 서버에서만 도는 것
+server_only:
+  - M2: 정답 순위 확정 + 이동 역산
+  - M3: 힌트 생성 + 검산
+  - M14: 동물·힌트 시트 수정 (구글 시트에서 직접)
+  - M16: 답·베팅 즉시 기록 + 캐시 복구
+
+flow: |
+  S1 판 만들기 ─┬─→ S2 (선생님, 수업 내내) ──→ S3 정산
+                └─→ (칠판에 판 코드)
+  S4 접속 ────────→ S5 (모둠, 수업 내내) ───→ S6 결과
+
+  S2 ↔ S5 는 같은 판 상태를 2초 폴링으로 공유한다.
+  선생님이 라운드를 시작하면 S5의 단계가 바뀌고,
+  모둠이 베팅하면 S2의 전광판이 움직인다.

@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>최종 기획 승인 — 와일드 더비</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">최종 기획 승인 — 와일드 더비</div><div class="sub">final-planning-approval.md</div><a class="lvl1" href="#최종-기획-승인-와일드-더비">최종 기획 승인 — 와일드 더비</a><a class="lvl2" href="#판정">판정</a><a class="lvl2" href="#이번-라운드에서-고친-것">이번 라운드에서 고친 것</a><a class="lvl2" href="#시작-지점">시작 지점</a><a class="lvl2" href="#잔존-리스크">잔존 리스크</a><a class="lvl2" href="#완료의-정의가-바뀌었다">완료의 정의가 바뀌었다</a></nav>
+<main><h1 id="최종-기획-승인-와일드-더비">최종 기획 승인 — 와일드 더비</h1>
+<ul><li>라운드: 1 / 최대 3</li><li>판정: <strong>Ready with Risks</strong> — 개발 착수 가능</li><li>일자: 2026-08-01</li></ul>
+<hr>
+<h2 id="판정">판정</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>값</th></tr></thead><tbody><tr><td>품질 점수</td><td><strong>63 / 65 (96.9%)</strong></td></tr><tr><td>갭</td><td>5개 발견 → <strong>5개 전부 해소</strong></td></tr><tr><td>게이트 파생</td><td>✅ REQ 13개 → Hard 10 / Metric 9 / Domain 11 / Rubric 5</td></tr><tr><td>끊긴 추적 체인</td><td><strong>0개</strong></td></tr><tr><td>잔존 리스크</td><td>5개 (전부 완화책 있음)</td></tr></tbody></table></div>
+<hr>
+<h2 id="이번-라운드에서-고친-것">이번 라운드에서 고친 것</h2>
+<div class="table-wrap"><table><thead><tr><th>갭</th><th>내용</th><th>조치</th></tr></thead><tbody><tr><td>🔴 G-02</td><td>동시 진행으로 바꾼 뒤 라운드가 4분이 됐는데 2차시 분할 결정이 그대로 남아 있었음. 게다가 <strong>힌트를 놓고 이야기할 시간이 흐름 어디에도 없었음</strong></td><td><strong>토론 180초를 정식 단계로 추가</strong> → 라운드 7분 → 2차시 근거 회복. 토론 중에는 힌트 탭이 열리고 베팅이 잠긴다</td></tr><tr><td>🟠 G-01</td><td><code>usedQuestions</code> 필드와 &quot;앞 라운드 문제 재사용&quot; 약속은 있는데 <strong>구현 태스크가 없었음</strong></td><td><code>P2-R4-T4 문제 선택기</code> 추가. 판 생성 시 <code>questionPlan</code>에 미리 배정 (캐시 복구 시 문제가 바뀌지 않게)</td></tr><tr><td>🟠 G-03</td><td>힌트 풀이 난이도별 3개인데 &quot;6라운드 중복 금지&quot;를 요구 — <strong>동시에 만족 불가</strong></td><td>난이도별 <strong>최소 6개</strong> 명시. 같은 틀을 다른 동물에 적용해 채운다</td></tr><tr><td>🟡 G-04</td><td>태스크가 부르는 Must가 4개뿐 (나머지는 화면 ID 경유)</td><td>태스크 12개에 Must ID 추가</td></tr><tr><td>🟡 G-05</td><td>QR이 &quot;외부 라이브러리 금지&quot;와 충돌, 미결</td><td><strong>QR 제외</strong>, 주소를 48px 이상으로. 어차피 판 코드는 손으로 입력해야 함</td></tr></tbody></table></div>
+<p>가장 값진 발견은 G-02다. 두 결정(2차시 분할 / 모둠 폰 동시 진행)이 <strong>각각은 맞는데 함께 놓으니 앞의 근거가 사라져 있었다.</strong> 그리고 그걸 파고들다 <strong>이 도구의 목적인 &quot;모둠이 이야기하는 시간&quot;이 흐름에 아예 없었다</strong>는 게 드러났다.</p>
+<hr>
+<h2 id="시작-지점">시작 지점</h2>
+<blockquote><strong>P2 (게임 규칙 코어)부터.</strong></blockquote>
+<p>H1~H3-b(도착 순서 일치 / 힌트 참 / 추론 가능)를 통과하기 전에는 화면을 만들 이유가 없다. 여기가 PDF 원본이 깨져 있던 곳이고, 여기만 맞으면 나머지는 평범한 화면 작업이다.</p>
+<p>권장 순서: <code>P0 → P1 → P2(게이트 통과 확인) → P3 → P4·P5 → P6</code></p>
+<hr>
+<h2 id="잔존-리스크">잔존 리스크</h2>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>리스크</th><th>게이트</th><th>완화</th></tr></thead><tbody><tr><td>RR-1</td><td><strong>학교망에서 앱스 스크립트가 막히면</strong> 스택 자체를 다시 봐야 함</td><td>H10</td><td>P6 전에 미리 폰으로 한 번 확인</td></tr><tr><td>RR-2</td><td>최종 배당률만 쓰면 마지막 몰빵이 최적 전략일 수 있음 (선생님 결정)</td><td>R-4</td><td><code>bets</code>에 라운드 번호 보존 → 첫 수업 후 전환 가능</td></tr><tr><td>RR-3</td><td>폰 1대에 4~5명은 기술로 못 푸는 제약</td><td>R-5</td><td>힌트 20px + 토론 단계 + A4 병행(운영)</td></tr><tr><td>RR-4</td><td>동시성을 브라우저 창 6개로 완전히 재현 못 할 수 있음</td><td>H7</td><td>첫 수업에서 코인 합계 직접 대조</td></tr><tr><td>RR-5</td><td>라운드 7분·1차시 3라운드는 계산값이지 실측이 아님</td><td>M-2, M-3</td><td>첫 수업에서 <code>설정</code> 탭 값 조정</td></tr></tbody></table></div>
+<hr>
+<h2 id="완료의-정의가-바뀌었다">완료의 정의가 바뀌었다</h2>
+<p>이제부터 &quot;구현 완료&quot;는 이걸 뜻한다:</p>
+<blockquote><code>docs/planning/loop/08-derived-gates.md</code>의 <strong>Hard 10개 + Metric 9개 + Domain 11개</strong>를 <strong>증거와 함께</strong> 통과한 상태.</blockquote>
+<p>구현자의 &quot;됐습니다&quot;는 증거가 아니다. <code>Test.gs</code> 실행 로그 원문, 실측 숫자, 재현 절차가 증거다.</p>
+<div class="meta-foot">원본: <code>final-planning-approval.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

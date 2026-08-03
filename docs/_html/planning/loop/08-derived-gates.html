@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>파생 게이트 — 와일드 더비</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">파생 게이트 — 와일드 더비</div><div class="sub">08-derived-gates.md</div><a class="lvl1" href="#파생-게이트-와일드-더비">파생 게이트 — 와일드 더비</a><a class="lvl2" href="#요구사항-추출-추적성">요구사항 추출 + 추적성</a><a class="lvl2" href="#게이트">게이트</a><a class="lvl3" href="#hard-하나라도-실패하면-수업에-쓸-수-없다">🔴 Hard — 하나라도 실패하면 수업에 쓸 수 없다</a><a class="lvl3" href="#metric-숫자로-재는-것">🟠 Metric — 숫자로 재는 것</a><a class="lvl3" href="#domain-이-프로젝트에만-있는-규칙">🟡 Domain — 이 프로젝트에만 있는 규칙</a><a class="lvl3" href="#rubric-점수로-보는-것-첫-수업-관찰">🔵 Rubric — 점수로 보는 것 (첫 수업 관찰)</a><a class="lvl3" href="#evidence-증거로-인정하는-것">📎 Evidence — 증거로 인정하는 것</a><a class="lvl2" href="#게이트-자체-검증">게이트 자체 검증</a><a class="lvl2" href="#통과-순서">통과 순서</a></nav>
+<main><h1 id="파생-게이트-와일드-더비">파생 게이트 — 와일드 더비</h1>
+<blockquote><strong>이 파일이 &quot;완료&quot;의 정의다.</strong> 아래 Hard/Metric/Domain 게이트를 <strong>증거와 함께</strong> 통과하기 전까지 어떤 것도 &quot;구현 완료&quot;라고 선언할 수 없다.</blockquote>
+<ul><li>파생 근거: <code>docs/planning/01-prd.md</code> ~ <code>08-test-plan.md</code>, <code>specs/**</code>, <code>council-report.md</code></li><li>생성: 2026-08-01 (라운드 1)</li></ul>
+<hr>
+<h2 id="요구사항-추출-추적성">요구사항 추출 + 추적성</h2>
+<div class="table-wrap"><table><thead><tr><th>REQ</th><th>요구사항</th><th>PRD</th><th>흐름</th><th>화면</th><th>데이터</th><th>태스크</th></tr></thead><tbody><tr><td>REQ-001</td><td>정답 순위대로 도착한다</td><td>M2</td><td>§3①</td><td>—</td><td><code>truth</code>,<code>moves</code></td><td>P2-R3-T2</td></tr><tr><td>REQ-002</td><td>모든 힌트가 참이고 추론이 가능하다</td><td>M3</td><td>§3②</td><td>S5 힌트탭</td><td><code>hintPool</code></td><td>P2-R3-T3, T4</td></tr><tr><td>REQ-003</td><td>정답이 학생에게 새지 않는다</td><td>M2·M3</td><td>—</td><td>S5</td><td><code>secrets</code></td><td>P3-R5-T1</td></tr><tr><td>REQ-004</td><td>모둠이 문제를 골라 풀고 힌트를 받는다</td><td>M4·M6</td><td>§3②</td><td>S5 문제탭</td><td><code>question</code>,<code>questionPlan</code></td><td>P2-R4-T4, P5-S5-T1</td></tr><tr><td>REQ-005</td><td>모둠이 힌트를 놓고 이야기할 시간이 있다</td><td>M7</td><td>§3③</td><td>S5 힌트탭</td><td><code>phase=discuss</code></td><td>P5-S5-T2</td></tr><tr><td>REQ-006</td><td>모둠이 베팅하고 배당률이 움직인다</td><td>M8·M10</td><td>§3④</td><td>S5 베팅탭, S2</td><td><code>pool</code>,<code>odds</code></td><td>P2-R4-T1/T2, P5-S5-T3</td></tr><tr><td>REQ-007</td><td>수업이 시간 안에 굴러간다</td><td>M12·M15</td><td>§1·§2</td><td>S2, S5</td><td><code>phase_ends_at</code></td><td>P3-R5-T3, P3-R5-T4</td></tr><tr><td>REQ-008</td><td>2차시로 이어진다</td><td>M1</td><td>§2</td><td>S1</td><td><code>game</code>,<code>event</code></td><td>P1-R2-T3, P3-R5-T2</td></tr><tr><td>REQ-009</td><td>끊겨도 잃는 게 없다</td><td>M16</td><td>§6</td><td>S4</td><td><code>event</code>,<code>eventSeq</code></td><td>P1-R2-T3</td></tr><tr><td>REQ-010</td><td>정산이 맞다</td><td>M13</td><td>§2</td><td>S3, S6</td><td><code>settlement</code></td><td>P2-R4-T3, P4-S3-T1</td></tr><tr><td>REQ-011</td><td>모둠 힌트가 서로 안 보인다</td><td>M5</td><td>§4</td><td>S4, S5</td><td><code>pin</code></td><td>P3-R5-T2</td></tr><tr><td>REQ-012</td><td>다음 단원에 다시 쓸 수 있다</td><td>M4·M14</td><td>—</td><td>S1</td><td><code>question</code>,<code>animal</code>,<code>hint_template</code></td><td>P1-R1-T1, P1-R1-T2</td></tr><tr><td>REQ-013</td><td>교실 뒤에서 보이고 폰에서 눌린다</td><td>—</td><td>—</td><td>전 화면</td><td>—</td><td>P4-S0-T1</td></tr></tbody></table></div>
+<p><strong>끊긴 체인</strong>: 없음. Must 16개 → REQ 13개 → 태스크 38개까지 연결됨.</p>
+<hr>
+<h2 id="게이트">게이트</h2>
+<h3 id="hard-하나라도-실패하면-수업에-쓸-수-없다">🔴 Hard — 하나라도 실패하면 수업에 쓸 수 없다</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>게이트</th><th>검증 방법</th><th>통과 기준</th><th>REQ</th></tr></thead><tbody><tr><td><strong>H1</strong></td><td>최종 도착 순서 = 정답 순위</td><td><code>Test.gs</code>에서 판 100개 생성→6라운드 굴림→비교</td><td><strong>100/100 일치</strong></td><td>001</td></tr><tr><td><strong>H2</strong></td><td>모든 힌트가 참</td><td>판 100개, 생성된 힌트 전부를 <code>truth</code>에 대조</td><td>거짓 <strong>0개</strong></td><td>002</td></tr><tr><td><strong>H3-a</strong></td><td>전체 힌트로 1·2·3등 유일 결정</td><td>8! 순열 필터</td><td><strong>100/100</strong></td><td>002</td></tr><tr><td><strong>H3-b</strong></td><td>어려움 6개만으로 1·2·3등 좁혀짐</td><td>같은 필터, 어려움 힌트 6개만</td><td><strong>100/100</strong></td><td>002</td></tr><tr><td><strong>H4</strong></td><td>정답이 응답에 안 담김</td><td><code>toTeamView</code> 결과를 문자열화해 검사</td><td><code>truth</code>·<code>moves</code>·<code>lastRound</code> <strong>0회</strong></td><td>003</td></tr><tr><td><strong>H5</strong></td><td>라운드 중간 캐시 소실 복구</td><td>캐시 강제 삭제 후 조회</td><td>그 라운드 답·베팅 <strong>손실 0</strong></td><td>009</td></tr><tr><td><strong>H6</strong></td><td>2차시 이어하기</td><td>1차시 종료 → 다음 날 판 코드 입력</td><td>코인·힌트·베팅·위치 <strong>전부 그대로</strong></td><td>008</td></tr><tr><td><strong>H7</strong></td><td>동시 베팅 정합</td><td>6모둠 동시 확정</td><td>동물별 누적 코인 <strong>어긋남 0</strong></td><td>006</td></tr><tr><td><strong>H8</strong></td><td>새로고침 후 재접속</td><td>진행 중 새로고침 → 재입력</td><td>힌트·코인 그대로, <strong>점유로 막히지 않음</strong></td><td>011</td></tr><tr><td><strong>H9</strong></td><td>정산 계산</td><td>손계산 대조 (1등 100/2등 70/3등 50/나머지 0)</td><td><strong>완전 일치</strong></td><td>010</td></tr><tr><td><strong>H10</strong></td><td>학교망 접속</td><td>학교 와이파이 폰으로 학생 주소 열기</td><td><strong>열림</strong></td><td>전체</td></tr></tbody></table></div>
+<blockquote>H10이 실패하면 스택 자체를 다시 봐야 한다. <strong>P6-T4 전에 미리 한 번 확인할 것.</strong></blockquote>
+<h3 id="metric-숫자로-재는-것">🟠 Metric — 숫자로 재는 것</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>게이트</th><th>측정</th><th>목표</th><th>REQ</th></tr></thead><tbody><tr><td><strong>M-1</strong></td><td>상태 조회 응답</td><td>폰 6 + TV 1 동시 폴링 평균</td><td><strong>0.3초 이하</strong></td><td>007</td></tr><tr><td><strong>M-2</strong></td><td>라운드 소요</td><td>이동20 + 문제90 + 토론180 + 베팅60 + 전환</td><td><strong>7분 ± 1분</strong></td><td>007</td></tr><tr><td><strong>M-3</strong></td><td>1차시 진도</td><td>규칙설명 + 라운드</td><td><strong>3라운드 이상</strong></td><td>007</td></tr><tr><td><strong>M-4</strong></td><td>2차시 완결</td><td>남은 라운드 + 정산</td><td><strong>50분 안에 끝남</strong></td><td>007·010</td></tr><tr><td><strong>M-5</strong></td><td>상태 JSON 크기</td><td>8모둠 6라운드 만재</td><td><strong>15KB 이하</strong> (캐시 한도)</td><td>009</td></tr><tr><td><strong>M-6</strong></td><td>최대 배당률</td><td>아무도 안 건 동물, 최대 베팅 상황</td><td><strong>16배 이하</strong> (시드 15)</td><td>006</td></tr><tr><td><strong>M-7</strong></td><td>힌트 풀 크기</td><td>난이도별</td><td><strong>각 6개 이상</strong></td><td>002</td></tr><tr><td><strong>M-8</strong></td><td>새 단원 준비 시간</td><td>시트에 18문항 입력</td><td><strong>15분 이하</strong></td><td>012</td></tr><tr><td><strong>M-9</strong></td><td>힌트 검산 시간</td><td>8! 전수 검사</td><td><strong>1초 이하</strong></td><td>002</td></tr></tbody></table></div>
+<h3 id="domain-이-프로젝트에만-있는-규칙">🟡 Domain — 이 프로젝트에만 있는 규칙</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>게이트</th><th>검증</th><th>REQ</th></tr></thead><tbody><tr><td><strong>D1</strong></td><td>1차시(3라운드)에 골인 동물 0마리</td><td>3라운드까지 굴려 10칸 도달 확인</td><td>001·008</td></tr><tr><td><strong>D2</strong></td><td>라운드당 3코인·보유 코인 초과 차단이 <strong>서버에서</strong></td><td>화면 우회 요청으로 시도</td><td>006</td></tr><tr><td><strong>D3</strong></td><td>토론 단계에 베팅이 잠긴다</td><td><code>discuss</code>에서 베팅 시도 → 거부</td><td>005</td></tr><tr><td><strong>D4</strong></td><td>같은 난이도를 고른 모둠은 같은 문제</td><td>두 모둠 동시 확인</td><td>004</td></tr><tr><td><strong>D5</strong></td><td>캐시 복구 후에도 같은 라운드에 같은 문제</td><td><code>questionPlan</code> 미리 배정 확인</td><td>004·009</td></tr><tr><td><strong>D6</strong></td><td>같은 모둠에 같은 힌트 두 번 안 감</td><td>6라운드 동일 난이도 선택</td><td>002</td></tr><tr><td><strong>D7</strong></td><td>일시정지 후 재개 시 남은 시간 유지</td><td>3분 멈춘 뒤 재개</td><td>007</td></tr><tr><td><strong>D8</strong></td><td>시트 오류가 시작 전에 잡힌다</td><td>동물 7행 / 자리표시 삭제 / 문항 부족 3종</td><td>012</td></tr><tr><td><strong>D9</strong></td><td>외부 요청 0건</td><td>코드에서 CDN·웹폰트·외부 API 검색</td><td>013</td></tr><tr><td><strong>D10</strong></td><td>정산 전에는 등수 배지가 안 붙는다</td><td>골인한 동물 화면 확인</td><td>003</td></tr><tr><td><strong>D11</strong></td><td>학생 개인정보를 저장하지 않는다</td><td>시트 전체에서 이름·학번 검색</td><td>—</td></tr></tbody></table></div>
+<h3 id="rubric-점수로-보는-것-첫-수업-관찰">🔵 Rubric — 점수로 보는 것 (첫 수업 관찰)</h3>
+<div class="table-wrap"><table><thead><tr><th>ID</th><th>항목</th><th>5점 기준</th><th>3점 미만이면</th></tr></thead><tbody><tr><td><strong>R-1</strong></td><td>조용하던 학생이 말하는가</td><td>토론 단계에 모든 모둠에서 2명 이상 발언</td><td><strong>기획 자체를 다시 본다</strong></td></tr><tr><td><strong>R-2</strong></td><td>어려운 문제에 도전하는가</td><td>라운드가 갈수록 '어려움' 선택 비율 상승</td><td>힌트 차등을 키운다</td></tr><tr><td><strong>R-3</strong></td><td>하위권 모둠이 끝까지 하는가</td><td>마지막 라운드까지 전 모둠 베팅</td><td>정산 규칙 완화 재검토</td></tr><tr><td><strong>R-4</strong></td><td>초반에 코인을 쓰는가</td><td>1~2라운드에 전 모둠이 베팅</td><td><code>01-prd §6-2</code>의 (가)~(다) 중 선택</td></tr><tr><td><strong>R-5</strong></td><td>폰을 한 명이 독점하지 않는가</td><td>모둠원이 돌아가며 조작</td><td>메모장을 Must로 승격</td></tr></tbody></table></div>
+<h3 id="evidence-증거로-인정하는-것">📎 Evidence — 증거로 인정하는 것</h3>
+<div class="table-wrap"><table><thead><tr><th>게이트 종류</th><th>인정되는 증거</th><th>인정 안 되는 것</th></tr></thead><tbody><tr><td>Hard</td><td><code>Test.gs</code> 실행 로그 원문 (100/100 등 숫자 포함)</td><td>&quot;통과했습니다&quot; 진술</td></tr><tr><td>Metric</td><td>실측 숫자 + 측정 방법</td><td>추정치, &quot;충분할 것&quot;</td></tr><tr><td>Domain</td><td>재현 절차 + 결과 캡처/로그</td><td>코드를 읽은 소감</td></tr><tr><td>Rubric</td><td>첫 수업 관찰 기록</td><td>예상</td></tr></tbody></table></div>
+<blockquote><strong>구현자의 자기 보고는 증거가 아니다.</strong> 검증은 빌드를 수행하지 않은 쪽이 신선한 증거로 한다.</blockquote>
+<hr>
+<h2 id="게이트-자체-검증">게이트 자체 검증</h2>
+<div class="table-wrap"><table><thead><tr><th>검사</th><th>결과</th></tr></thead><tbody><tr><td>모호한 표현이 없는가</td><td>✅ 전부 숫자 또는 재현 절차</td></tr><tr><td>테스트 가능한가</td><td>✅ Hard·Metric·Domain 전부 실행 가능. Rubric만 관찰 기반이며 그렇게 표시됨</td></tr><tr><td>문서와 연결되는가</td><td>✅ REQ 열로 추적</td></tr><tr><td>완료 판단이 가능한가</td><td>✅ 통과 기준이 이분법 또는 임계값</td></tr><tr><td>구현 기준으로 쓸 수 있는가</td><td>✅ 태스크 acceptance와 1:1 대응</td></tr></tbody></table></div>
+<hr>
+<h2 id="통과-순서">통과 순서</h2>
+<pre class="code"><code>P2 끝    → H1 H2 H3-a H3-b  (여기 실패하면 뒤를 만들 이유가 없다)
+P3 끝    → H4 D2 D10
+P1 끝    → H5 M-5
+P5 끝    → H8 D3 D6
+P6 중    → H6 H7 H9 M-1 M-2 D1 D4 D5 D7 D8 D9 D11
+P6 끝    → H10 M-3 M-4 M-8
+첫 수업  → R-1 ~ R-5</code></pre>
+<div class="meta-foot">원본: <code>08-derived-gates.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>

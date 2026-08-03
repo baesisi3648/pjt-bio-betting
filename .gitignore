@@ -1,0 +1,13 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# 검사 실행 결과 (돌릴 때마다 새로 만들어짐)
+test/gate-results.json
+
+# 세션 캐시
+.claude/memory/last-session.json
+
+# node (지금은 안 쓰지만 나중을 위해)
+node_modules/
+*.log

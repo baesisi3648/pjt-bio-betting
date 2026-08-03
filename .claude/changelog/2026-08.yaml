@@ -1,0 +1,609 @@
+entries:
+  - date: "2026-07-31T16:57:01"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/01-prd.md
+    description: Add documentation 01-prd.md
+    impact:
+      - none
+  - date: "2026-07-31T16:58:35"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Add documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T16:59:25"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Add documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:00:30"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Add documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:01:24"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/05-design-system.md
+    description: Add documentation 05-design-system.md
+    impact:
+      - none
+  - date: "2026-07-31T17:02:40"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Add documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:03:35"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/07-coding-convention.md
+    description: Add documentation 07-coding-convention.md
+    impact:
+      - none
+  - date: "2026-07-31T17:04:23"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/08-test-plan.md
+    description: Add documentation 08-test-plan.md
+    impact:
+      - none
+  - date: "2026-07-31T17:05:11"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/09-personas.md
+    description: Add documentation 09-personas.md
+    impact:
+      - none
+  - date: "2026-07-31T17:06:01"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/10-desire-map.md
+    description: Add documentation 10-desire-map.md
+    impact:
+      - none
+  - date: "2026-07-31T17:12:11"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/council-report.md
+    description: Add documentation council-report.md
+    impact:
+      - none
+  - date: "2026-07-31T17:18:44"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/01-prd.md
+    description: Update documentation 01-prd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:00"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/01-prd.md
+    description: Update documentation 01-prd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:14"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:26"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:35"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:39"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:47"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:19:52"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:12"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:26"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Update documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:33"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Update documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:41"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Update documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:46"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Update documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:20:57"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-screens.md
+    description: Update documentation 06-screens.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:13"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/05-design-system.md
+    description: Update documentation 05-design-system.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:19"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/07-coding-convention.md
+    description: Update documentation 07-coding-convention.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:26"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/07-coding-convention.md
+    description: Update documentation 07-coding-convention.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:38"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/08-test-plan.md
+    description: Update documentation 08-test-plan.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:46"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/08-test-plan.md
+    description: Update documentation 08-test-plan.md
+    impact:
+      - none
+  - date: "2026-07-31T17:21:58"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/08-test-plan.md
+    description: Update documentation 08-test-plan.md
+    impact:
+      - none
+  - date: "2026-07-31T17:22:18"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/10-desire-map.md
+    description: Update documentation 10-desire-map.md
+    impact:
+      - none
+  - date: "2026-07-31T17:22:26"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/10-desire-map.md
+    description: Update documentation 10-desire-map.md
+    impact:
+      - none
+  - date: "2026-07-31T17:22:36"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:22:41"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:25:05"
+    type: test
+    domain: root
+    files:
+      - specs/domain/resources.yaml
+    description: Add test file resources.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:25:21"
+    type: test
+    domain: root
+    files:
+      - specs/screens/index.yaml
+    description: Add test file index.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:25:50"
+    type: test
+    domain: root
+    files:
+      - specs/screens/teacher-setup.yaml
+    description: Add test file teacher-setup.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:26:24"
+    type: test
+    domain: root
+    files:
+      - specs/screens/teacher-play.yaml
+    description: Add test file teacher-play.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:26:49"
+    type: test
+    domain: root
+    files:
+      - specs/screens/teacher-result.yaml
+    description: Add test file teacher-result.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:27:08"
+    type: test
+    domain: root
+    files:
+      - specs/screens/team-join.yaml
+    description: Add test file team-join.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:27:48"
+    type: test
+    domain: root
+    files:
+      - specs/screens/team-play.yaml
+    description: Add test file team-play.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:28:03"
+    type: test
+    domain: root
+    files:
+      - specs/screens/team-result.yaml
+    description: Add test file team-result.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:28:26"
+    type: test
+    domain: root
+    files:
+      - specs/shared/components.yaml
+    description: Add test file components.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:28:46"
+    type: test
+    domain: root
+    files:
+      - specs/shared/types.yaml
+    description: Add test file types.yaml
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:32:40"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-tasks.md
+    description: Add documentation 06-tasks.md
+    impact:
+      - none
+  - date: "2026-07-31T17:35:12"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/document-gap-report.md
+    description: Add documentation document-gap-report.md
+    impact:
+      - none
+  - date: "2026-07-31T17:37:30"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:37:38"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/02-trd.md
+    description: Update documentation 02-trd.md
+    impact:
+      - none
+  - date: "2026-07-31T17:37:45"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:37:57"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:00"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:11"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/03-user-flow.md
+    description: Update documentation 03-user-flow.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:16"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:20"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:28"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:38:36"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/04-database.md
+    description: Update documentation 04-database.md
+    impact:
+      - none
+  - date: "2026-07-31T17:39:19"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/06-tasks.md
+    description: Update documentation 06-tasks.md
+    impact:
+      - none
+  - date: "2026-07-31T17:40:56"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/08-derived-gates.md
+    description: Add documentation 08-derived-gates.md
+    impact:
+      - none
+  - date: "2026-07-31T17:41:26"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/00-loop.md
+    description: Add documentation 00-loop.md
+    impact:
+      - none
+  - date: "2026-07-31T17:41:56"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/loop-state.json
+    description: Add documentation loop-state.json
+    impact:
+      - configuration change
+  - date: "2026-07-31T17:42:23"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/final-planning-approval.md
+    description: Add documentation final-planning-approval.md
+    impact:
+      - none
+  - date: "2026-07-31T17:45:04"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Config.gs
+    description: Create Config in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:46:18"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Game.gs
+    description: Create Game in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:47:12"
+    type: test
+    domain: root
+    files:
+      - test/run-gates.js
+    description: Add test file run-gates.js
+    impact:
+      - "external dependency added: fs, path, vm"
+  - date: "2026-07-31T17:48:13"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Sheet.gs
+    description: Create Sheet in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:49:14"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Code.gs
+    description: Create Code in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:49:37"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Shared.html
+    description: Create Shared in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:50:49"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Teacher.html
+    description: Create Teacher in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:51:58"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Team.html
+    description: Create Team in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:52:41"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Setup.gs
+    description: Create Setup in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:53:07"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Test.gs
+    description: Create Test in apps-script
+    impact:
+      - none
+  - date: "2026-07-31T17:53:55"
+    type: test
+    domain: root
+    files:
+      - test/simulate-game.js
+    description: Add test file simulate-game.js
+    impact:
+      - "external dependency added: fs"
+  - date: "2026-07-31T17:54:55"
+    type: docs
+    domain: root
+    files:
+      - README.md
+    description: Add documentation README.md
+    impact:
+      - none
+  - date: "2026-07-31T17:55:49"
+    type: docs
+    domain: root
+    files:
+      - docs/planning/loop/build-verification-report.md
+    description: Add documentation build-verification-report.md
+    impact:
+      - none
+  - date: "2026-08-03T23:37:49"
+    type: feature
+    domain: root
+    files:
+      - .gitignore
+    description: Create .gitignore in root
+    impact:
+      - none

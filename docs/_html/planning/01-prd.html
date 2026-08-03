@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="ko"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>01. 제품 정의 — 생명과학 베팅 레이스 &quot;와일드 더비&quot;</title>
+<style>
+:root{--bg:#0f1115;--panel:#161922;--fg:#e6e9ef;--muted:#9aa3b2;--accent:#6ea8fe;--accent2:#7ee3c7;--border:#262b36;--code:#1b1f29;--th:#1d2230}
+@media(prefers-color-scheme:light){:root{--bg:#f7f8fa;--panel:#fff;--fg:#1b2330;--muted:#5b6573;--accent:#2f6fed;--accent2:#0e9f6e;--border:#e3e7ee;--code:#f0f2f6;--th:#eef1f6}}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo","Segoe UI",Roboto,sans-serif;line-height:1.7;font-size:16px}
+.layout{display:grid;grid-template-columns:280px 1fr;min-height:100vh}
+nav.toc{position:sticky;top:0;align-self:start;height:100vh;overflow:auto;background:var(--panel);border-right:1px solid var(--border);padding:24px 18px}
+nav.toc .brand{font-weight:800;font-size:15px;letter-spacing:.02em;color:var(--accent);margin-bottom:4px}
+nav.toc .sub{font-size:12px;color:var(--muted);margin-bottom:18px}
+nav.toc a{display:block;color:var(--muted);text-decoration:none;padding:3px 8px;border-radius:6px;font-size:13.5px;border-left:2px solid transparent}
+nav.toc a:hover{color:var(--fg);background:rgba(110,168,254,.08)}
+nav.toc a.lvl2{padding-left:18px}
+nav.toc a.lvl3{padding-left:30px;font-size:12.5px}
+nav.toc a.doc{font-weight:700;color:var(--fg);margin-top:14px}
+main{padding:48px 56px;max-width:920px;margin:0 auto;width:100%;overflow-x:hidden}
+main h1{font-size:30px;font-weight:800;margin:.2em 0 .6em;line-height:1.25}
+main h2{font-size:22px;font-weight:750;margin:1.8em 0 .5em;padding-bottom:.3em;border-bottom:1px solid var(--border)}
+main h3{font-size:18px;font-weight:700;margin:1.4em 0 .4em}
+main h4{font-size:15.5px;font-weight:700;color:var(--muted);margin:1.2em 0 .3em}
+main p{margin:.7em 0}
+a{color:var(--accent)}
+code{background:var(--code);padding:.12em .4em;border-radius:5px;font-family:"SF Mono",ui-monospace,Menlo,Consolas,monospace;font-size:.88em}
+pre.code{background:var(--code);border:1px solid var(--border);border-radius:10px;padding:16px 18px;overflow:auto;font-size:13px;line-height:1.55}
+pre.code code{background:none;padding:0}
+blockquote{margin:1em 0;padding:.6em 1.1em;border-left:3px solid var(--accent);background:rgba(110,168,254,.07);border-radius:0 8px 8px 0;color:var(--fg)}
+ul,ol{padding-left:1.4em;margin:.6em 0}
+li{margin:.25em 0}
+li.task{list-style:none;margin-left:-1.2em}
+li.task input{margin-right:.5em}
+hr{border:none;border-top:1px solid var(--border);margin:2em 0}
+.table-wrap{overflow-x:auto;margin:1em 0;border:1px solid var(--border);border-radius:10px}
+table{border-collapse:collapse;width:100%;font-size:14px}
+th,td{padding:9px 13px;border-bottom:1px solid var(--border);text-align:left;vertical-align:top}
+th{background:var(--th);font-weight:700;white-space:nowrap}
+tbody tr:last-child td{border-bottom:none}
+tbody tr:hover{background:rgba(110,168,254,.05)}
+img{max-width:100%;border-radius:8px}
+.doc-section{padding-top:8px}
+.doc-section+.doc-section{margin-top:24px;border-top:2px dashed var(--border);padding-top:32px}
+.meta-foot{margin-top:64px;padding-top:20px;border-top:1px solid var(--border);color:var(--muted);font-size:12.5px}
+.idx-card{display:block;background:var(--panel);border:1px solid var(--border);border-radius:12px;padding:16px 18px;margin:10px 0;text-decoration:none;color:var(--fg);transition:.15s}
+.idx-card:hover{border-color:var(--accent);transform:translateY(-1px)}
+.idx-card .t{font-weight:700;font-size:15px}
+.idx-card .p{color:var(--muted);font-size:13px;margin-top:3px}
+.idx-group{color:var(--muted);font-size:12px;text-transform:uppercase;letter-spacing:.08em;margin:24px 0 6px}
+@media(max-width:860px){.layout{grid-template-columns:1fr}nav.toc{position:static;height:auto;border-right:none;border-bottom:1px solid var(--border)}main{padding:28px 20px}}
+</style>
+</head><body>
+<div class="layout">
+<nav class="toc"><div class="brand">01. 제품 정의 — 생명과학 베팅 레이스 &amp;quot;와일드 더비&amp;quot;</div><div class="sub">01-prd.md</div><a class="lvl1" href="#01-제품-정의-생명과학-베팅-레이스-와일드-더비">01. 제품 정의 — 생명과학 베팅 레이스 &quot;와일드 더비&quot;</a><a class="lvl2" href="#1-처음-요청과-다시-정리한-문제">1. 처음 요청과 다시 정리한 문제</a><a class="lvl3" href="#처음-요청-pdf-기준">처음 요청 (PDF 기준)</a><a class="lvl3" href="#다시-정리한-한-줄-문제">다시 정리한 한 줄 문제</a><a class="lvl3" href="#왜-바뀌었나">왜 바뀌었나</a><a class="lvl3" href="#카훗띵커벨을-안-쓰는-이유-선생님-답변">카훗·띵커벨을 안 쓰는 이유 (선생님 답변)</a><a class="lvl2" href="#2-쓰는-상황">2. 쓰는 상황</a><a class="lvl2" href="#3-한-줄-정리">3. 한 줄 정리</a><a class="lvl2" href="#4-이번-첫-판-범위">4. 이번 첫 판 범위</a><a class="lvl3" href="#꼭-들어가는-것-must">꼭 들어가는 것 (Must)</a><a class="lvl3" href="#있으면-좋은-것-should-시간-남으면">있으면 좋은 것 (Should — 시간 남으면)</a><a class="lvl3" href="#이번엔-안-만드는-것-wont">이번엔 안 만드는 것 (Won't)</a><a class="lvl2" href="#5-잘-됐는지-보는-기준">5. 잘 됐는지 보는 기준</a><a class="lvl2" href="#6-원본-pdf에서-뒤집는-것-중요">6. 원본 PDF에서 뒤집는 것 (중요)</a><a class="lvl3" href="#1-말-이동은-랜덤이-아니라-역산이다-반드시">(1) 말 이동은 랜덤이 아니라 역산이다 — 반드시</a><a class="lvl3" href="#2-총-라운드-수를-반쯤-고정한다">(2) 총 라운드 수를 반쯤 고정한다</a><a class="lvl3" href="#3-힌트는-만든-뒤-검산한다">(3) 힌트는 만든 뒤 검산한다</a><a class="lvl3" href="#4-라운드당-최대-3코인-제한은-실제로-강제한다">(4) 라운드당 최대 3코인 제한은 실제로 강제한다</a><a class="lvl3" href="#5-정산을-실제로-계산한다">(5) 정산을 실제로 계산한다</a><a class="lvl2" href="#6-2-리뷰에서-지적됐으나-그대로-두기로-한-것">6-2. 리뷰에서 지적됐으나 그대로 두기로 한 것</a><a class="lvl3" href="#배당률은-최종-배당률-하나만-쓴다-선생님-결정">배당률은 **최종 배당률** 하나만 쓴다 (선생님 결정)</a><a class="lvl2" href="#7-정해두고-안-물어본-것-자동-결정">7. 정해두고 안 물어본 것 (자동 결정)</a><a class="lvl2" href="#loop-metadata">Loop Metadata</a></nav>
+<main><h1 id="01-제품-정의-생명과학-베팅-레이스-와일드-더비">01. 제품 정의 — 생명과학 베팅 레이스 &quot;와일드 더비&quot;</h1>
+<ul><li>작성일: 2026-08-01</li><li>만드는 사람 / 쓰는 사람: 고2 생명과학 교사 본인</li><li>입력 자료: <code>생명과학 베팅 보드게임 개발 명세.pdf</code> (Gemini 대화 8쪽)</li></ul>
+<hr>
+<h2 id="1-처음-요청과-다시-정리한-문제">1. 처음 요청과 다시 정리한 문제</h2>
+<h3 id="처음-요청-pdf-기준">처음 요청 (PDF 기준)</h3>
+<blockquote>&quot;더 지니어스의 '사기경마' 같은 베팅 게임을 구글 앱스 스크립트로 만들고 싶다. 동물 8마리가 달리고, 문제를 맞히면 난이도에 따라 순위 힌트를 받고, 모둠이 코인을 베팅해서 1·2·3등을 맞히면 이긴다.&quot;</blockquote>
+<h3 id="다시-정리한-한-줄-문제">다시 정리한 한 줄 문제</h3>
+<blockquote><strong>단원 마무리 복습 시간을, 모둠이 단서를 모아 서로 이야기하는 시간으로 바꾸기.</strong></blockquote>
+<h3 id="왜-바뀌었나">왜 바뀌었나</h3>
+<p>기획 대화에서 선생님이 꼽은 답답함은 세 가지였다 — &quot;복습이 지루하다&quot;, &quot;생각하는 수업을 하고 싶다&quot;, &quot;문제를 재밌게 풀게 하고 싶다&quot;. 그리고 성공의 모습은 <strong>&quot;조용하던 애들이 말한다&quot;</strong> 와 <strong>&quot;매번 써도 안 질린다&quot;</strong> 였다.</p>
+<p>즉 이 도구의 목적은 <em>문제를 많이 풀리는 것</em>이 아니다. 문제 풀이는 <strong>힌트를 얻는 수단</strong>이고, 진짜 수업이 일어나는 곳은 <strong>힌트를 받은 뒤 모둠이 머리를 맞대는 2~3분</strong>이다. 이 관점이 아래 모든 결정의 기준이 된다.</p>
+<h3 id="카훗띵커벨을-안-쓰는-이유-선생님-답변">카훗·띵커벨을 안 쓰는 이유 (선생님 답변)</h3>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>카훗류</th><th>와일드 더비</th></tr></thead><tbody><tr><td>정답의 쓸모</td><td>맞히면 점수, 정답 즉시 공개, 끝</td><td>맞히면 <strong>힌트</strong>를 받고 그걸로 계속 추론</td></tr><tr><td>누가 이기나</td><td>빠르고 잘하는 학생 한 명이 독식</td><td>문제를 덜 맞혀도 <strong>베팅 전략으로 역전 가능</strong></td></tr><tr><td>난이도</td><td>전체가 같은 문제</td><td>모둠이 <strong>쉬움/중간/어려움을 직접 고름</strong></td></tr><tr><td>문제</td><td>범용 퀴즈</td><td>내 단원 문제은행을 그대로 끼워 넣고 학기 내내 재사용</td></tr></tbody></table></div>
+<hr>
+<h2 id="2-쓰는-상황">2. 쓰는 상황</h2>
+<div class="table-wrap"><table><thead><tr><th>항목</th><th>내용</th></tr></thead><tbody><tr><td>언제</td><td>단원 마무리 차시</td></tr><tr><td>얼마나</td><td><strong>2차시에 나눠서</strong> (1차시: 규칙 설명 + 1~3라운드 / 2차시: 4~6라운드 + 정산)</td></tr><tr><td>규모</td><td>한 반 25~30명, <strong>모둠 5~6개</strong> (2~8모둠까지 지원)</td></tr><tr><td>기기</td><td>교사 노트북 → 교실 TV 1대 + <strong>모둠당 폰/태블릿 1대</strong></td></tr><tr><td>쓰는 사람</td><td><strong>선생님 본인, 본인의 여러 반</strong>. 다른 교사 공유·계정 관리는 만들지 않음</td></tr><tr><td>문제</td><td>구글 스프레드시트에 직접 입력 (기존 문제 파일은 손으로 옮겨 붙임)</td></tr></tbody></table></div>
+<hr>
+<h2 id="3-한-줄-정리">3. 한 줄 정리</h2>
+<blockquote><strong>언제</strong>: 단원 진도를 다 뺀 마무리 차시에 <strong>뭘 하고 싶나</strong>: 모둠이 문제를 골라 풀고, 얻은 단서를 맞춰 1·2·3등을 추리해서 코인을 걸게 하고 싶다 <strong>뭐가 좋아지나</strong>: 평소 손 안 드는 학생도 모둠 안에서 말하게 되고, 문제를 바꿔 끼우면 학기 내내 다시 쓸 수 있다</blockquote>
+<hr>
+<h2 id="4-이번-첫-판-범위">4. 이번 첫 판 범위</h2>
+<h3 id="꼭-들어가는-것-must">꼭 들어가는 것 (Must)</h3>
+<div class="table-wrap"><table><thead><tr><th>#</th><th>기능</th><th>왜 필수인가</th></tr></thead><tbody><tr><td>M1</td><td>판 만들기 / 판 코드로 이어하기</td><td>2차시로 나누기로 했으므로 저장·복구가 없으면 게임이 성립하지 않음</td></tr><tr><td>M2</td><td>정답 순위 확정 + 이동 역산</td><td>힌트가 거짓이 되면 게임 전체가 무너짐 (아래 §6 참조)</td></tr><tr><td>M3</td><td>난이도별 힌트 자동 생성 + 검산</td><td>힌트끼리 모순되거나 답이 안 좁혀지면 추론 수업이 안 됨</td></tr><tr><td>M4</td><td>구글 시트 문제은행 연동</td><td>&quot;매번 써도 안 질림&quot;의 유일한 수단</td></tr><tr><td>M5</td><td>모둠 폰 접속 (판 코드 + 모둠 + 암호 4자리)</td><td>모둠별 힌트 비밀 유지가 게임의 전제</td></tr><tr><td>M6</td><td>모둠 화면: 난이도 선택 → 문제 풀이 → 자동 채점</td><td>힌트를 얻는 유일한 경로</td></tr><tr><td>M7</td><td>모둠 화면: 내 힌트 보관함</td><td>라운드가 쌓이면 기억으로 못 버팀. 추론 수업의 핵심 도구</td></tr><tr><td>M8</td><td>모둠 화면: 베팅 입력</td><td>없으면 선생님이 6모둠 베팅을 손으로 대신 입력해야 함</td></tr><tr><td>M9</td><td>TV 화면: 레이스 트랙</td><td>이게 없으면 그냥 퀴즈</td></tr><tr><td>M10</td><td>TV 화면: 배당률 전광판</td><td>남들이 어디 거는지 보이는 유일한 창 — 눈치싸움의 전부</td></tr><tr><td>M11</td><td>TV 화면: 모둠 진행 현황</td><td>동시 진행이라 누가 아직 안 냈는지 봐야 진행 통제가 됨</td></tr><tr><td>M12</td><td>타이머 자동 마감</td><td>한 모둠이 늘어져도 수업이 안 밀리게</td></tr><tr><td>M13</td><td>최종 정산 + 우승 모둠 발표</td><td>게임의 끝</td></tr><tr><td>M14</td><td>동물 목록·힌트 문구를 시트에서 수정</td><td>단원마다 테마를 바꿔 질림 방지</td></tr><tr><td>M15</td><td>일시정지 버튼 (리뷰 후 추가)</td><td>첫 수업에 &quot;잠깐 설명 좀&quot; 순간이 반드시 온다. 타이머 자동 마감은 유지하되 비상구를 남김</td></tr><tr><td>M16</td><td>답 제출·베팅 확정 즉시 기록 (리뷰 후 추가)</td><td>캐시가 날아가도 &quot;우리 코인 어디 갔어요&quot;가 안 터지게</td></tr></tbody></table></div>
+<h3 id="있으면-좋은-것-should-시간-남으면">있으면 좋은 것 (Should — 시간 남으면)</h3>
+<ul><li>말이 부드럽게 움직이는 달리기 연출</li><li>제한시간 카운트다운 소리·효과음</li><li><strong>모둠 메모장</strong> (힌트 조합 추론을 적어두는 칸) — 리뷰에서 <code>Must</code> 승격을 제안했으나 <code>Should</code> 유지로 결정. 대신 힌트 글자를 키우고, 모둠에 A4 한 장을 나눠주는 <strong>수업 운영</strong>으로 대신한다</li><li>TV에 모둠별 보유 코인 순위 표시</li></ul>
+<h3 id="이번엔-안-만드는-것-wont">이번엔 안 만드는 것 (Won't)</h3>
+<div class="table-wrap"><table><thead><tr><th>안 만드는 것</th><th>이유</th></tr></thead><tbody><tr><td>한글/엑셀 문제 파일 자동 변환</td><td>처음엔 손으로 옮겨도 됨. 파일 형식이 제각각이라 만들기 대비 이득이 작음</td></tr><tr><td>수업 후 결과 리포트 (모둠별 정답률·오답 통계)</td><td>게임 자체와 별개 기능. 첫 판에서 빼면 출시가 빨라짐</td></tr><tr><td>다른 교사 공유 / 계정 관리 / 문제 분리</td><td>&quot;나 혼자, 내 반들&quot;로 확정 — 통째로 불필요</td></tr><tr><td>학생 개인별 기록·로그인</td><td>모둠 단위 게임이라 개인 식별이 필요 없음</td></tr><tr><td>즉시 반응(실시간 푸시)</td><td>앱스 스크립트 밖으로 나가야 함. 이 게임에 그만한 값어치가 없음 (§ 02-trd 참조)</td></tr></tbody></table></div>
+<hr>
+<h2 id="5-잘-됐는지-보는-기준">5. 잘 됐는지 보는 기준</h2>
+<p>이 도구는 개인 수업 도구라 매출·가입자 같은 숫자가 없다. 대신 수업에서 눈으로 확인한다.</p>
+<div class="table-wrap"><table><thead><tr><th>기준</th><th>확인 방법</th></tr></thead><tbody><tr><td>조용하던 학생이 말한다</td><td>힌트 받은 뒤 모둠 안에서 논쟁이 벌어지는지 교실을 돌며 관찰</td></tr><tr><td>어려운 문제에 도전한다</td><td>라운드가 갈수록 '어려움' 선택 비율이 오르는지 (시트 기록으로 확인 가능)</td></tr><tr><td>매번 써도 안 질린다</td><td>두 번째 단원에 문제·동물만 바꿔 그대로 돌아가는지</td></tr><tr><td>준비가 가볍다</td><td>새 단원 준비가 <strong>시트에 문제 18문항 채우기 10분</strong>으로 끝나는지</td></tr><tr><td>수업이 안 밀린다</td><td>1차시 안에 3라운드, 2차시 안에 정산까지 끝나는지</td></tr></tbody></table></div>
+<hr>
+<h2 id="6-원본-pdf에서-뒤집는-것-중요">6. 원본 PDF에서 뒤집는 것 (중요)</h2>
+<p>PDF의 프로토타입 코드에는 게임을 무너뜨리는 문제가 있어 아래를 명시적으로 바꾼다.</p>
+<h3 id="1-말-이동은-랜덤이-아니라-역산이다-반드시">(1) 말 이동은 랜덤이 아니라 역산이다 — 반드시</h3>
+<p>PDF 코드는 정답 순위를 랜덤으로 정해두고, 말 이동은 <strong>그와 무관하게</strong> 매 라운드 0~3칸 난수로 굴린다. 그러면 &quot;A가 최종 1등&quot;이라는 힌트를 뿌려놓고 A가 5등으로 들어오는 판이 실제로 나온다. <strong>힌트가 거짓말이 되면 이 게임은 성립하지 않는다.</strong></p>
+<p>→ 정답 순위를 먼저 확정하고, <strong>그 순위대로 도착하도록 각 동물의 라운드별 이동 칸수를 미리 쪼개 놓는다.</strong> 중간 순서는 뒤집혀도 되지만(연출), 최종 도착 순서는 정답 순위와 100% 일치한다.</p>
+<h3 id="2-총-라운드-수를-반쯤-고정한다">(2) 총 라운드 수를 반쯤 고정한다</h3>
+<p>PDF는 &quot;3마리가 골인하면 종료&quot;라 몇 라운드에 끝날지 모른다. 2차시 수업에 맞추려면 예측 가능해야 하므로 <strong>게임 시작 시 마지막 라운드를 5 또는 6 중 하나로 몰래 정한다.</strong> 선생님 화면에는 보이고 학생 화면에는 안 보인다. 언제 끝날지 모르는 긴장은 남고, 수업 시간은 지켜진다.</p>
+<h3 id="3-힌트는-만든-뒤-검산한다">(3) 힌트는 만든 뒤 검산한다</h3>
+<p>힌트 전부가 정답 순위 기준으로 <strong>참</strong>이어야 하고, 게임이 끝날 때까지 모둠들이 받은 힌트를 다 합치면 <strong>1·2·3등을 좁힐 수 있어야</strong> 한다. 생성 직후 기계가 확인하고, 조건을 못 맞추면 다시 생성한다.</p>
+<h3 id="4-라운드당-최대-3코인-제한은-실제로-강제한다">(4) 라운드당 최대 3코인 제한은 실제로 강제한다</h3>
+<p>PDF 코드는 베팅 버튼을 무한정 누를 수 있다. 라운드당 3코인, 보유 코인 초과 불가를 서버에서 막는다.</p>
+<h3 id="5-정산을-실제로-계산한다">(5) 정산을 실제로 계산한다</h3>
+<p>PDF 코드에는 정산 계산이 아예 없다. 1등 100% / 2등 70% / 3등 50%, 4~8등에 건 코인은 소멸 — 이 규칙대로 최종 화면에서 계산해 보여준다.</p>
+<hr>
+<h2 id="6-2-리뷰에서-지적됐으나-그대로-두기로-한-것">6-2. 리뷰에서 지적됐으나 그대로 두기로 한 것</h2>
+<h3 id="배당률은-최종-배당률-하나만-쓴다-선생님-결정">배당률은 <strong>최종 배당률</strong> 하나만 쓴다 (선생님 결정)</h3>
+<p>리뷰에서 이런 지적이 나왔다 — 최종 배당률만 쓰면 1라운드에 아무도 안 볼 때 건 모둠과 6라운드에 골인 순서 다 보고 건 모둠이 <strong>같은 돈</strong>을 받는다. 그러면 &quot;먼저 알아내면 유리하다&quot;는 전제가 약해지고, 코인을 끝까지 쥐고 있다가 마지막에 몰빵하는 게 유리해진다.</p>
+<p><strong>그래도 PDF 규칙(최종 배당률)을 유지하기로 했다.</strong> 규칙이 단순해야 학생에게 설명이 되고, 실제 경마도 이 방식이다.</p>
+<p><strong>대신 첫 수업에서 이걸 본다</strong>: 모둠들이 초반 라운드에 코인을 안 쓰고 버티는가? 그러면 다음 중 하나로 조정한다.</p>
+<ul><li>(가) 라운드별 보너스 배율 — 1라운드에 건 코인은 ×1.5, 6라운드는 ×1.0 (<code>설정</code> 탭 값으로 뺄 수 있게)</li><li>(나) 라운드당 최소 1코인 베팅 강제</li><li>(다) 베팅 시점 배당률 고정으로 전환 (데이터 구조 변경 필요 → 그때 결정)</li></ul>
+<p>이 조정 여지를 위해 <code>bets</code> 자료에 <strong>베팅한 라운드 번호는 처음부터 남겨둔다.</strong> 나중에 (가)나 (다)로 갈 때 과거 판을 다시 계산할 수 있다.</p>
+<hr>
+<h2 id="7-정해두고-안-물어본-것-자동-결정">7. 정해두고 안 물어본 것 (자동 결정)</h2>
+<ul><li>수익 모델 없음 — 선생님 개인 구글 계정에서 도는 수업 도구</li><li>학생 개인정보 수집 안 함 — 모둠 이름과 4자리 암호만, 이름·학번 저장 안 함</li><li>게임 기록은 선생님 구글 드라이브 안에만 남음 (외부 서비스로 안 나감)</li><li>화면은 한국어 고정</li></ul>
+<hr>
+<h2 id="loop-metadata">Loop Metadata</h2>
+<ul><li>참조한 상위 문서: <code>생명과학 베팅 보드게임 개발 명세.pdf</code></li><li>영향 주는 하위 문서: 02-trd, 03-user-flow, 04-database, 06-screens, 08-test-plan</li><li>아직 안 정한 것:<ul><li>난이도별 힌트가 정확히 얼마나 강해야 밸런스가 맞는지 (첫 수업 후 조정)</li><li>문제 자동 채점 방식 (객관식 4지선다 고정 vs 주관식 허용) → 04-database에서 4지선다로 잠정 확정</li><li>한 단원에 필요한 최소 문항 수 18문항이 현실적으로 준비 가능한지</li></ul></li><li>전제:<ul><li>학교 와이파이에서 <code>script.google.com</code> 접속이 막히지 않는다</li><li>모둠마다 인터넷 되는 기기 1대를 확보할 수 있다</li><li>선생님이 앱스 스크립트 배포를 직접 할 수 있다 (경험 있음으로 확인됨)</li></ul></li><li>확인 기준: §5 표</li><li>위험:<ul><li>학교망에서 앱스 스크립트가 차단되면 게임 자체가 불가 → 사전 1회 접속 테스트 필수</li><li>6모둠이 동시에 몰리면 앱스 스크립트 속도 제한에 걸릴 수 있음 → 02-trd의 캐시·잠금 설계로 대응</li></ul></li></ul>
+<div class="meta-foot">원본: <code>01-prd.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+</main>
+</div>
+
+</body></html>
