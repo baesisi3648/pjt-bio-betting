@@ -132,6 +132,33 @@
 | 토론시간초 | 180 | 대화가 안 붙으면 늘림 |
 | 베팅시간초 | 60 | 허둥대면 늘림 |
 
+
+---
+
+## 내 배포 정보
+
+| | |
+|---|---|
+| 스프레드시트 | https://docs.google.com/spreadsheets/d/1BGPCWghYREs15EbMsO-asazFdntPiFYqjmkaxoruL1A |
+| 앱스 스크립트 편집기 | https://script.google.com/d/1jCKQq9EtpwBuXPx_GrtxvHv45YhDqzJymy7VMb426EIoxJYqT3jRIGVn/edit |
+| **교사 화면 (TV)** | https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec?role=teacher |
+| **학생 화면 (모둠 폰)** | https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec |
+
+### 코드를 고쳤을 때
+
+```bash
+npm test                       # 검사부터 (게이트 32개)
+npx clasp push                 # 코드 올리기
+npx clasp create-deployment -d "설명"   # 새 버전 배포 ← 이걸 빼먹으면 옛 화면이 뜬다
+```
+
+배포하면 새 주소가 나옵니다. 주소를 고정하고 싶으면 기존 배포를 갱신하세요:
+
+```bash
+npx clasp list-deployments
+npx clasp update-deployment <배포ID>
+```
+
 ---
 
 ## 개발자용

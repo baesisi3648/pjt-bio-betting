@@ -615,3 +615,19 @@ entries:
     description: Refactor Code
     impact:
       - none
+  - date: "2026-08-03T23:43:57"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/appsscript.json
+    description: Create appsscript in apps-script
+    impact:
+      - configuration change
+  - date: "2026-08-03T23:46:18"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/appsscript.json
+    description: Create appsscript in apps-script
+    impact:
+      - configuration change

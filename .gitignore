@@ -11,3 +11,6 @@ test/gate-results.json
 # node (지금은 안 쓰지만 나중을 위해)
 node_modules/
 *.log
+
+# clasp 인증 정보 (절대 커밋 금지)
+.clasprc.json

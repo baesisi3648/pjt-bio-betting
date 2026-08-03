@@ -1,0 +1,29 @@
+{
+  "name": "pjt-bio-betting",
+  "version": "1.0.0",
+  "description": "생명과학 와일드 더비 — 앱스 스크립트 수업용 보드게임",
+  "directories": {
+    "doc": "docs",
+    "test": "test"
+  },
+  "scripts": {
+    "gates": "node test/run-gates.js",
+    "sim": "node test/simulate-game.js",
+    "test": "node test/run-gates.js && node test/simulate-game.js",
+    "push": "clasp push",
+    "deploy": "clasp create-deployment"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/baesisi3648/pjt-bio-betting.git"
+  },
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/baesisi3648/pjt-bio-betting/issues"
+  },
+  "homepage": "https://github.com/baesisi3648/pjt-bio-betting#readme",
+  "devDependencies": {
+    "@google/clasp": "^3.3.0"
+  },
+  "private": true
+}
