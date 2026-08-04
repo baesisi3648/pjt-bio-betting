@@ -85,6 +85,16 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
   <div id="pane-new" class="card">
     <label>반 이름</label><input id="cls" placeholder="2학년 3반">
     <label>단원</label><select id="unit"></select>
+    <div id="no-questions" class="warn hidden">
+      📋 <b>'문제' 탭이 비어 있습니다.</b>
+
+      스프레드시트를 열고 상단 메뉴에서
+      <b>와일드 더비 → ② 문제은행 넣기 (54문항)</b> 를 눌러주세요.
+      (메뉴가 안 보이면 스프레드시트를 새로고침하세요)
+
+      넣으신 뒤 아래 버튼을 누르면 목록이 갱신됩니다.
+      <button class="btn-pause" style="margin-top:12px" onclick="loadUnits()">다시 불러오기</button>
+    </div>
     <label>모둠 수</label><select id="cnt" onchange="drawNames()"></select>
     <label>모둠 이름 (비우면 1모둠, 2모둠…)</label>
     <div id="names" class="names"></div>
@@ -177,8 +187,19 @@ function drawNames(){
   for(var i=1;i<=n;i++) h += '<input id="tn'+i+'" placeholder="'+i+'모둠">';
   document.getElementById('names').innerHTML = h;
 }
+function loadUnits(){
 call('gwListUnits', [], function(d){
-  document.getElementById('unit').innerHTML = d.units.map(function(u){return '<option>'+esc(u)+'</option>';}).join('') || '<option value="">문제를 먼저 넣어주세요</option>';
+  var sel = document.getElementById('unit');
+  var setupBox = document.getElementById('no-questions');
+  if(!d.units.length){
+    sel.innerHTML = '<option value="">— 문제가 없습니다 —</option>';
+    sel.disabled = true;
+    setupBox.classList.remove('hidden');
+  } else {
+    sel.disabled = false;
+    setupBox.classList.add('hidden');
+    sel.innerHTML = d.units.map(function(u){return '<option>'+esc(u)+'</option>';}).join('');
+  }
   var c=''; for(var i=2;i<=8;i++) c += '<option'+(i===6?' selected':'')+'>'+i+'</option>';
   document.getElementById('cnt').innerHTML = c;
   drawNames();
@@ -186,7 +207,13 @@ call('gwListUnits', [], function(d){
     ? d.recent.map(function(g){ return '<tr><td><b>'+esc(g.code)+'</b></td><td>'+esc(g.className)+'</td><td>'+esc(g.unit)+'</td><td>'+g.round+'라운드</td><td>'+(g.isOver?'끝남':'진행중')+'</td></tr>'; }).join('')
     : '<tr><td colspan="5" style="color:var(--muted)">아직 만든 판이 없어요. 새 판을 만들어 보세요.</td></tr>';
   checkSheets();
+}, function(msg){
+  document.getElementById('check').innerHTML =
+    '<div class="stop">⛔ 시트를 읽지 못했어요\n' + esc(msg) +
+    "\n\n스프레드시트 메뉴에서 '와일드 더비 → ① 시트 준비하기'를 먼저 실행해주세요.</div>";
 });
+}
+loadUnits();
 document.getElementById('unit') && (document.getElementById('unit').onchange = checkSheets);
 
 function checkSheets(){
