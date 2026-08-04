@@ -101,6 +101,63 @@ function insertSampleQuestions() {
   sh.getRange(sh.getLastRow() + 1, 1, rows.length, rows[0].length).setValues(rows);
 }
 
+/**
+ * 시트가 실제로 어떤 상태인지 그대로 보여준다.
+ * "왜 단원이 안 나오지?" 같은 걸 추측하지 않고 눈으로 확인하기 위한 것.
+ */
+function 시트_상태_확인() {
+  var lines = [];
+
+  try {
+    var q = readQuestions();
+    lines.push('■ 문제 탭 — 쓸 수 있는 문항 ' + q.rows.length + '개');
+
+    var byUnit = {};
+    q.rows.forEach(function (x) {
+      byUnit[x.unit] = byUnit[x.unit] || { '쉬움': 0, '중간': 0, '어려움': 0 };
+      byUnit[x.unit][x.level]++;
+    });
+    var units = Object.keys(byUnit);
+    if (units.length === 0) {
+      lines.push('   ⚠️ 단원이 하나도 없습니다 → 드롭다운이 비어 보입니다');
+    } else {
+      units.forEach(function (u) {
+        var b = byUnit[u];
+        lines.push('   · ' + u + ' — 쉬움 ' + b['쉬움'] + ' / 중간 ' + b['중간'] + ' / 어려움 ' + b['어려움']);
+      });
+    }
+    if (q.skipped.length) {
+      lines.push('');
+      lines.push('■ 무시된 행 ' + q.skipped.length + '개');
+      q.skipped.slice(0, 8).forEach(function (m) { lines.push('   · ' + m); });
+      if (q.skipped.length > 8) lines.push('   · … 외 ' + (q.skipped.length - 8) + '개');
+    }
+  } catch (e) {
+    lines.push('■ 문제 탭을 읽지 못했습니다: ' + e.message);
+  }
+
+  lines.push('');
+  try {
+    var a = readAnimals();
+    lines.push(a.ok ? '■ 동물 탭 — 정상 (8줄)' : '■ 동물 탭 — ⚠️ ' + a.message);
+  } catch (e2) { lines.push('■ 동물 탭 — 읽기 실패: ' + e2.message); }
+
+  try {
+    var s = readSettings();
+    lines.push('■ 설정 — 시드 ' + s.seedCoins + ' / 문제 ' + s.quizSeconds +
+               '초 / 토론 ' + s.discussSeconds + '초 / 베팅 ' + s.betSeconds + '초');
+  } catch (e3) { lines.push('■ 설정 탭 — 읽기 실패: ' + e3.message); }
+
+  lines.push('■ 학생 주소 — ' + webAppUrl());
+  lines.push('■ 코드 버전 — ' + DEPLOY_VERSION);
+  lines.push('');
+  lines.push('단원이 위에 보이는데 교사 화면 드롭다운이 비었다면,');
+  lines.push('교사 화면을 새로고침하거나 「다시 불러오기」를 누르세요.');
+  lines.push('(단원 목록은 화면을 열 때 한 번만 읽어옵니다)');
+
+  SpreadsheetApp.getUi().alert(lines.join('\n'));
+}
+
 /** 스프레드시트 메뉴에 넣기 */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('와일드 더비')
@@ -108,6 +165,7 @@ function onOpen() {
     .addItem('② 문제은행 넣기 (54문항)', 'insertQuestionBank')
     .addItem('③ 검사 돌리기', 'test_모두')
     .addSeparator()
+    .addItem('시트 상태 확인', '시트_상태_확인')
     .addItem('학생 주소 확인', '학생주소_확인')
     .addSeparator()
     .addItem('샘플 문제만 넣기 (개발용)', 'insertSampleQuestions')

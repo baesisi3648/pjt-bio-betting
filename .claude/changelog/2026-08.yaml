@@ -687,3 +687,11 @@ entries:
     description: Refactor Teacher
     impact:
       - none
+  - date: "2026-08-04T00:25:38"
+    type: fix
+    domain: apps-script
+    files:
+      - apps-script/Setup.gs
+    description: Fix issue in Setup
+    impact:
+      - none
