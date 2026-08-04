@@ -16,7 +16,39 @@ function include(name) {
   return HtmlService.createHtmlOutputFromFile(name).getContent();
 }
 
-function webAppUrl() { return ScriptApp.getService().getUrl(); }
+/**
+ * 학생용 웹앱 주소.
+ *
+ * ⚠️ getUrl() 을 그냥 믿으면 안 된다. 스프레드시트에 붙은 스크립트에서는
+ *    '/dev' 주소가 나올 때가 있고, 그건 편집 권한이 있어야 열린다.
+ *    학생 폰에서는 "현재 파일을 열 수 없습니다"가 뜬다.
+ *
+ * 순서: 설정 탭 → getUrl()이 /exec 로 끝날 때만 → 배포 주소 상수
+ */
+function webAppUrl() {
+  try {
+    var s = readSettings();
+    if (s.studentUrl && /\/exec$/.test(s.studentUrl)) return s.studentUrl;
+  } catch (e) {}
+  try {
+    var u = ScriptApp.getService().getUrl();
+    if (u && /\/exec$/.test(u)) return u;
+  } catch (e2) {}
+  return WEBAPP_URL;
+}
+
+/** 어떤 주소가 쓰이는지 확인 (메뉴에서 부른다) */
+function 학생주소_확인() {
+  var used = webAppUrl();
+  var raw = '';
+  try { raw = ScriptApp.getService().getUrl() || '(없음)'; } catch (e) { raw = '(오류)'; }
+  SpreadsheetApp.getUi().alert(
+    '학생에게 안내될 주소\n\n' + used +
+    '\n\n─────────────\n구글이 알려준 값: ' + raw +
+    (/\/dev$/.test(raw) ? '\n→ /dev 라서 학생은 못 엽니다. 위 주소를 씁니다.' : '') +
+    "\n\n이 주소가 틀렸다면 '설정' 탭 학생주소 행에 올바른 주소를 넣으세요."
+  );
+}
 function deployVersion() { return DEPLOY_VERSION; }
 
 // ── 응답 봉투 ────────────────────────────────────────────

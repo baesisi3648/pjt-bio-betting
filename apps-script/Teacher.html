@@ -110,6 +110,7 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
       <div style="max-width:620px">
         <h2>학생 주소</h2>
         <div class="url" id="out-url"></div>
+        <div id="url-warn" class="stop hidden">⚠️ 이 주소는 학생이 못 엽니다 (/exec 로 끝나야 합니다).<br>'설정' 탭 학생주소 행에 배포 주소를 넣어주세요.</div>
         <div class="qrhint">폰 카메라로 QR을 비추면 바로 열립니다.<br>
           그다음 판 코드 <b id="qr-code-echo" style="color:var(--gold)"></b> 를 넣으면 돼요.</div>
       </div>
@@ -217,6 +218,9 @@ function drawHandout(d){
   document.getElementById('out-code').textContent = d.code;
   document.getElementById('qr-code-echo').textContent = d.code;
   document.getElementById('out-url').textContent = d.studentUrl;
+  var badUrl = !/\/exec$/.test(d.studentUrl || '');
+  var warnEl = document.getElementById('url-warn');
+  if (warnEl) warnEl.classList.toggle('hidden', !badUrl);
   document.getElementById('out-qr').innerHTML = d.qr || '';
   document.getElementById('out-pins').innerHTML = d.teams.map(function(t){
     return '<tr><td>'+t.no+'모둠</td><td>'+esc(t.name)+'</td>'+

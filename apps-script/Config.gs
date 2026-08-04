@@ -20,6 +20,7 @@ var DEFAULTS = {
   discussSeconds: 180,   // 감독 G-02 — 힌트를 놓고 이야기하는 시간. 이 수업의 실체
   betSeconds:      60,
   trackCells:      10,
+  studentUrl:      '',   // '설정' 탭에서 덮어쓸 수 있다
   payout: { 1: 1.0, 2: 0.7, 3: 0.5 }
 };
 
@@ -64,4 +65,16 @@ var ERRORS = {
   SHEET_INVALID:    '시트 구성을 확인해주세요'
 };
 
-var DEPLOY_VERSION = '2026-08-01a';  // 화면 하단에 표시 — 재배포 누락 감지용
+/**
+ * 배포된 웹앱 주소 (최후의 수단).
+ *
+ * ScriptApp.getService().getUrl() 은 스프레드시트에 붙은 스크립트에서
+ * '/dev' 주소를 돌려줄 때가 있다. /dev 는 편집 권한이 있어야 열려서,
+ * 학생이 찍으면 "현재 파일을 열 수 없습니다"가 뜬다.
+ *
+ * 배포 주소는 npm run deploy 가 항상 같은 배포를 갱신하므로 바뀌지 않는다.
+ * 다른 계정으로 새로 배포했다면 '설정' 탭의 학생주소 행에 넣으면 이 값보다 우선한다.
+ */
+var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec';
+
+var DEPLOY_VERSION = '2026-08-04a';  // 화면 하단에 표시 — 재배포 누락 감지용

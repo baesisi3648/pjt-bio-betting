@@ -98,11 +98,12 @@ function readSettings() {
   var map = {
     '초기코인': 'initialCoins', '라운드당최대베팅': 'maxBetPerRound', '시드코인': 'seedCoins',
     '문제시간초': 'quizSeconds', '토론시간초': 'discussSeconds', '베팅시간초': 'betSeconds',
-    '트랙칸수': 'trackCells'
+    '트랙칸수': 'trackCells', '학생주소': 'studentUrl'
   };
   readRows(SHEETS.SETTINGS).forEach(function (r) {
     var key = map[String(r[0] || '').trim()];
-    if (key && r[1] !== '') s[key] = Number(r[1]);
+    if (!key || r[1] === '') return;
+    s[key] = (key === 'studentUrl') ? String(r[1]).trim() : Number(r[1]);
   });
   return s;
 }

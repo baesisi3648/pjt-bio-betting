@@ -25,8 +25,11 @@ function setupSheets() {
     ['문제시간초', 90, '문제 풀이 제한 시간'],
     ['토론시간초', 180, '모둠 토론 시간 (베팅 잠김) — 이 수업의 실체'],
     ['베팅시간초', 60, '베팅 제한 시간'],
-    ['트랙칸수', 10, '결승선까지 칸 수']
+    ['트랙칸수', 10, '결승선까지 칸 수'],
+    ['학생주소', '', '비워두면 자동. 학생이 "파일을 열 수 없습니다"라고 하면 배포 주소(/exec)를 여기에 넣으세요']
   ]);
+
+  ensureSettingRow(ss, '학생주소', '', '비워두면 자동. 학생이 "파일을 열 수 없습니다"라고 하면 배포 주소(/exec)를 여기에 넣으세요');
 
   fillOnce(ss, SHEETS.HINTS, [
     ['어려움', '상위확정', '{X}는 1·2·3등 안에 반드시 듭니다.'],
@@ -44,6 +47,15 @@ function setupSheets() {
     "이제 '문제' 탭에 문제를 넣어주세요.\n" +
     '단원마다 난이도별 6문항(총 18문항) 이상이면 충분합니다.'
   );
+}
+
+/** 이미 만들어진 설정 탭에도 빠진 행을 채워 넣는다 */
+function ensureSettingRow(ss, key, value, note) {
+  var sh = ss.getSheetByName(SHEETS.SETTINGS);
+  if (!sh) return;
+  var v = sh.getDataRange().getValues();
+  for (var i = 1; i < v.length; i++) if (String(v[i][0]).trim() === key) return;
+  sh.appendRow([key, value, note]);
 }
 
 function make(ss, name, header) {
@@ -95,6 +107,8 @@ function onOpen() {
     .addItem('① 시트 준비하기', 'setupSheets')
     .addItem('② 문제은행 넣기 (54문항)', 'insertQuestionBank')
     .addItem('③ 검사 돌리기', 'test_모두')
+    .addSeparator()
+    .addItem('학생 주소 확인', '학생주소_확인')
     .addSeparator()
     .addItem('샘플 문제만 넣기 (개발용)', 'insertSampleQuestions')
     .addToUi();
