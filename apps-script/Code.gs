@@ -28,7 +28,11 @@ function include(name) {
 function webAppUrl() {
   try {
     var s = readSettings();
-    if (s.studentUrl && /\/exec$/.test(s.studentUrl)) return s.studentUrl;
+    // 단축 주소도 넣을 수 있어야 하므로 /exec 로 끝나는지는 따지지 않는다.
+    // 다만 /dev 는 편집 권한이 있어야 열려서 학생이 못 보므로 거부한다.
+    if (s.studentUrl && /^https?:\/\//.test(s.studentUrl) && !/\/dev$/.test(s.studentUrl)) {
+      return s.studentUrl;
+    }
   } catch (e) {}
   try {
     var u = ScriptApp.getService().getUrl();
