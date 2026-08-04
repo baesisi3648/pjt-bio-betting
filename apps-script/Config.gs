@@ -87,4 +87,4 @@ var SPREADSHEET_ID = '1BGPCWghYREs15EbMsO-asazFdntPiFYqjmkaxoruL1A';
 
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec';
 
-var DEPLOY_VERSION = '2026-08-04d';  // 화면 하단에 표시 — 재배포 누락 감지용
+var DEPLOY_VERSION = '2026-08-04e';  // 화면 하단에 표시 — 재배포 누락 감지용

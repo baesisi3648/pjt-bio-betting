@@ -105,6 +105,8 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 <script>
 var CODE=null, TEAM=null, PIN=null, D=null, TAB=0, sel=null, draft={}, seenHints=0;
 
+call('gwVersion', [], function(v){ var e=document.getElementById('ver-badge'); if(e) e.textContent='배포 '+v.v; });
+
 /* ── S4 ── */
 var saved = null;
 try { saved = JSON.parse(localStorage.getItem('wd') || 'null'); } catch(e){}

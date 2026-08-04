@@ -76,7 +76,7 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
 
 <!-- ══ S1 시작 화면 ══ -->
 <div id="s1">
-  <h1>🧬 생명과학 와일드 더비</h1>
+  <h1>🧬 생명과학 와일드 더비 <span id="ver-badge" style="font-size:18px;color:var(--muted);font-weight:400">버전 확인 중…</span></h1>
   <div class="tabs">
     <button id="tab-new" class="on" onclick="tab('new')">새 판 만들기</button>
     <button id="tab-resume" onclick="tab('resume')">판 코드로 이어하기</button>
@@ -189,6 +189,10 @@ function drawNames(){
   for(var i=1;i<=n;i++) h += '<input id="tn'+i+'" placeholder="'+i+'모둠">';
   document.getElementById('names').innerHTML = h;
 }
+call('gwVersion', [], function(v){
+  document.getElementById('ver-badge').textContent = '배포 ' + v.v;
+});
+
 function loadUnits(){
 call('gwListUnits', [], function(d){
   var sel = document.getElementById('unit');

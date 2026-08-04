@@ -89,6 +89,8 @@ function gwPrepare(unit) {
   return ok({ blocking: v.blocking, warnings: v.warnings, units: listUnits() });
 }
 
+function gwVersion() { return ok({ v: DEPLOY_VERSION }); }
+
 function gwListUnits() { return ok({ units: listUnits(), recent: listRecentGames(10) }); }
 
 function gwCreateGame(config) {
