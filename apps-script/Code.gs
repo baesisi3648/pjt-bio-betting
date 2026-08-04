@@ -72,6 +72,10 @@ function gwDiagnose() {
     out.skipped = q.skipped.length;
   } catch (e) { out.questions = '실패: ' + e.message; }
 
+  try { out.listUnits = listUnits().join(', ') || '(빈 배열)'; } catch (e) { out.listUnits = '실패: ' + e.message; }
+  try { out.recent = listRecentGames(10).length + '개'; } catch (e) { out.recent = '실패: ' + e.message; }
+  try { var r = gwListUnits(); out.gwListUnits = r.ok ? ('units ' + r.data.units.length + '개' + (r.data.recentError ? ' / 최근판 오류: ' + r.data.recentError : '')) : ('실패 ' + r.message); }
+  catch (e) { out.gwListUnits = '던짐: ' + e.message; }
   try { out.rawGetUrl = ScriptApp.getService().getUrl() || '(없음)'; } catch (e) { out.rawGetUrl = '오류'; }
   try { out.studentUrl = webAppUrl(); } catch (e) { out.studentUrl = '실패: ' + e.message; }
 
@@ -91,7 +95,14 @@ function gwPrepare(unit) {
 
 function gwVersion() { return ok({ v: DEPLOY_VERSION }); }
 
-function gwListUnits() { return ok({ units: listUnits(), recent: listRecentGames(10) }); }
+function gwListUnits() {
+  // '게임' 탭 읽기가 실패해도 단원 목록은 살아야 한다.
+  // 예전엔 여기서 터지면 드롭다운이 통째로 비었고, 화면에는 아무 표시도 안 났다.
+  var recent = [], recentError = null;
+  try { recent = listRecentGames(10); }
+  catch (e) { recentError = e.message; }
+  return ok({ units: listUnits(), recent: recent, recentError: recentError });
+}
 
 function gwCreateGame(config) {
   return withLock(function () {

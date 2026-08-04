@@ -101,7 +101,7 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
     <div id="check"></div>
     <button class="primary" onclick="create()">판 만들기</button>
     <button class="btn-small" onclick="diagnose()">🔧 진단 (이 화면에서 시트가 보이는지 확인)</button>
-    <div id="diag" class="warn hidden"></div>
+    <div id="diag" class="stop hidden" style="font-family:ui-monospace,monospace;font-size:17px;user-select:all"></div>
   </div>
 
   <div id="pane-resume" class="card hidden">
@@ -201,6 +201,7 @@ call('gwListUnits', [], function(d){
     sel.innerHTML = '<option value="">— 문제가 없습니다 —</option>';
     sel.disabled = true;
     setupBox.classList.remove('hidden');
+    diagnose();                       // 왜 비었는지 바로 보여준다
   } else {
     sel.disabled = false;
     setupBox.classList.add('hidden');
@@ -283,6 +284,9 @@ function diagnose(){
       '코드 버전: ' + d.deployVersion + '\n' +
       'getActive(): ' + d.getActive + '\n' +
       '스프레드시트: ' + d.openById + '\n' +
+      'listUnits(): ' + d.listUnits + '\n' +
+      '최근 판 목록: ' + d.recent + '\n' +
+      'gwListUnits(): ' + d.gwListUnits + '\n' +
       '문항 수: ' + d.questions + (d.skipped ? '  (무시된 행 ' + d.skipped + ')' : '') + '\n' +
       '단원:\n   · ' + (u || '(없음)') + '\n' +
       '구글이 준 주소: ' + d.rawGetUrl + '\n' +
