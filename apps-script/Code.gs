@@ -83,7 +83,32 @@ function gwDiagnose() {
 }
 
 // ── 응답 봉투 ────────────────────────────────────────────
-function ok(data) { return { ok: true, data: data }; }
+/**
+ * ⚠️ 앱스 스크립트는 google.script.run 응답에 Date 객체를 담지 못한다.
+ *    하나라도 섞이면 "returned value is not a supported return type" 으로
+ *    **응답 전체가 실패**한다. 화면에서는 그냥 아무것도 안 온 것처럼 보인다.
+ *
+ *    실제로 이것 때문에 '게임' 탭에 판이 하나 생기는 순간
+ *    (만든시각이 Date 로 읽힌다) 단원 목록이 통째로 사라졌다.
+ *
+ *    그래서 내보내기 직전에 전부 문자열로 바꾼다.
+ */
+function plain(v) {
+  if (v instanceof Date) {
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return v.getFullYear() + '-' + p(v.getMonth() + 1) + '-' + p(v.getDate()) +
+           ' ' + p(v.getHours()) + ':' + p(v.getMinutes());
+  }
+  if (v instanceof Array) { return v.map(plain); }
+  if (v && typeof v === 'object') {
+    var o = {};
+    for (var k in v) if (Object.prototype.hasOwnProperty.call(v, k)) o[k] = plain(v[k]);
+    return o;
+  }
+  return v;
+}
+
+function ok(data) { return { ok: true, data: plain(data) }; }
 function err(code) { return { ok: false, error: code, message: ERRORS[code] || '문제가 생겼어요' }; }
 
 // ── 1. 판 만들기 ─────────────────────────────────────────

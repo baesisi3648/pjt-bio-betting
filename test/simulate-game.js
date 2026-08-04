@@ -59,7 +59,7 @@ tabs['게임'] = [['판코드', '반이름', '단원', '상태JSON', '만든시�
 tabs['기록'] = [['번호', '판코드', '라운드', '모둠', '종류', '내용', '시각']];
 
 // ── 시뮬레이션 ──
-let pass = 0, fail = 0;
+let pass = 0, fail = 0, DATE_DETAIL = '';
 function check(id, title, ok, detail) {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${id.padEnd(6)} ${title}\n         ${detail}`);
   ok ? pass++ : fail++;
@@ -159,6 +159,28 @@ const settleSum = fin.data.settlement.every(s => {
   return s.finalCoins === (st2.teams.find(t => t.no === s.teamNo).coins + s.gained);
 });
 check('H9c', '최종 = 남은 보유 + 획득', settleSum, '전 모둠 일치');
+
+// ── 응답에 Date 가 섞이면 앱스 스크립트가 통째로 실패시킨다 ──
+function findDates(v, path, out) {
+  if (v instanceof Date) { out.push(path); return out; }
+  if (Array.isArray(v)) { v.forEach((x, i) => findDates(x, path + '[' + i + ']', out)); return out; }
+  if (v && typeof v === 'object') { Object.keys(v).forEach(k => findDates(v[k], path + '.' + k, out)); return out; }
+  return out;
+}
+check('DATE', '모든 응답에 Date 객체가 없다 (있으면 화면이 응답을 통째로 못 받는다)', (() => {
+  const calls = {
+    gwListUnits: G.gwListUnits(),
+    gwGetState_teacher: G.gwGetState(CODE, 'teacher'),
+    gwGetState_team: G.gwGetState(CODE, 'team:1'),
+    gwHandout: G.gwHandout(CODE),
+    gwDiagnose: G.gwDiagnose(),
+    gwLobby: G.gwLobby(CODE)
+  };
+  const bad = [];
+  Object.keys(calls).forEach(k => findDates(calls[k], k, bad));
+  DATE_DETAIL = bad.length ? 'Date 발견: ' + bad.join(', ') : Object.keys(calls).length + '개 응답 검사, Date 0건';
+  return bad.length === 0;
+})(), DATE_DETAIL);
 
 // ── 웹앱 환경 (getActive 가 null) 에서도 동작하는가 ──
 WEBAPP_CONTEXT = true;
