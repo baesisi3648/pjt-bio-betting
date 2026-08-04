@@ -9,9 +9,10 @@
   "scripts": {
     "gates": "node test/run-gates.js",
     "sim": "node test/simulate-game.js",
-    "test": "node test/run-gates.js && node test/simulate-game.js",
+    "test": "node test/run-gates.js && node test/simulate-game.js && node test/run-qr-gates.js",
     "push": "clasp push",
-    "deploy": "npm test && clasp push --force && clasp create-version \"update\" && clasp update-deployment AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo"
+    "deploy": "npm test && clasp push --force && clasp create-version \"update\" && clasp update-deployment AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo",
+    "qr": "node test/run-qr-gates.js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +24,9 @@
   },
   "homepage": "https://github.com/baesisi3648/pjt-bio-betting#readme",
   "devDependencies": {
-    "@google/clasp": "^3.3.0"
+    "@google/clasp": "^3.3.0",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4"
   },
   "private": true
 }

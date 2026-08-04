@@ -655,3 +655,35 @@ entries:
     description: Refactor Setup
     impact:
       - none
+  - date: "2026-08-04T00:06:23"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/QR.gs
+    description: Create QR in apps-script
+    impact:
+      - none
+  - date: "2026-08-04T00:07:01"
+    type: test
+    domain: root
+    files:
+      - test/run-qr-gates.js
+    description: Add test file run-qr-gates.js
+    impact:
+      - "external dependency added: fs, qrcode"
+  - date: "2026-08-04T00:09:31"
+    type: refactor
+    domain: apps-script
+    files:
+      - apps-script/QR.gs
+    description: Refactor QR
+    impact:
+      - none
+  - date: "2026-08-04T00:13:26"
+    type: refactor
+    domain: apps-script
+    files:
+      - apps-script/Teacher.html
+    description: Refactor Teacher
+    impact:
+      - none

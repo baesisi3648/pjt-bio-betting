@@ -35,7 +35,7 @@ const sandbox = {
 };
 sandbox.global = sandbox;
 vm.createContext(sandbox);
-['Config.gs', 'Game.gs', 'Sheet.gs', 'Code.gs'].forEach(f =>
+['Config.gs', 'Game.gs', 'QR.gs', 'Sheet.gs', 'Code.gs'].forEach(f =>
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'apps-script', f), 'utf8'), sandbox, { filename: f }));
 const G = sandbox;
 
@@ -66,6 +66,9 @@ check('SIM1', '판 생성', created.ok, created.ok ? `코드 ${created.data.code
 const CODE = created.data.code;
 
 const joined = G.gwJoinGame(CODE, 3, created.data.pins[3]);
+check('SIM1b', '판 생성 응답에 QR 포함', typeof created.data.qr === 'string' && created.data.qr.startsWith('<svg'),
+  created.data.qr ? created.data.qr.length + '바이트 SVG' : 'QR 없음');
+
 check('SIM2', '모둠 접속', joined.ok, joined.ok ? `3모둠 입장, 보유 ${joined.data.me.coins}코인` : joined.message);
 check('SIM3', '틀린 암호 거부', G.gwJoinGame(CODE, 3, '0000').error === 'WRONG_PIN', '거부됨');
 const j2 = G.gwJoinGame(CODE, 3, created.data.pins[3]);

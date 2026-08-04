@@ -78,9 +78,21 @@ function gwCreateGame(config) {
 
     var pins = {};
     teams.forEach(function (t) { pins[t.no] = t.pin; });
+    var url = webAppUrl();
     return ok({ code: code, pins: pins, teams: teams.map(function (t) { return { no: t.no, name: t.name }; }),
-                studentUrl: webAppUrl(), warnings: v.warnings });
+                studentUrl: url, qr: qrSvg(url, 7), warnings: v.warnings });
   });
+}
+
+/** 판 코드·학생 주소·QR·암호를 다시 띄운다 (2차시에 학생들이 재접속할 때) */
+function gwHandout(code) {
+  var state = loadState(code);
+  if (!state) return err('GAME_NOT_FOUND');
+  var url = webAppUrl();
+  var pins = {};
+  state.teams.forEach(function (t) { pins[t.no] = t.pin; });
+  return ok({ code: state.code, studentUrl: url, qr: qrSvg(url, 7), pins: pins,
+              teams: state.teams.map(function (t) { return { no: t.no, name: t.name }; }) });
 }
 
 // ── 2. 모둠 접속 ─────────────────────────────────────────
