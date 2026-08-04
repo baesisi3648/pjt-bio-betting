@@ -75,6 +75,16 @@ var ERRORS = {
  * 배포 주소는 npm run deploy 가 항상 같은 배포를 갱신하므로 바뀌지 않는다.
  * 다른 계정으로 새로 배포했다면 '설정' 탭의 학생주소 행에 넣으면 이 값보다 우선한다.
  */
+/**
+ * 이 게임이 쓰는 스프레드시트 ID.
+ *
+ * ⚠️ SpreadsheetApp.getActive() 는 스프레드시트 메뉴에서 부를 때는 되지만
+ *    **웹앱으로 실행될 때는 null 을 돌려줄 수 있다.** 그러면 시트를 아예 못 읽어서
+ *    단원 목록이 비고, 판도 못 만든다.
+ *    그래서 openById 로 직접 연다.
+ */
+var SPREADSHEET_ID = '1BGPCWghYREs15EbMsO-asazFdntPiFYqjmkaxoruL1A';
+
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec';
 
-var DEPLOY_VERSION = '2026-08-04c';  // 화면 하단에 표시 — 재배포 누락 감지용
+var DEPLOY_VERSION = '2026-08-04d';  // 화면 하단에 표시 — 재배포 누락 감지용

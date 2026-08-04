@@ -51,6 +51,33 @@ function 학생주소_확인() {
 }
 function deployVersion() { return DEPLOY_VERSION; }
 
+/**
+ * 웹앱 **안에서** 환경을 점검한다.
+ * 스프레드시트 메뉴에서 도는 진단은 환경이 달라서 여기 문제를 못 잡는다.
+ */
+function gwDiagnose() {
+  var out = { deployVersion: DEPLOY_VERSION };
+
+  try { out.getActive = SpreadsheetApp.getActive() ? '됨' : 'null (웹앱에서 흔함)'; }
+  catch (e) { out.getActive = '오류: ' + e.message; }
+
+  try { out.openById = ss().getName(); } catch (e) { out.openById = '실패: ' + e.message; }
+
+  try {
+    var q = readQuestions();
+    var units = {};
+    q.rows.forEach(function (x) { units[x.unit] = (units[x.unit] || 0) + 1; });
+    out.questions = q.rows.length;
+    out.units = units;
+    out.skipped = q.skipped.length;
+  } catch (e) { out.questions = '실패: ' + e.message; }
+
+  try { out.rawGetUrl = ScriptApp.getService().getUrl() || '(없음)'; } catch (e) { out.rawGetUrl = '오류'; }
+  try { out.studentUrl = webAppUrl(); } catch (e) { out.studentUrl = '실패: ' + e.message; }
+
+  return ok(out);
+}
+
 // ── 응답 봉투 ────────────────────────────────────────────
 function ok(data) { return { ok: true, data: data }; }
 function err(code) { return { ok: false, error: code, message: ERRORS[code] || '문제가 생겼어요' }; }

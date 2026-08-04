@@ -23,9 +23,15 @@ function sheetStub(name) {
   };
 }
 let cache = {};
+let WEBAPP_CONTEXT = false;   // true = 웹앱 환경 흉내 (getActive 가 null)
+const book = () => ({ getName: () => '와일드더비', getSheetByName: n => (tabs[n] ? sheetStub(n) : null), insertSheet: n => { tabs[n] = []; return sheetStub(n); } });
 const sandbox = {
   Math, JSON, console, Date, Array, Object, String, Number, Error, isNaN,
-  SpreadsheetApp: { getActive: () => ({ getSheetByName: n => (tabs[n] ? sheetStub(n) : null), insertSheet: n => { tabs[n] = []; return sheetStub(n); } }), getUi: () => ({ alert: () => {}, createMenu: () => ({ addItem() { return this; }, addToUi() {} }) }) },
+  SpreadsheetApp: {
+    getActive: () => (WEBAPP_CONTEXT ? null : book()),
+    openById: () => book(),
+    getUi: () => ({ alert: () => {}, createMenu: () => ({ addItem() { return this; }, addSeparator() { return this; }, addToUi() {} }) })
+  },
   CacheService: { getScriptCache: () => ({ get: k => cache[k] || null, put: (k, v) => { cache[k] = v; } }) },
   LockService: { getScriptLock: () => ({ tryLock: () => true, releaseLock: () => {} }) },
   Utilities: { sleep: () => {} },
@@ -153,6 +159,19 @@ const settleSum = fin.data.settlement.every(s => {
   return s.finalCoins === (st2.teams.find(t => t.no === s.teamNo).coins + s.gained);
 });
 check('H9c', '최종 = 남은 보유 + 획득', settleSum, '전 모둠 일치');
+
+// ── 웹앱 환경 (getActive 가 null) 에서도 동작하는가 ──
+WEBAPP_CONTEXT = true;
+check('WEBAPP', 'getActive()가 null 인 웹앱 환경에서도 시트를 읽는다', (() => {
+  try {
+    const active = G.SpreadsheetApp.getActive();
+    if (active !== null) return false;                 // 흉내가 제대로 됐는지
+    const units = G.listUnits();
+    const st = G.gwGetState(CODE, 'teacher');
+    return units.length > 0 && st.ok;
+  } catch (e) { return 'ERR ' + e.message; }
+})() === true, 'openById 로 열어 단원·상태 조회 성공');
+WEBAPP_CONTEXT = false;
 
 // ── 보조 ──
 function loadRaw() { return JSON.parse(tabs['게임'].find(r => r[0] === CODE)[3]); }

@@ -35,8 +35,22 @@ function cachePut(state) {
 
 // ── 마스터 탭 읽기 ───────────────────────────────────────
 
+/**
+ * 스프레드시트를 얻는 유일한 통로.
+ * ⚠️ getActive() 를 직접 부르지 말 것 — 웹앱에서는 null 이 나온다.
+ */
+function ss() {
+  var s = null;
+  try { s = SpreadsheetApp.getActive(); } catch (e) {}
+  if (!s && typeof SPREADSHEET_ID === 'string' && SPREADSHEET_ID) {
+    s = SpreadsheetApp.openById(SPREADSHEET_ID);
+  }
+  if (!s) throw new Error('스프레드시트를 열 수 없습니다. Config.gs 의 SPREADSHEET_ID 를 확인해주세요.');
+  return s;
+}
+
 function sheetOf(name) {
-  var sh = SpreadsheetApp.getActive().getSheetByName(name);
+  var sh = ss().getSheetByName(name);
   if (!sh) throw new Error("'" + name + "' 탭이 없어요. 시트 구성을 확인해주세요.");
   return sh;
 }

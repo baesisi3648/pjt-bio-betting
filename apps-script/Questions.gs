@@ -207,7 +207,7 @@ var QUESTION_BANK = [
  * 문제은행을 시트에 넣는다. 이미 있는 문제는 건너뛰므로 여러 번 눌러도 안전하다.
  */
 function insertQuestionBank() {
-  var sh = SpreadsheetApp.getActive().getSheetByName(SHEETS.QUESTIONS);
+  var sh = ss().getSheetByName(SHEETS.QUESTIONS);
   if (!sh) {
     SpreadsheetApp.getUi().alert("먼저 '① 시트 준비하기'를 실행해주세요.");
     return;

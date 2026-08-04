@@ -4,21 +4,21 @@
  */
 
 function setupSheets() {
-  var ss = SpreadsheetApp.getActive();
+  var sheets = ss();
 
-  make(ss, SHEETS.QUESTIONS, ['단원', '난이도', '문제', '보기1', '보기2', '보기3', '보기4', '정답', '해설']);
-  make(ss, SHEETS.HINTS,     ['난이도', '종류', '문장 틀']);
-  make(ss, SHEETS.ANIMALS,   ['코드', '이름', '그림']);
-  make(ss, SHEETS.SETTINGS,  ['항목', '값', '설명']);
-  make(ss, SHEETS.GAMES,     ['판코드', '반이름', '단원', '상태JSON', '만든시각', '갱신시각', '종료여부']);
-  make(ss, SHEETS.EVENTS,    ['번호', '판코드', '라운드', '모둠', '종류', '내용', '시각']);
+  make(sheets, SHEETS.QUESTIONS, ['단원', '난이도', '문제', '보기1', '보기2', '보기3', '보기4', '정답', '해설']);
+  make(sheets, SHEETS.HINTS,     ['난이도', '종류', '문장 틀']);
+  make(sheets, SHEETS.ANIMALS,   ['코드', '이름', '그림']);
+  make(sheets, SHEETS.SETTINGS,  ['항목', '값', '설명']);
+  make(sheets, SHEETS.GAMES,     ['판코드', '반이름', '단원', '상태JSON', '만든시각', '갱신시각', '종료여부']);
+  make(sheets, SHEETS.EVENTS,    ['번호', '판코드', '라운드', '모둠', '종류', '내용', '시각']);
 
-  fillOnce(ss, SHEETS.ANIMALS, [
+  fillOnce(sheets, SHEETS.ANIMALS, [
     ['A', '치타', '🐆'], ['B', '사자', '🦁'], ['C', '호랑이', '🐯'], ['D', '늑대', '🐺'],
     ['E', '얼룩말', '🦓'], ['F', '타조', '🦩'], ['G', '개구리', '🐸'], ['H', '거북이', '🐢']
   ]);
 
-  fillOnce(ss, SHEETS.SETTINGS, [
+  fillOnce(sheets, SHEETS.SETTINGS, [
     ['초기코인', 20, '모둠당 시작 코인'],
     ['라운드당최대베팅', 3, '한 라운드에 걸 수 있는 코인'],
     ['시드코인', 15, '배당 상한 조절. 낮추면 배당이 튀고 높이면 밋밋해짐'],
@@ -29,9 +29,9 @@ function setupSheets() {
     ['학생주소', '', '비워두면 자동. 학생이 "파일을 열 수 없습니다"라고 하면 배포 주소(/exec)를 여기에 넣으세요']
   ]);
 
-  ensureSettingRow(ss, '학생주소', '', '비워두면 자동. 학생이 "파일을 열 수 없습니다"라고 하면 배포 주소(/exec)를 여기에 넣으세요');
+  ensureSettingRow(sheets, '학생주소', '', '비워두면 자동. 학생이 "파일을 열 수 없습니다"라고 하면 배포 주소(/exec)를 여기에 넣으세요');
 
-  fillOnce(ss, SHEETS.HINTS, [
+  fillOnce(sheets, SHEETS.HINTS, [
     ['어려움', '상위확정', '{X}는 1·2·3등 안에 반드시 듭니다.'],
     ['어려움', '둘비교',   '{X}가 {Y}보다 순위가 높습니다.'],
     ['어려움', '제외',     '{X}는 1·2·3등에 들지 못합니다.'],
@@ -50,16 +50,16 @@ function setupSheets() {
 }
 
 /** 이미 만들어진 설정 탭에도 빠진 행을 채워 넣는다 */
-function ensureSettingRow(ss, key, value, note) {
-  var sh = ss.getSheetByName(SHEETS.SETTINGS);
+function ensureSettingRow(book, key, value, note) {
+  var sh = book.getSheetByName(SHEETS.SETTINGS);
   if (!sh) return;
   var v = sh.getDataRange().getValues();
   for (var i = 1; i < v.length; i++) if (String(v[i][0]).trim() === key) return;
   sh.appendRow([key, value, note]);
 }
 
-function make(ss, name, header) {
-  var sh = ss.getSheetByName(name) || ss.insertSheet(name);
+function make(book, name, header) {
+  var sh = book.getSheetByName(name) || book.insertSheet(name);
   if (sh.getLastRow() === 0) {
     sh.appendRow(header);
     sh.getRange(1, 1, 1, header.length).setFontWeight('bold').setBackground('#EEF2F6');
@@ -68,15 +68,15 @@ function make(ss, name, header) {
   return sh;
 }
 
-function fillOnce(ss, name, rows) {
-  var sh = ss.getSheetByName(name);
+function fillOnce(book, name, rows) {
+  var sh = book.getSheetByName(name);
   if (sh.getLastRow() > 1) return;          // 이미 채워져 있으면 건드리지 않는다
   sh.getRange(2, 1, rows.length, rows[0].length).setValues(rows);
 }
 
 /** 개발용 샘플 문제 (유전 단원 18문항) */
 function insertSampleQuestions() {
-  var sh = SpreadsheetApp.getActive().getSheetByName(SHEETS.QUESTIONS);
+  var sh = ss().getSheetByName(SHEETS.QUESTIONS);
   var U = '유전';
   var rows = [
     [U,'쉬움','DNA의 기본 단위는?','뉴클레오타이드','아미노산','포도당','지방산',1,'DNA는 뉴클레오타이드가 이어진 중합체다.'],
