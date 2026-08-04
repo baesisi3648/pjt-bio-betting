@@ -93,7 +93,9 @@ function insertSampleQuestions() {
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('와일드 더비')
     .addItem('① 시트 준비하기', 'setupSheets')
-    .addItem('② 샘플 문제 넣기 (개발용)', 'insertSampleQuestions')
+    .addItem('② 문제은행 넣기 (54문항)', 'insertQuestionBank')
     .addItem('③ 검사 돌리기', 'test_모두')
+    .addSeparator()
+    .addItem('샘플 문제만 넣기 (개발용)', 'insertSampleQuestions')
     .addToUi();
 }

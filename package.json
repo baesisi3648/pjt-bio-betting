@@ -11,7 +11,7 @@
     "sim": "node test/simulate-game.js",
     "test": "node test/run-gates.js && node test/simulate-game.js",
     "push": "clasp push",
-    "deploy": "clasp create-deployment"
+    "deploy": "npm test && clasp push --force && clasp create-version \"update\" && clasp update-deployment AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo"
   },
   "repository": {
     "type": "git",

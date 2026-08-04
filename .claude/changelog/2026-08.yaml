@@ -631,3 +631,27 @@ entries:
     description: Create appsscript in apps-script
     impact:
       - configuration change
+  - date: "2026-08-03T23:59:00"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Questions.gs
+    description: Create Questions in apps-script
+    impact:
+      - none
+  - date: "2026-08-03T23:59:36"
+    type: refactor
+    domain: apps-script
+    files:
+      - apps-script/Questions.gs
+    description: Refactor Questions
+    impact:
+      - none
+  - date: "2026-08-04T00:00:01"
+    type: refactor
+    domain: apps-script
+    files:
+      - apps-script/Setup.gs
+    description: Refactor Setup
+    impact:
+      - none

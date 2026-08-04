@@ -147,17 +147,15 @@
 ### 코드를 고쳤을 때
 
 ```bash
-npm test                       # 검사부터 (게이트 32개)
-npx clasp push                 # 코드 올리기
-npx clasp create-deployment -d "설명"   # 새 버전 배포 ← 이걸 빼먹으면 옛 화면이 뜬다
+npm test          # 검사부터 (게이트 32개) — FAIL이면 올리지 말 것
+npm run deploy    # 코드 올리고 같은 주소로 갱신
 ```
 
-배포하면 새 주소가 나옵니다. 주소를 고정하고 싶으면 기존 배포를 갱신하세요:
+`npm run deploy`는 push → 새 버전 생성 → **기존 배포를 갱신**까지 한 번에 합니다.
+주소가 바뀌지 않으므로 칠판에 적어둔 학생 주소를 다시 안내할 필요가 없습니다.
 
-```bash
-npx clasp list-deployments
-npx clasp update-deployment <배포ID>
-```
+> ⚠️ `clasp create-deployment`(새 배포)를 쓰면 **주소가 새로 생깁니다.** 학생들이 옛 주소로
+> 들어오게 되니, 고칠 때는 위 명령을 쓰세요.
 
 ---
 
