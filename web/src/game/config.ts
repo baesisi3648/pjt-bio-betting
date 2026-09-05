@@ -27,6 +27,7 @@ export const DEFAULTS = {
   initialCoins:    20,
   maxBetPerRound:  3,
   seedCoins:       15,   // PDF는 5. 리뷰 C6 — 5면 최대 배당 29.6배라 추론이 복권이 된다
+  moveSeconds:     20,   // 경주(moving) 단계. 앱스 스크립트판에는 없던 단계다 — MIGRATION §8-3
   quizSeconds:     90,
   discussSeconds: 180,   // 감독 G-02 — 힌트를 놓고 이야기하는 시간. 이 수업의 실체
   betSeconds:      60,
@@ -41,6 +42,7 @@ export const SETTING_RANGE: Record<string, { min: number; max: number; label: st
   initialCoins:   { min: 1,  max: 500, label: '초기코인' },
   maxBetPerRound: { min: 1,  max: 50,  label: '라운드당최대베팅' },
   seedCoins:      { min: 1,  max: 500, label: '시드코인' },
+  moveSeconds:    { min: 5,  max: 60,  label: '경주시간초' },
   quizSeconds:    { min: 10, max: 900, label: '문제시간초' },
   discussSeconds: { min: 10, max: 900, label: '토론시간초' },
   betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
@@ -57,3 +59,39 @@ export const LIMITS = {
   reverseAttempts:  50,   // 이동 역산 재시도
   minHintsPerLevel:  6    // 감독 G-03 — 6라운드 내내 같은 난이도를 골라도 중복 없게
 };
+
+/**
+ * 오류 코드 → 학생이 읽을 한국어 문장. apps-script/Config.gs 의 ERRORS 를 옮겨왔다.
+ *
+ * ⚠️ 코드(`error`)는 화면이 분기에 쓰고, 문장(`message`)은 사람이 읽는다.
+ *    문장으로 분기하면 말투를 다듬는 순간 화면이 깨진다. 항상 코드로 분기할 것.
+ *
+ * 옮기면서 더한 것:
+ *   BAD_AMOUNT · BAD_ANIMAL — rules.validateBet 이 예전부터 내던 코드인데
+ *     ERRORS 에 없어서 학생에게 '문제가 생겼어요'만 떴다. 여기서 문장을 준다.
+ *   GAME_EXISTS — DO 는 판 코드 하나가 인스턴스 하나라, 같은 코드로 두 번
+ *     만들려는 시도를 서버가 직접 막는다 (앱스 스크립트판은 코드를 다시 뽑았다).
+ *   LOCK_TIMEOUT 은 남겨 둔다 — Durable Object 에는 잠금이 없어 이제 나오지 않지만,
+ *     예전 판을 이어 보는 화면이 이 코드를 만나면 문장이라도 있어야 한다.
+ */
+export const MESSAGES: Record<string, string> = {
+  GAME_NOT_FOUND:   '그런 판이 없어요. 칠판의 코드를 다시 확인해주세요',
+  GAME_ENDED:       '이 판은 이미 끝났어요',
+  GAME_EXISTS:      '이미 만들어진 판이에요',
+  WRONG_PIN:        '암호가 달라요. 모둠장에게 확인해주세요',
+  QUIZ_CLOSED:      '제출 시간이 지났어요',
+  BET_CLOSED:       '베팅 시간이 지났어요. 다음 라운드를 기다려주세요',
+  ALREADY_ANSWERED: '이번 라운드는 이미 제출했어요',
+  ALREADY_BET:      '이미 확정했어요',
+  TOO_MANY_COINS:   '이번 라운드에는 3개까지만 걸 수 있어요',
+  NOT_ENOUGH_COINS: '코인이 모자라요',
+  BAD_AMOUNT:       '코인 수가 이상해요',
+  BAD_ANIMAL:       '그런 동물이 없어요',
+  PAUSED:           '선생님이 잠시 멈췄어요',
+  LOCK_TIMEOUT:     '잠시 후 다시 눌러주세요',
+  SHEET_INVALID:    '문제 구성을 확인해주세요',
+  NOT_HOST:         '이 판의 교사 화면이 아니에요. 교사 열쇠를 확인해주세요'
+};
+
+/** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
+export const DEPLOY_VERSION = 'web-2단계';

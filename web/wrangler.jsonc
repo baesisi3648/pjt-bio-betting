@@ -1,0 +1,20 @@
+{
+  // 와일드 더비 — Cloudflare Worker + Durable Objects
+  //
+  // ⚠️ 판 코드 하나 = GameRoom 인스턴스 하나 (idFromName(code)).
+  //    이 대응을 깨면 한 판의 상태가 여러 인스턴스로 흩어지고,
+  //    DO 가 공짜로 주던 직렬화(= 예전의 LockService)가 사라진다 (MIGRATION §4-7).
+  "$schema": "./node_modules/wrangler/config-schema.json",
+  "name": "wilde-derby",
+  "main": "src/server/index.ts",
+  "compatibility_date": "2026-09-05",
+
+  "durable_objects": {
+    "bindings": [{ "name": "GAME_ROOM", "class_name": "GameRoom" }]
+  },
+
+  // SQLite 기반 DO. 무료 플랜에서 쓸 수 있는 쪽이고, storage API 는 그대로다
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
+
+  "observability": { "enabled": true }
+}

@@ -69,16 +69,18 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 **끝난 것**
 
 - `web/src/game/rules.ts` — 규칙 전부 (`apps-script/Game.gs` 이식). 순수 함수
-- `web/src/game/config.ts`, `types.ts` — 상수와 상태 타입
-- `web/test/gates.ts` — 규칙 게이트 17개
-- `web/test/parity.ts` — 이식 대조 14개
+- `web/src/game/config.ts`, `types.ts` — 상수와 상태 타입 (+ `moveSeconds`, `MESSAGES`)
+- `web/src/game/views.ts` — 뷰 **한 벌** (`teamView`·`teacherView`·`lobby`·`handout`·`reveal`·`finalize`)
+- `web/src/do/room.ts` — 방 코어. 런타임 비의존, 인증·단계 기계·이벤트 로그·`restore`
+- `web/src/do/GameRoom.ts` — Durable Object 어댑터 (hibernation WebSocket · `alarm()` · `/op`)
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 31 (통합 게이트, 가짜 시계·알람)
 
-**남은 것** — §7에 단계별로 있습니다. 저장·동시성 → 게이트웨이 → 화면(기능 → 연출) → 문제은행 → 배포
+**남은 것** — §7에 단계별로 있습니다. 게이트웨이 → 화면(기능 → 연출) → 문제은행 → 배포
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 + 게이트 17 + 대조 14
+npm test              # web/ — 타입 검사 2벌 + 게이트 17 + 대조 14 + 방 31
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
 
@@ -241,9 +243,10 @@ web/
 
 ### 1단계 — 규칙 이식 ✅ 완료
 
-### 2단계 — 저장·동시성 (Durable Object)
+### 2단계 — 저장·동시성 (Durable Object) ✅ 완료
 
-여기가 실제 작업량입니다.
+`src/do/room.ts`(코어) + `src/do/GameRoom.ts`(어댑터) + `test/room.ts` 31개.
+아래는 당시의 요구였고 전부 반영됐습니다. 원본과 다르게 한 점은 `room.ts` 머리 주석에 있습니다.
 
 - `GameRoom` DO: 판 코드 하나 = 인스턴스 하나
 - 상태 모양은 `src/game/types.ts`의 `GameState` 그대로
@@ -259,6 +262,10 @@ web/
 
 - §8-1의 16개 함수를 WebSocket 메시지 / HTTP 라우트로 옮긴다
 - 교사 열쇠 · 모둠 암호 (§4-4). **모둠 암호는 매 호출 확인**
+- ⚠️ **DO 의 `POST /op` 는 공개 경로가 아닙니다.** 2단계 스텁 Worker 는 `/room/:code/op` 를 그대로
+  DO 로 넘기는데, 그러면 누구나 `create` 를 부를 수 있습니다. 3단계에서 Worker 가 **자기 라우트**를
+  두고 DO 는 내부에서만(`stub.fetch` 또는 RPC) 부르게 하세요. 판 생성은 Worker 만 합니다
+  (문제은행·코드 중복 확인이 거기 있습니다). 소켓으로 오는 `create` 는 이미 거부됩니다
 - 교사 열쇠 회수 경로: **관리자 비밀번호**로 조회합니다 (사용자 결정, §10).
   배포 시 `ADMIN_PASSWORD` 를 wrangler secret 으로 넣습니다. 교사 화면 '이어하기'에서
   판 코드 + 관리자 비밀번호 → 열쇠. 비교는 상수 시간으로. 5단계 문제은행 관리도 같은
@@ -350,7 +357,15 @@ gwVersion() / gwDiagnose()
   `truth`·`moves`·`lastRound`는 `isOver`일 때만
 - **`teacherView`** — 전체 현황. **`truth`는 `isOver`일 때만** (정산 전엔 `null`)
 
-정확한 모양은 `apps-script/Code.gs`의 `teamView`·`teacherView`를 보세요.
+정확한 모양은 `web/src/game/views.ts`(타입까지)를 보세요. 원본은 `apps-script/Code.gs`.
+
+새 구현이 두 뷰에 **덧붙인 것**:
+
+- `phaseEndsAt`·`serverNow`·`phaseSeconds` — 화면이 타이머와 경주 진행률을 **서버 시각**으로
+  계산하기 위한 것 (§11-2). `secondsLeft` 만으로는 늦게 들어온 폰이 다른 지점부터 봅니다
+- `raceMoves` — `moving` 단계에서만. 이번 라운드 이동량 8개 (§8-3)
+- 위치는 `roundStarted ? round : round-1` 라운드까지 반영 — 원본은 판 생성 직후부터
+  1라운드 이동이 반영된 위치를 내보냈는데, 경주 단계가 생긴 지금은 스포일러라서 바꿨습니다
 
 ### 8-3. 단계 기계
 
@@ -379,7 +394,8 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
 - ⚠️ **`moving` 동안 뷰에 넣는 것은 이번 라운드의 이동량만입니다** — `raceMoves[동물] = 0~3`.
   `state.moves` 전체(라운드×동물)를 보내면 미래가 새고 `lastRound`가 역산됩니다 (§4-1).
   이번 라운드의 이동량은 어차피 20초 뒤 위치로 드러나므로 비밀이 아닙니다.
-  게이트로 지키세요 (`H4f`: moving 뷰에 `moves`·`truth`·`lastRound` 없음, `raceMoves`는 8개 값만)
+  게이트로 지키세요 (`H4f`: moving 중 `teamView`에 `moves`·`truth`·`lastRound` 없음, `teacherView`에
+  `moves` 없고 `truth`는 null, `raceMoves`는 두 뷰 모두 동물 8개 값만. `teacherView`의 `lastRound`는 원본대로 허용 — 열쇠로 보호됨)
 - 일시정지: `pausedAt`을 찍고, 재개할 때 `phaseEndsAt`을 **멈춘 만큼 미룬다**. `moving` 중에도 같다
 - 라운드 진행 여부는 **서버만 안다.** 화면이 "1라운드인가?"로 판단하면 무한 반복됩니다
   (`roundStarted` 플래그. 게이트 `BUG1`)

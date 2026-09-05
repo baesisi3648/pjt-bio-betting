@@ -7,11 +7,14 @@
   "scripts": {
     "gates": "node test/gates.ts",
     "parity": "node test/parity.ts",
-    "test": "npm run typecheck && npm run gates && npm run parity",
-    "typecheck": "tsc --noEmit"
+    "room": "node test/room.ts",
+    "test": "npm run typecheck && npm run gates && npm run parity && npm run room",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {
+    "@cloudflare/workers-types": "^5.20260905.1",
     "@types/node": "^26.4.1",
-    "typescript": "^7.0.2"
+    "typescript": "^7.0.2",
+    "wrangler": "^4.129.0"
   }
 }

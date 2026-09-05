@@ -1,0 +1,170 @@
+entries:
+  - date: "2026-09-05T02:28:32"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Refactor config
+    impact:
+      - none
+  - date: "2026-09-05T02:28:35"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Refactor config
+    impact:
+      - none
+  - date: "2026-09-05T02:28:54"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Add new functionality to config in web
+    impact:
+      - none
+  - date: "2026-09-05T02:29:53"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/views.ts
+    description: Create views in web
+    impact:
+      - "internal dependency added: ./config.ts, ./config.ts, ./rules.ts"
+  - date: "2026-09-05T02:29:58"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/views.ts
+    description: Refactor views
+    impact:
+      - none
+  - date: "2026-09-05T02:30:01"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/views.ts
+    description: Refactor views
+    impact:
+      - none
+  - date: "2026-09-05T02:32:17"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Create room in web
+    impact:
+      - "internal dependency added: ../game/config.ts"
+  - date: "2026-09-05T02:33:15"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/GameRoom.ts
+    description: Create GameRoom in web
+    impact:
+      - "external dependency added: cloudflare:workers"
+      - "internal dependency added: ../game/config.ts, ../game/types.ts, ./room.ts (+more)"
+  - date: "2026-09-05T02:33:28"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Create index in web
+    impact:
+      - "internal dependency added: ../do/GameRoom.ts, ../do/GameRoom.ts"
+  - date: "2026-09-05T02:33:35"
+    type: feature
+    domain: web
+    files:
+      - web/wrangler.jsonc
+    description: Create wrangler in web
+    impact:
+      - none
+  - date: "2026-09-05T02:33:41"
+    type: feature
+    domain: web
+    files:
+      - web/tsconfig.json
+    description: Create tsconfig in web
+    impact:
+      - configuration change
+  - date: "2026-09-05T02:33:48"
+    type: test
+    domain: web
+    files:
+      - web/tsconfig.test.json
+    description: Add test file tsconfig.test.json
+    impact:
+      - configuration change
+  - date: "2026-09-05T02:33:52"
+    type: refactor
+    domain: web
+    files:
+      - web/package.json
+    description: Refactor package
+    impact:
+      - configuration change
+  - date: "2026-09-05T02:33:58"
+    type: refactor
+    domain: web
+    files:
+      - web/src/do/GameRoom.ts
+    description: Refactor GameRoom
+    impact:
+      - none
+  - date: "2026-09-05T02:37:23"
+    type: test
+    domain: web
+    files:
+      - web/test/room.ts
+    description: Add test file room.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/game/config.ts, ../src/game/rules.ts (+more)"
+  - date: "2026-09-05T02:37:38"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Add new functionality to room in web
+    impact:
+      - none
+  - date: "2026-09-05T02:37:53"
+    type: test
+    domain: web
+    files:
+      - web/test/room.ts
+    description: Update test room.ts
+    impact:
+      - none
+  - date: "2026-09-05T02:37:56"
+    type: test
+    domain: web
+    files:
+      - web/test/room.ts
+    description: Update test room.ts
+    impact:
+      - none
+  - date: "2026-09-05T02:39:52"
+    type: docs
+    domain: web
+    files:
+      - web/README.md
+    description: Update documentation README.md
+    impact:
+      - none
+  - date: "2026-09-05T02:40:00"
+    type: docs
+    domain: web
+    files:
+      - web/README.md
+    description: Update documentation README.md
+    impact:
+      - none
+  - date: "2026-09-05T02:40:16"
+    type: docs
+    domain: web
+    files:
+      - web/README.md
+    description: Update documentation README.md
+    impact:
+      - none

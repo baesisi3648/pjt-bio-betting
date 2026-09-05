@@ -1,8 +1,13 @@
 {
+  // src/ — Cloudflare Workers 런타임에서 도는 코드.
+  //
+  // ⚠️ @cloudflare/workers-types 와 @types/node 는 같은 이름(fetch, Request, WebSocket …)을
+  //    서로 다르게 선언해서 한 프로그램에 섞으면 충돌한다.
+  //    그래서 tsconfig 를 둘로 나눴다 — 테스트는 tsconfig.test.json 이 본다.
   "compilerOptions": {
     "target": "ES2022",
     "lib": ["ES2022"],
-    "types": ["node"],
+    "types": ["@cloudflare/workers-types"],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -17,5 +22,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts", "test/**/*.ts"]
+  "include": ["src/**/*.ts"]
 }

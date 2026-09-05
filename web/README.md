@@ -31,8 +31,10 @@
 - [x] **규칙 이식** — `src/game/rules.ts`. `Game.gs` 를 그대로 옮겼습니다
 - [x] **게이트** — `test/gates.ts` 17개
 - [x] **이식 대조** — `test/parity.ts`. 같은 시드로 두 구현을 돌려 결과가 같은지 봅니다
-- [ ] 저장·동시성 (Durable Object)
-- [ ] 게이트웨이 (교사 열쇠 · 모둠 암호 인증)
+- [x] **저장·동시성 (Durable Object)** — `src/do/room.ts`(방 코어)와 `src/do/GameRoom.ts`(DO 어댑터).
+      뷰는 `src/game/views.ts` 한 벌뿐입니다. 통합 게이트 `test/room.ts` 30개
+- [ ] 게이트웨이 (교사 열쇠 · 모둠 암호 인증) — 인증 자체는 이미 `room.ts` 안에 있습니다.
+      3단계는 Worker 라우트·관리자 비밀번호·D1 '최근 판' 목록을 붙이는 일입니다
 - [ ] 화면 (Teacher/Team — 기존 HTML 을 WebSocket 으로)
 - [ ] 문제은행 관리 화면 + 시트 가져오기
 - [ ] 배포
@@ -40,10 +42,24 @@
 ## 돌려보기
 
 ```bash
-npm test        # 타입 검사 + 게이트 + 이식 대조
+npm test        # 타입 검사 + 규칙 게이트 17 + 이식 대조 14 + 방 코어 게이트 30
+npm run room    # 방 코어만
 ```
 
 빌드 단계가 없습니다. Node 24 가 `.ts` 를 그대로 실행합니다.
+그래서 **생성자 매개변수 속성(`constructor(private deps)`)을 쓸 수 없습니다** —
+Node 의 strip-only 모드가 그 문법만은 못 지웁니다.
+
+타입 검사는 `tsconfig` 가 둘입니다. `@cloudflare/workers-types` 와 `@types/node` 가
+같은 이름(`fetch`·`Request`·`WebSocket` …)을 다르게 선언해 한 프로그램에 못 섞기 때문입니다.
+
+| | 무엇을 보나 | 타입 |
+|---|---|---|
+| `tsconfig.json` | `src/**` | Workers |
+| `tsconfig.test.json` | `test/**` | Node |
+
+`src/do/room.ts` 는 Workers API 를 하나도 쓰지 않습니다 — 시계·저장·알람·통신을
+전부 주입받기 때문입니다. 그래서 `test/room.ts` 가 workerd 없이 한 판을 통째로 돌립니다.
 
 ## 옮기면서 고친 것
 
@@ -51,6 +67,23 @@ npm test        # 타입 검사 + 게이트 + 이식 대조
 `positionsAtRound` 가 `DEFAULTS.trackCells` 를 직접 봐서, '설정' 탭의 트랙칸수를
 12로 바꿔도 조용히 10칸이었습니다. 설정이 거짓말을 하고 있었습니다.
 게이트 `TRACK` 이 이걸 지킵니다.
+
+**`autoAdvance` 가 없습니다.** 앱스 스크립트에는 타이머가 없어서 "누가 상태를 읽을 때
+시간이 지났으면 그때 넘긴다"로 단계를 바꿨고, 그게 마감 직전 정답을 '미제출'로
+덮어쓰는 경합을 낳았습니다. 여기서는 단계 전환이 **`onAlarm()` 한 곳에서만** 일어나고
+읽기 경로는 상태를 절대 쓰지 않습니다. 게이트 `RACE1`·`PERSIST` 가 지킵니다.
+
+**`moving`(경주 20초) 단계가 생겼습니다.** 사용자 결정 (MIGRATION §8-3, §10).
+그 단계에서만 뷰에 `raceMoves`(이번 라운드 이동량 8개)가 실립니다 — `moves` 전체를
+보내면 `lastRound` 가 역산됩니다. 게이트 `MOVE1`·`H4f-raceMoves`.
+
+**대기 중에는 아직 안 움직인 위치를 보냅니다.** `Code.gs` 는 언제나
+`positionsAtRound(moves, state.round)` 를 보내서, 판을 만들자마자 1라운드 이동이
+반영된 위치가 나갔습니다. 경주 단계가 생긴 지금은 그게 스포일러입니다.
+
+**`withLock` 이 없습니다.** Durable Object 가 판마다 단일 스레드라 공짜입니다.
+대신 `room.ts` 의 모든 메서드가 **동기 함수**입니다 — 읽고→고치고→쓰기 사이에
+`await` 가 하나라도 들어가면 그 틈으로 다른 요청이 끼어들어 코인이 증발합니다.
 
 ## 규칙을 고칠 때
 

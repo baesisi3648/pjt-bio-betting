@@ -1,0 +1,26 @@
+{
+  // test/ — Node 24 가 .ts 를 그대로 실행한다 (빌드 단계 없음).
+  //
+  // 여기서는 @types/node 를 쓴다. 테스트가 끌어오는 src 파일(game/*, do/room.ts)에는
+  // Workers 전용 API 가 하나도 없어야 한다 — 그게 Room 을 런타임에서 떼어놓은 이유다.
+  // (do/GameRoom.ts 만 Workers API 를 쓰고, 테스트는 그 파일을 부르지 않는다)
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "types": ["node"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["test/**/*.ts"]
+}

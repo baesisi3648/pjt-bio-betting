@@ -1,0 +1,715 @@
+/**
+ * room.ts — 판 하나의 코어. **런타임에 의존하지 않는다.**
+ *
+ * apps-script/Code.gs 의 게이트웨이 16개 중 게임에 관한 것을 전부 옮겼다.
+ * 시각·저장·알람·통신은 전부 생성자로 주입받는다(RoomDeps). 그래서
+ *   - 테스트는 가짜 시계와 가짜 알람으로 이 클래스를 그대로 돌린다 (test/room.ts)
+ *   - Durable Object 어댑터(GameRoom.ts)는 진짜 시계·storage·WebSocket 을 꽂는다
+ * 이 분리를 없애면 통합 게이트를 돌리는 데 workerd 가 필요해진다.
+ *
+ * ── 앱스 스크립트판과 일부러 다르게 한 것 ──
+ *
+ * 1. `withLock` 이 없다. Durable Object 는 판마다 단일 스레드다 (MIGRATION §4-7).
+ *    대신 **이 파일의 모든 메서드는 동기 함수다.** 읽고→고치고→쓰기 사이에 await 가
+ *    하나라도 들어가면 그 틈으로 다른 요청이 끼어들어 코인이 증발한다.
+ *    저장은 deps.persist 로 던지기만 하고 기다리지 않는다 — DO 의 output gate 가
+ *    "저장이 끝나기 전에는 응답이 나가지 않는다"를 보장한다.
+ *
+ * 2. `autoAdvance` 가 없다. 앱스 스크립트에는 타이머가 없어서 "누가 상태를 읽을 때
+ *    시간이 지났으면 그때 넘긴다"로 처리했고, 그게 마감 직전 정답을 '미제출'로
+ *    덮어쓰는 경합을 낳았다 (게이트 RACE1). 여기서는 단계 전환이 오직 onAlarm()
+ *    한 곳에서만 일어난다. **읽기 경로는 상태를 절대 쓰지 않는다.**
+ *
+ * 3. `moving`(경주) 단계가 있다. 사용자 결정 (MIGRATION §8-3, §10).
+ */
+
+import {
+  ANIMAL_CODES, DEFAULTS, LEVELS, LIMITS, MESSAGES, PHASES, SETTING_RANGE
+} from '../game/config.ts';
+import type { AnimalCode, Level, Settings } from '../game/config.ts';
+import {
+  buildHints, computeOdds, makeCode, makeHostKey, makePin, planQuestions, planRace,
+  positionsAtRound, rankByPosition, settle, takeHint, validateBet
+} from '../game/rules.ts';
+import type {
+  AnswerRecord, Bets, GameState, Hint, Question, Rng, Team
+} from '../game/types.ts';
+import {
+  finalizeView, handoutView, lobbyView, revealView, teacherView, teamView
+} from '../game/views.ts';
+import type {
+  FinalizeView, HandoutView, LobbyView, RevealView, TeacherView, TeamView
+} from '../game/views.ts';
+
+// ────────────────────────────────────────────────────────────
+// 봉투 · 이벤트 · 의존성
+// ────────────────────────────────────────────────────────────
+
+/** 게이트웨이 응답 봉투 (MIGRATION §8-1). error 는 코드, message 는 학생이 읽을 문장 */
+export type Ok<T> = { ok: true; data: T };
+export type Err = { ok: false; error: string; message: string };
+export type Envelope<T> = Ok<T> | Err;
+
+export function ok<T>(data: T): Ok<T> { return { ok: true, data }; }
+export function err(code: string, message?: string): Err {
+  return { ok: false, error: code, message: message || MESSAGES[code] || '문제가 생겼어요' };
+}
+
+export type EventKind = 'answer' | 'bet' | 'round_start' | 'pause';
+
+/**
+ * 이벤트 로그 한 줄 (MIGRATION §8-4).
+ * '기록' 시트의 [번호, 판코드, 라운드, 모둠번호, 종류, JSON내용, 시각] 과 같은 순서다.
+ *
+ * ⚠️ at 은 숫자(ms)다. Date 객체를 넣으면 직렬화 경계에서 응답이 통째로 죽는다 (§5).
+ *
+ * DO 는 상태를 잃지 않으므로 이 로그는 복구용이라기보다 **감사용**이다.
+ * 그래도 restore() 를 유지하는 이유는, 상태가 이상해졌을 때 스냅샷+재생으로
+ * 무슨 일이 있었는지 되짚을 수 있는 유일한 수단이기 때문이다 (MIGRATION §6).
+ */
+export interface GameEvent {
+  seq: number;
+  code: string;
+  round: number;
+  teamNo: number | null;
+  kind: EventKind;
+  payload: Record<string, unknown>;
+  at: number;
+}
+
+export interface RoomDeps {
+  now(): number;
+  /** null = 알람 취소 */
+  setAlarm(at: number | null): void;
+  /** ⚠️ await 하지 않는다 — §4-7 */
+  persist(state: GameState): void;
+  appendEvent(ev: GameEvent): void;
+  /** 상태가 바뀌었다 → 어댑터가 연결된 소켓에 각자의 뷰를 푸시한다 */
+  changed(): void;
+  /** 테스트에서 시드를 고정한다 */
+  rng?: Rng;
+}
+
+export interface AnimalTable {
+  names: Record<AnimalCode, string>;
+  emojis: Record<AnimalCode, string>;
+}
+
+export interface CreateConfig {
+  /** DO 는 판 코드 하나가 인스턴스 하나라, 코드는 보통 Worker 가 정해서 넘긴다 */
+  code?: string;
+  className: string;
+  unit: string;
+  teamCount: number;
+  teamNames?: string[];
+  /** 문제은행 검증에서 나온 경고를 그대로 교사 화면까지 흘려보낸다 */
+  warnings?: string[];
+}
+
+export interface CreateResult {
+  code: string;
+  hostKey: string;
+  pins: Record<number, string>;
+  teams: { no: number; name: string }[];
+  warnings: string[];
+}
+
+/**
+ * '설정' 값이 범위를 벗어나면 기본값으로 되돌리고 무엇을 되돌렸는지 알린다.
+ *
+ * ⚠️ 되돌리면 '90초' 같은 값이 NaN 이 되어 타이머가 멎는다 (MIGRATION §5).
+ *    새로 생긴 moveSeconds 가 NaN 이면 phaseEndsAt 이 NaN 이 되고,
+ *    알람 시각이 NaN 이라 **경주가 영원히 안 끝난다.** 여기서 막는다.
+ */
+export function normalizeSettings(raw: Partial<Settings> | undefined, issues: string[]): Settings {
+  const out: Settings = { ...DEFAULTS, payout: { ...DEFAULTS.payout } };
+  if (!raw) return out;
+
+  for (const key of Object.keys(SETTING_RANGE) as (keyof Settings)[]) {
+    const rule = SETTING_RANGE[key as string]!;
+    const v = raw[key] as unknown;
+    if (v === undefined || v === null || v === '') continue;
+    const n = Number(v);
+    const okNum = isFinite(n) && Math.floor(n) === n;
+    if (!okNum || n < rule.min || n > rule.max) {
+      issues.push(
+        `설정 ${rule.label} — ` +
+        (okNum ? `${n} 은(는) ${rule.min}~${rule.max} 범위 밖이라` : `'${String(v)}' 은(는) 숫자가 아니라`) +
+        ` 기본값 ${String(DEFAULTS[key as keyof typeof DEFAULTS])} 을(를) 씁니다.`
+      );
+      continue;
+    }
+    (out as Record<string, unknown>)[key as string] = n;
+  }
+  if (raw.payout && typeof raw.payout === 'object') out.payout = { ...raw.payout };
+  return out;
+}
+
+// ────────────────────────────────────────────────────────────
+// 방
+// ────────────────────────────────────────────────────────────
+
+export class Room {
+  private state: GameState | null = null;
+  private deps: RoomDeps;
+
+  // ⚠️ 생성자 매개변수 속성(`constructor(private deps)`)을 쓰지 않는다.
+  //    Node 24 가 .ts 를 그대로 실행할 때(strip-only) 그 문법만은 못 지운다 —
+  //    빌드 단계 없이 테스트가 도는 이 저장소의 전제가 깨진다.
+  constructor(deps: RoomDeps) { this.deps = deps; }
+
+  private get rng(): Rng { return this.deps.rng || Math.random; }
+
+  /** 깨어날 때 저장소에서 올린 상태를 꽂는다 */
+  hydrate(state: GameState | null): void { this.state = state; }
+
+  /** 감사·디버깅용. 뷰가 아니므로 밖으로 내보내면 안 된다 (truth 가 들어 있다) */
+  raw(): GameState | null { return this.state; }
+
+  exists(): boolean { return !!this.state; }
+
+  /** 스냅샷 + 그 뒤 이벤트 재생으로 상태를 되살린다 (게이트 D6b) */
+  restoreFrom(snapshot: GameState, events: GameEvent[]): void {
+    this.state = restore(snapshot, events);
+  }
+
+  // ── 인증 ──────────────────────────────────────────────
+
+  /**
+   * ⚠️ 되돌리면 학생이 정답 순위와 모둠 암호를 그대로 본다.
+   *
+   * 판 코드는 칠판에 적혀 있으니 비밀이 아니다 (MIGRATION §4-4).
+   * 교사만 알아야 하는 것은 코드가 아니라 이 열쇠로 지킨다.
+   */
+  private hostGate(state: GameState, hostKey: string | null | undefined): Err | null {
+    if (!state.hostKey) return err('NOT_HOST');
+    if (String(hostKey || '') !== String(state.hostKey)) return err('NOT_HOST');
+    return null;
+  }
+
+  /**
+   * ⚠️ 되돌리면 한 학생이 다른 모둠의 답과 베팅을 대신 낸다.
+   *
+   * 모둠 암호를 접속할 때 한 번만 맞춰보면 아무것도 못 지킨다 —
+   * 판 코드만 알면 모둠 번호는 1~6 중 하나라 그냥 찍으면 되기 때문이다.
+   * 그래서 모둠 이름으로 무언가를 하는 모든 호출이 매번 다시 본다.
+   * (상태 조회도 포함이다. 남의 모둠 상태를 읽으면 벌어온 힌트를 그냥 가져간다)
+   */
+  private checkTeam(
+    state: GameState, teamNo: number, pin: string | null | undefined
+  ): { team: Team } | { error: Err } {
+    const team = state.teams.find((t) => t.no === Number(teamNo));
+    if (!team) return { error: err('GAME_NOT_FOUND') };
+    if (String(team.pin) !== String(pin)) return { error: err('WRONG_PIN') };
+    return { team };
+  }
+
+  /**
+   * 마감 시각이 지났는가. 알람은 몇백 ms 늦게 올 수 있는데, 그 틈에 들어온 제출·베팅을
+   * 받으면 학생 폰에서는 0초를 본 뒤에 낸 답이 들어간다 — "시간 판단은 전부 서버에서"가
+   * 앱스 스크립트판부터 지켜온 원칙이다 (Code.gs 는 autoAdvance 로 같은 효과를 냈다).
+   * ⚠️ 여기서는 **읽기만** 한다. 전환은 여전히 onAlarm() 의 몫이다 (RACE1).
+   */
+  private closedByClock(state: GameState): boolean {
+    return !!state.phaseEndsAt && !state.pausedAt && this.deps.now() >= state.phaseEndsAt;
+  }
+
+  private live(): { state: GameState } | { error: Err } {
+    if (!this.state) return { error: err('GAME_NOT_FOUND') };
+    return { state: this.state };
+  }
+
+  // ── 1. 판 만들기 ──────────────────────────────────────
+
+  create(
+    config: CreateConfig,
+    questions: Question[],
+    animals: AnimalTable,
+    rawSettings?: Partial<Settings>
+  ): Envelope<CreateResult> {
+    if (this.state) return err('GAME_EXISTS');
+
+    const warnings = (config.warnings || []).slice();
+    const settings = normalizeSettings(rawSettings, warnings);
+
+    // 경주 계획 — 순위를 먼저 정하고 이동을 역산한다 (§4-2). 실패하면 다시 굴린다
+    let race = null, tries = 0;
+    while (!race && tries++ < LIMITS.reverseAttempts) race = planRace(this.rng, settings.trackCells);
+    if (!race) return err('SHEET_INVALID', '경주를 만들지 못했어요. 다시 시도해주세요.');
+
+    const byLevel: Partial<Record<Level, Question[]>> = {};
+    for (const lv of LEVELS) byLevel[lv] = [];
+    for (const q of questions) if (byLevel[q.level]) byLevel[q.level]!.push(q);
+
+    const teamCount = Math.max(1, Math.floor(Number(config.teamCount) || 0));
+    const teams: Team[] = [];
+    for (let i = 0; i < teamCount; i++) {
+      teams.push({
+        no: i + 1,
+        name: (config.teamNames && config.teamNames[i]) || `${i + 1}모둠`,
+        pin: makePin(this.rng),
+        coins: settings.initialCoins,
+        hints: [], answered: {}, bets: {}, betLocked: {}
+      });
+    }
+
+    const pool = {} as GameState['pool'];
+    for (const c of ANIMAL_CODES) pool[c] = settings.seedCoins;
+
+    const state: GameState = {
+      version: 1,
+      code: config.code || makeCode(this.rng),
+      hostKey: makeHostKey(this.rng),
+      className: config.className,
+      unit: config.unit,
+      round: 1,
+      lastRound: race.lastRound,
+      phase: PHASES.WAITING,
+      roundStarted: false,
+      phaseEndsAt: null,
+      pausedAt: null,
+      stateVersion: 1,
+      eventSeq: 0,
+      truth: race.truth,
+      moves: race.moves,
+      animals: animals.names,
+      emojis: animals.emojis,
+      hintPool: buildHints(race.truth, animals.names),
+      hintGiven: {},
+      questionPlan: planQuestions(byLevel, race.lastRound, this.rng),
+      questionById: {},
+      pool,
+      teams,
+      settings,
+      isOver: false,
+      settlement: null
+    };
+
+    // ⚠️ 배정된 문항의 **내용까지** 상태에 굳힌다 (§4-6).
+    //    라운드마다 문제은행을 다시 뒤지면 복구 후 다른 문제가 나온다.
+    const byId: Record<number, Question> = {};
+    for (const q of questions) byId[q.id] = q;
+    for (const r of Object.keys(state.questionPlan)) {
+      const plan = state.questionPlan[Number(r)]!;
+      for (const lv of Object.keys(plan) as Level[]) {
+        const id = plan[lv];
+        if (id != null && byId[id]) state.questionById[id] = byId[id];
+      }
+    }
+
+    this.state = state;
+    this.deps.persist(state);
+    this.deps.changed();
+
+    const pins: Record<number, string> = {};
+    for (const t of teams) pins[t.no] = t.pin;
+    return ok({
+      code: state.code, hostKey: state.hostKey, pins,
+      teams: teams.map((t) => ({ no: t.no, name: t.name })),
+      warnings
+    });
+  }
+
+  // ── 2. 접속 ───────────────────────────────────────────
+
+  /** 접속 점유를 두지 않는다 — 두면 새로고침한 폰이 자기 자신 때문에 막힌다 (게이트 H8) */
+  join(teamNo: number, pin: string): Envelope<TeamView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    if (g.state.isOver) return err('GAME_ENDED');
+    const t = this.checkTeam(g.state, teamNo, pin);
+    if ('error' in t) return t.error;
+    return ok(teamView(g.state, teamNo, this.deps.now()));
+  }
+
+  lobby(): Envelope<LobbyView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    if (g.state.isOver) return err('GAME_ENDED');
+    return ok(lobbyView(g.state));
+  }
+
+  // ── 3. 상태 조회 ───────────────────────────────────────
+
+  /**
+   * ⚠️ 이 경로는 **상태를 절대 쓰지 않는다.**
+   *    앱스 스크립트판은 여기서 autoAdvance 를 불렀고, 그 때문에 단계가 끝나는 순간의
+   *    폴링이 낡은 상태를 덮어써서 마감 직전 정답이 '미제출'로 바뀌었다 (게이트 RACE1).
+   *    단계 전환은 onAlarm() 한 곳에서만 일어난다.
+   */
+  getState(
+    viewer: string | null | undefined, hostKey?: string | null, pin?: string | null
+  ): Envelope<TeamView | TeacherView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const now = this.deps.now();
+
+    if (viewer && viewer.indexOf('team:') === 0) {
+      const teamNo = Number(viewer.split(':')[1]);
+      const t = this.checkTeam(g.state, teamNo, pin);
+      if ('error' in t) return t.error;
+      return ok(teamView(g.state, teamNo, now));
+    }
+    // team: 이 아닌 것은 전부 교사 경로다 — 아무 문자열이나 넣어도 열쇠를 요구한다 (SEC2)
+    const gate = this.hostGate(g.state, hostKey);
+    if (gate) return gate;
+    return ok(teacherView(g.state, now));
+  }
+
+  // ── 4. 문제 · 답 ───────────────────────────────────────
+
+  chooseLevel(
+    teamNo: number, level: Level, pin: string
+  ): Envelope<{ level: Level; question: { text: string; choices: string[] } }> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    if (state.pausedAt) return err('PAUSED');
+    if (state.phase !== PHASES.QUIZ || this.closedByClock(state)) return err('QUIZ_CLOSED');
+
+    const t = this.checkTeam(state, teamNo, pin);
+    if ('error' in t) return t.error;
+    if (t.team.answered[state.round]) return err('ALREADY_ANSWERED');
+
+    const q = this.questionFor(state.round, level);
+    if (!q) return err('SHEET_INVALID');
+    return ok({ level, question: { text: q.text, choices: q.choices } });
+  }
+
+  submitAnswer(
+    teamNo: number, level: Level, choice: number, pin: string
+  ): Envelope<{ correct: boolean; answer: number; explanation: string; newHint: Hint | null }> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    if (state.pausedAt) return err('PAUSED');
+    if (state.phase !== PHASES.QUIZ || this.closedByClock(state)) return err('QUIZ_CLOSED');
+
+    const t = this.checkTeam(state, teamNo, pin);
+    if ('error' in t) return t.error;
+    const team = t.team;
+    if (team.answered[state.round]) return err('ALREADY_ANSWERED');
+
+    const q = this.questionFor(state.round, level);
+    if (!q) return err('SHEET_INVALID');
+
+    const correct = Number(choice) === Number(q.answer);
+    const hint = correct ? this.giveHint(team, level) : null;
+    const record: AnswerRecord = { level, choice: Number(choice), correct, hint };
+
+    team.answered[state.round] = record;
+    if (hint) team.hints.push(hint);
+
+    this.event('answer', teamNo, record as unknown as Record<string, unknown>);
+    state.stateVersion++;
+    this.deps.persist(state);
+    this.deps.changed();
+
+    return ok({ correct, answer: q.answer, explanation: q.explanation, newHint: hint });
+  }
+
+  /**
+   * ⚠️ 같은 모둠에 같은 힌트를 두 번 주지 않는다 (§4-5).
+   *    hintGiven 은 **상태에 들어가 저장된다.** team.hints 만 저장하고 이걸 빼면
+   *    복구 직후 1번 힌트가 다시 나간다 — 앱스 스크립트판에서 실제로 난 버그다.
+   */
+  private giveHint(team: Team, level: Level): Hint | null {
+    const state = this.state!;
+    const given = state.hintGiven[team.no] || [];
+    const picked = takeHint(state.hintPool, given, level, state.round);
+    if (!picked) return null;
+    given.push(picked.key);
+    state.hintGiven[team.no] = given;
+    return picked.hint;
+  }
+
+  /**
+   * 문항은 판을 만들 때 내용까지 굳혔다 (§4-6).
+   * 문제은행을 다시 뒤지지 않으므로, 수업 중에 문제은행이 바뀌어도 판은 흔들리지 않는다.
+   */
+  private questionFor(round: number, level: Level): Question | null {
+    const state = this.state!;
+    const plan = state.questionPlan[round];
+    if (!plan) return null;
+    const id = plan[level];
+    if (id == null) return null;
+    return state.questionById[id] || null;
+  }
+
+  // ── 5. 베팅 ───────────────────────────────────────────
+
+  placeBet(teamNo: number, bets: Bets, pin: string): Envelope<TeamView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    if (state.pausedAt) return err('PAUSED');
+    if (state.phase !== PHASES.BETTING || this.closedByClock(state)) return err('BET_CLOSED');
+
+    const t = this.checkTeam(state, teamNo, pin);
+    if ('error' in t) return t.error;
+    const team = t.team;
+
+    const check = validateBet(team, state.round, bets, state.settings);
+    if (!check.ok) return err(check.error);
+
+    // ⚠️ 여기부터 아래까지 await 가 하나도 없다. 있으면 6모둠 동시 베팅에 코인이 증발한다
+    team.bets[state.round] = bets;
+    team.betLocked[state.round] = true;
+    team.coins -= check.sum;
+    for (const c of Object.keys(bets) as AnimalCode[]) state.pool[c] += bets[c]!;
+
+    this.event('bet', teamNo, { bets });
+    state.stateVersion++;
+    this.deps.persist(state);
+    this.deps.changed();
+
+    return ok(teamView(state, teamNo, this.deps.now()));
+  }
+
+  // ── 6. 진행 · 일시정지 · 정산 ──────────────────────────
+
+  /**
+   * 라운드 진행 버튼 하나가 부르는 유일한 함수.
+   *
+   * ⚠️ 화면이 "1라운드인가?"로 판단하면 안 된다. 베팅이 끝나도 round 는 그대로라,
+   *    화면이 판단하면 1라운드가 무한 반복된다 (게이트 BUG1).
+   *    어디까지 했는지는 roundStarted 로 **서버만** 안다.
+   *    진행 중(waiting 이 아닐 때) 다시 눌러도 아무 일이 없어야 한다 — 교사가
+   *    반응이 없다고 여러 번 누르는 일이 실제로 있다.
+   */
+  advanceRound(hostKey: string): Envelope<TeacherView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    const gate = this.hostGate(state, hostKey);
+    if (gate) return gate;
+
+    const now = this.deps.now();
+    if (state.phase !== PHASES.WAITING) return ok(teacherView(state, now));
+
+    if (state.roundStarted) {
+      if (state.round >= state.lastRound) {
+        state.phase = PHASES.DONE;
+        state.phaseEndsAt = null;
+        state.stateVersion++;
+        this.deps.setAlarm(null);
+        this.deps.persist(state);
+        this.deps.changed();
+        return ok(teacherView(state, now));
+      }
+      state.round++;
+    }
+    state.roundStarted = true;
+
+    // 경주부터 시작한다. moving 이 끝나면 알람이 quiz 로 넘긴다 (§8-3)
+    this.setPhase(PHASES.MOVING, state.settings.moveSeconds);
+    this.event('round_start', null, {
+      phase: state.phase, phaseEndsAt: state.phaseEndsAt, round: state.round
+    });
+    this.deps.persist(state);
+    this.deps.changed();
+    return ok(teacherView(state, now));
+  }
+
+  /**
+   * 일시정지. 멈춘 동안 시간이 흐르면 안 되므로 알람을 **취소하고**,
+   * 재개할 때 phaseEndsAt 을 멈춘 만큼 미룬 뒤 알람을 다시 건다.
+   * ⚠️ 알람을 안 끄면 멈춰 있는 사이에 단계가 넘어간다. moving 중에도 마찬가지다.
+   */
+  togglePause(hostKey: string): Envelope<TeacherView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    const gate = this.hostGate(state, hostKey);
+    if (gate) return gate;
+
+    const now = this.deps.now();
+    if (state.pausedAt) {
+      if (state.phaseEndsAt) state.phaseEndsAt += now - state.pausedAt;
+      state.pausedAt = null;
+      this.deps.setAlarm(state.phaseEndsAt);
+    } else {
+      state.pausedAt = now;
+      this.deps.setAlarm(null);
+    }
+    state.stateVersion++;
+    this.event('pause', null, { paused: !!state.pausedAt, pausedAt: state.pausedAt, phaseEndsAt: state.phaseEndsAt });
+    this.deps.persist(state);
+    this.deps.changed();
+    return ok(teacherView(state, now));
+  }
+
+  finalize(hostKey: string): Envelope<FinalizeView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    const gate = this.hostGate(state, hostKey);
+    if (gate) return gate;
+
+    const finalPos = positionsAtRound(state.moves, state.lastRound, state.settings.trackCells);
+    const finalOrder = rankByPosition(finalPos, state.truth);
+    const odds = computeOdds(state.pool);
+
+    state.isOver = true;
+    state.phase = PHASES.DONE;
+    state.phaseEndsAt = null;
+    state.settlement = settle(state.teams, finalOrder, odds, state.settings);
+    state.stateVersion++;
+    this.deps.setAlarm(null);
+    this.deps.persist(state);
+    this.deps.changed();
+
+    return ok(finalizeView(state));
+  }
+
+  /** 정답 공개. 정산 전에 정답이 나가는 유일한 통로라 여기만 지키면 된다 (SEC7) */
+  reveal(hostKey: string): Envelope<RevealView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const gate = this.hostGate(g.state, hostKey);
+    if (gate) return gate;
+    return ok(revealView(g.state));
+  }
+
+  /** ⚠️ 모둠 암호가 전부 담긴 응답이다 (SEC4) */
+  handout(hostKey: string): Envelope<HandoutView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const gate = this.hostGate(g.state, hostKey);
+    if (gate) return gate;
+    return ok(handoutView(g.state));
+  }
+
+  // ── 단계 기계 ─────────────────────────────────────────
+
+  private setPhase(phase: GameState['phase'], seconds: number | null): void {
+    const state = this.state!;
+    state.phase = phase;
+    state.phaseEndsAt = seconds ? this.deps.now() + seconds * 1000 : null;
+    state.stateVersion++;
+    this.deps.setAlarm(state.phaseEndsAt);
+  }
+
+  /**
+   * 단계 전환이 일어나는 **유일한** 곳.
+   *
+   *   waiting ─(교사)→ moving(20초) → quiz(90초) → discuss(180초) → betting(60초) → waiting
+   *
+   * ⚠️ 알람은 예정보다 일찍 깨어날 수 있고(다른 이유로 걸린 알람, 재개 직후 등),
+   *    늦게 올 수도 있다. 일찍 왔으면 **아무것도 바꾸지 않고 다시 건다.**
+   *    이 확인을 빼면 재개 직후 알람 한 번에 단계가 통째로 건너뛴다.
+   */
+  onAlarm(): void {
+    const state = this.state;
+    if (!state) return;
+    if (state.pausedAt) return;          // 멈춰 있는 동안엔 시간이 흐르지 않는다
+    if (!state.phaseEndsAt) return;
+
+    const now = this.deps.now();
+    if (now < state.phaseEndsAt) { this.deps.setAlarm(state.phaseEndsAt); return; }
+
+    if (state.phase === PHASES.MOVING) {
+      this.setPhase(PHASES.QUIZ, state.settings.quizSeconds);
+    } else if (state.phase === PHASES.QUIZ) {
+      // 마감. 안 낸 모둠만 미제출로 남긴다 — 이미 낸 기록은 절대 건드리지 않는다 (RACE1)
+      for (const t of state.teams) {
+        if (!t.answered[state.round]) {
+          t.answered[state.round] = { level: null, choice: null, correct: false, timeout: true };
+        }
+      }
+      this.setPhase(PHASES.DISCUSS, state.settings.discussSeconds);
+    } else if (state.phase === PHASES.DISCUSS) {
+      this.setPhase(PHASES.BETTING, state.settings.betSeconds);
+    } else if (state.phase === PHASES.BETTING) {
+      for (const t of state.teams) t.betLocked[state.round] = true;
+      this.setPhase(PHASES.WAITING, null);
+    } else {
+      return;
+    }
+    this.deps.persist(state);
+    this.deps.changed();
+  }
+
+  private event(kind: EventKind, teamNo: number | null, payload: Record<string, unknown>): void {
+    const state = this.state!;
+    state.eventSeq = (state.eventSeq || 0) + 1;
+    this.deps.appendEvent({
+      seq: state.eventSeq,
+      code: state.code,
+      round: state.round,
+      teamNo,
+      kind,
+      payload,
+      at: this.deps.now()
+    });
+  }
+}
+
+// ────────────────────────────────────────────────────────────
+// 복구 — 스냅샷 + 그 뒤 이벤트 재생
+// ────────────────────────────────────────────────────────────
+
+/**
+ * ⚠️ 되돌리면 복구 뒤 같은 힌트가 두 번 나간다 (게이트 D6b).
+ *
+ * 앱스 스크립트판의 replayEvent 는 team.hints 만 되살리고 hintGiven 은 비워둔 채였다.
+ * 그러면 복구 직후 같은 난이도를 또 맞힌 모둠에게 1번 힌트가 다시 간다 —
+ * §4-5 가 지키려던 규칙이 정작 복구 경로에서만 깨져 있었다.
+ *
+ * 힌트 문구는 판을 만들 때 hintPool 에 굳어 있으므로, 문구로 자리를 되찾을 수 있다.
+ */
+export function restore(snapshot: GameState, events: GameEvent[]): GameState {
+  const state: GameState = JSON.parse(JSON.stringify(snapshot));
+  const after = events
+    .filter((e) => e.code === state.code && e.seq > (state.eventSeq || 0))
+    .sort((a, b) => a.seq - b.seq);
+
+  for (const ev of after) {
+    const team = state.teams.find((t) => t.no === Number(ev.teamNo)) || null;
+
+    if (ev.kind === 'answer' && team) {
+      const rec = ev.payload as unknown as AnswerRecord;
+      team.answered = team.answered || {};
+      team.answered[ev.round] = rec;
+      if (rec.correct && rec.hint) {
+        team.hints = team.hints || [];
+        team.hints.push(rec.hint);
+        markHintGiven(state, team.no, rec.hint);
+      }
+    } else if (ev.kind === 'bet' && team) {
+      const bets = (ev.payload.bets || {}) as Bets;
+      team.bets = team.bets || {};
+      team.betLocked = team.betLocked || {};
+      team.bets[ev.round] = bets;
+      team.betLocked[ev.round] = true;
+      let sum = 0;
+      for (const c of Object.keys(bets) as AnimalCode[]) { sum += bets[c]!; state.pool[c] += bets[c]!; }
+      team.coins -= sum;
+    } else if (ev.kind === 'round_start') {
+      state.round = ev.round;
+      state.roundStarted = true;
+      state.phase = ev.payload.phase as GameState['phase'];
+      state.phaseEndsAt = (ev.payload.phaseEndsAt as number | null) ?? null;
+    } else if (ev.kind === 'pause') {
+      // 앱스 스크립트판은 pause 를 재생하지 않아 복구하면 멈춤이 풀렸다.
+      // 결과값을 통째로 기록해 두었으므로 그대로 되돌린다 (누적 오차가 안 생긴다)
+      state.pausedAt = (ev.payload.pausedAt as number | null) ?? null;
+      state.phaseEndsAt = (ev.payload.phaseEndsAt as number | null) ?? null;
+    }
+    state.eventSeq = ev.seq;
+    state.stateVersion = (state.stateVersion || 0) + 1;
+  }
+  return state;
+}
+
+function markHintGiven(state: GameState, teamNo: number, hint: Hint): void {
+  if (!hint || !hint.level || !state.hintPool) return;
+  const pool = state.hintPool[hint.level] || [];
+  const idx = pool.indexOf(hint.text);
+  if (idx < 0) return;                     // 풀에 없는 문구 — 되찾을 자리가 없다
+  const key = `${hint.level}#${idx}`;
+  state.hintGiven = state.hintGiven || {};
+  const given = state.hintGiven[teamNo] || [];
+  if (given.indexOf(key) < 0) given.push(key);
+  state.hintGiven[teamNo] = given;
+}
