@@ -354,6 +354,15 @@ Worker `assets`. 4a·4b 모두 헤드리스 Chrome 두 탭으로 한 판을 끝�
 Cloudflare 계정이 필요합니다 (무료 플랜으로 충분). 코드는 전부 준비돼 있고, 아래는
 **계정이 있는 사람만 할 수 있는 일**입니다.
 
+한 번에 하려면 (로그인 뒤):
+
+```bash
+cd web && npx wrangler login
+ADMIN_PASSWORD='영문숫자기호만' bash scripts/deploy.sh   # D1 생성 → id 채우기 → 마이그레이션 → secret → build → deploy
+```
+
+손으로 하려면:
+
 ```bash
 cd web
 npx wrangler login
