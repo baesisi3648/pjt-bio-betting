@@ -1,0 +1,17 @@
+{
+  "name": "wilde-derby-web",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "생명과학 와일드 더비 — 실시간 웹앱 (Cloudflare Workers + Durable Objects)",
+  "scripts": {
+    "gates": "node test/gates.ts",
+    "parity": "node test/parity.ts",
+    "test": "npm run typecheck && npm run gates && npm run parity",
+    "typecheck": "tsc --noEmit"
+  },
+  "devDependencies": {
+    "@types/node": "^26.4.1",
+    "typescript": "^7.0.2"
+  }
+}
