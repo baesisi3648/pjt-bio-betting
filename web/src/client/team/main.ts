@@ -34,7 +34,8 @@ import type { TeamView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
 import { FATAL, api, handle, isOk } from '../shared/gateway.ts';
 import { GameSocket } from '../shared/socket.ts';
-import { $, buzz, confirmBox, esc, hideConn, showConn, toast } from '../shared/ui.ts';
+import { $, buzz, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
+import { startMini, stopMini } from './mini.ts';
 
 // ────────────────────────────────────────────────────────────
 // 이 화면이 기억하는 것
@@ -253,21 +254,52 @@ function tab(i: number): void { TAB = i; drawTab(); }
 function drawTab(): void {
   (['t0', 't1', 't2'] as const).forEach((id, i) => { $(id).className = i === TAB ? 'on' : ''; });
   const p = $('pane');
-  if (!D) { p.innerHTML = ''; return; }
+  if (!D) { p.innerHTML = ''; stopRace(); return; }
   // 경주 중에는 문제·베팅 자리에 경주를 띄운다. 힌트는 그대로 읽을 수 있게 둔다
-  if (D.phase === 'moving' && TAB !== 1) { p.innerHTML = racingHtml(); return; }
+  if (D.phase === 'moving' && TAB !== 1) {
+    // ⚠️ 이미 그려져 있으면 다시 짓지 않는다 — innerHTML 로 갈아끼우면 캔버스가 새로
+    //    생겨서 20초 경주가 상태 푸시마다 처음부터 다시 시작한다
+    if (!maybe('mini-track')) p.innerHTML = racingHtml();
+    startRace();
+    return;
+  }
+  stopRace();
   p.innerHTML = TAB === 0 ? quizHtml() : TAB === 1 ? hintHtml() : betHtml();
 }
 
 /**
  * 경주(moving) 20초.
- * ⚠️ **여기에 버튼을 넣지 마세요.** 이 20초는 고개를 들어 TV 를 보라는 시간입니다.
- *    #mini-track 은 4b(연출)가 채울 자리다 — 지금은 비어 있고, 비어 있어도 게임은 돈다.
+ * ⚠️ **여기에 버튼을 넣지 마세요.** 이 20초는 고개를 들어 TV 를 보라는 시간입니다 (§11-2).
+ *    #mini-track 에는 team/mini.ts 가 TV 와 **같은 경주**를 작게 그린다.
+ *    캔버스가 안 그려져도(구형 브라우저·reduced-motion) 문구는 남고 게임은 그대로 돈다.
  */
 function racingHtml(): string {
   return '<div class="racing"><div class="head">🏇 동물들이 달리는 중</div>' +
     '<div class="sub2">앞의 큰 화면을 보세요</div>' +
     '<div id="mini-track"></div></div>';
+}
+
+let racing = false;
+
+/**
+ * 미니 트랙을 돌린다. 시간축은 **서버 시각**이다 (§11-2) —
+ * 늦게 들어온 폰도 TV 와 같은 지점부터 본다.
+ *
+ * ⚠️ 'moving' 이 아니라 raceMoves 로 판단한다: 경주 중 일시정지하면 phase 는 'paused' 가
+ *    되지만 말은 그 자리에 서 있어야 한다 (clock.elapsed 가 멈춰 준다)
+ */
+function startRace(): void {
+  const host = maybe('mini-track');
+  if (!host) return;
+  if (racing && host.querySelector('canvas')) return;
+  racing = true;
+  startMini(host, () => D, () => (D && D.raceMoves ? clock.elapsed(D) : null));
+}
+
+function stopRace(): void {
+  if (!racing) return;
+  racing = false;
+  stopMini();
 }
 
 /* 탭 1 — 문제 */
@@ -349,7 +381,10 @@ function betHtml(): string {
   if (d.phase === 'paused') return '<div class="empty">선생님이 잠시 멈췄어요</div>';
   if (!me) return '<div class="empty">모둠 정보를 불러오는 중…</div>';
   if (!me.canBet) {
-    if (me.myBets[d.round]) return '<div class="empty">✅ 이번 라운드 베팅을 확정했어요</div>';
+    // ⚠️ 확정 뒤에 이 화면이 시선을 **TV 로 올려 보낸다** (§11-5, 05 §1 "고개 들어 TV를 본다").
+    //    여기에 다시 만질 것을 넣으면 학생은 계속 폰을 본다
+    if (me.myBets[d.round]) return '<div class="empty locked">✅ 이번 라운드 베팅을 확정했어요' +
+      '<div class="watch">📺 TV 를 보세요</div></div>';
     if (d.phase !== 'betting') return `<div class="empty">지금은 ${PHASE_KO[d.phase] || ''}</div>`;
     return '<div class="empty">베팅 시간이 지났어요</div>';
   }
@@ -392,13 +427,49 @@ function confirmBet(btn: HTMLButtonElement): void {
   let used = 0;
   for (const k of Object.keys(draft) as AnimalCode[]) used += draft[k] || 0;
   confirmBox(`코인 ${used}개를 겁니다.\n확정하면 되돌릴 수 없어요.`, () => {
+    // ⚠️ 칩의 **좌표를 지금 재 둔다.** 서버가 확정을 받아들이면 상태 푸시가 곧바로 와서
+    //    탭이 다시 그려지고, 그때는 잴 칩이 이미 없다 (실제로 그래서 아무것도 안 날았다)
+    const spots = chipSpots();
     void act('placeBet', [TEAM, draft, PIN], btn).then((d) => {
       if (!d) return;
       buzz([20, 50, 20]);
+      flyAwayChips(spots);       // 칩이 화면 위로 날아가 사라진다 (§11-5)
       draft = {}; lastBumped = null;
       drawTab();
     });
   });
+}
+
+function chipSpots(): { x: number; y: number }[] {
+  if (reducedMotion()) return [];
+  return [...document.querySelectorAll<HTMLElement>('#pane .chip')].map((c) => {
+    const r = c.getBoundingClientRect();
+    return { x: r.left, y: r.top };
+  });
+}
+
+/**
+ * 확정 순간 칩이 화면 위로 날아간다 (MIGRATION §11-5).
+ * 이 연출이 시선을 TV 로 올려 보낸다 — 05 §1 의 "고개 들어 TV 를 본다" 가 이것이다.
+ *
+ * ⚠️ 원래 칩을 그대로 애니메이션할 수 없다 — 바로 뒤 `drawTab()` 이 탭을 통째로 다시
+ *    그려서 그 요소들이 사라진다. 그래서 **재 둔 자리에 사본을 얹고** 사본만 날려 보낸다.
+ * ⚠️ `pointer-events:none` — 날아가는 동안 화면을 못 누르면 안 된다.
+ */
+function flyAwayChips(spots: { x: number; y: number }[]): void {
+  if (!spots.length || reducedMotion()) return;
+  const layer = document.createElement('div');
+  layer.className = 'flyaway';
+  spots.forEach((p, i) => {
+    const s = document.createElement('span');
+    s.className = 'chip';
+    s.style.left = p.x + 'px';
+    s.style.top = p.y + 'px';
+    s.style.animationDelay = (i * 26) + 'ms';
+    layer.appendChild(s);
+  });
+  document.body.appendChild(layer);
+  window.setTimeout(() => layer.remove(), 1400);
 }
 
 // ────────────────────────────────────────────────────────────

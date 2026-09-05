@@ -489,3 +489,212 @@ entries:
     description: Add new functionality to tsconfig in web
     impact:
       - configuration change
+  - date: "2026-09-05T03:53:26"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/rng.ts
+    description: Create rng in web
+    impact:
+      - none
+  - date: "2026-09-05T03:54:13"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/race.ts
+    description: Create race in web
+    impact:
+      - "internal dependency added: ../../game/config.ts, ../../game/types.ts, ./rng.ts"
+  - date: "2026-09-05T03:55:06"
+    type: test
+    domain: web
+    files:
+      - web/test/race.ts
+    description: Add test file race.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/game/config.ts, ../src/game/types.ts (+more)"
+  - date: "2026-09-05T03:56:33"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/race.ts
+    description: Add new functionality to race in web
+    impact:
+      - none
+  - date: "2026-09-05T03:56:56"
+    type: test
+    domain: web
+    files:
+      - web/test/race.ts
+    description: Update test race.ts
+    impact:
+      - none
+  - date: "2026-09-05T03:57:48"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/race.ts
+    description: Add new functionality to race in web
+    impact:
+      - none
+  - date: "2026-09-05T03:58:15"
+    type: fix
+    domain: web
+    files:
+      - web/src/client/shared/ui.ts
+    description: Fix issue in ui
+    impact:
+      - none
+  - date: "2026-09-05T03:59:06"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/theme.ts
+    description: Create theme in web
+    impact:
+      - none
+  - date: "2026-09-05T04:00:43"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Create stage in web
+    impact:
+      - "external dependency added: pixi.js"
+      - "internal dependency added: ../../game/config.ts, ../../game/views.ts, ../shared/race.ts (+more)"
+  - date: "2026-09-05T04:01:22"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/mini.ts
+    description: Create mini in web
+    impact:
+      - "internal dependency added: ../../game/config.ts, ../../game/views.ts, ../shared/race.ts (+more)"
+  - date: "2026-09-05T04:01:39"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/clock.ts
+    description: Add new functionality to clock in web
+    impact:
+      - none
+  - date: "2026-09-05T04:02:50"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-05T04:02:55"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:03:16"
+    type: fix
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Fix issue in main
+    impact:
+      - none
+  - date: "2026-09-05T04:03:22"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-05T04:04:16"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:05:04"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:05:14"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher.html
+    description: Refactor teacher
+    impact:
+      - none
+  - date: "2026-09-05T04:06:03"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-05T04:06:21"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:06:28"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:06:39"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:17:19"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-05T04:17:22"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-05T04:17:41"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T04:41:27"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration

@@ -128,3 +128,65 @@ th{color:var(--muted);font-size:20px}
 details{margin:10px 0;background:#16202B;border-radius:10px;padding:12px}
 summary{font-size:26px;font-weight:700;cursor:pointer}
 details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
+
+/* ══════════════════════════════════════════════════════════
+   4b 연출 (MIGRATION §11). 여기부터는 전부 "거들 뿐"이다 —
+   base.css 의 prefers-reduced-motion 규칙이 애니메이션을 전부 0.01ms 로 눌러 버려도
+   레이아웃과 숫자는 그대로 읽힌다.
+   ══════════════════════════════════════════════════════════ */
+
+/* ── 경주 무대 (PixiJS) ──
+   ⚠️ 무대가 켜지면 #track 은 숨겨진다 (main.ts ensureStage).
+      캔버스에는 배경색을 주지 않는다 — Pixi 가 카드색으로 칠한다 */
+#race-stage{border-radius:10px;overflow:hidden;line-height:0}
+#race-stage canvas{display:block;width:100%}
+
+/* ── 라이브 배당판 (§11-3) ── */
+/* 지금 걸린 코인 총합. 베팅 단계에만 금색으로 커진다 */
+#tote-total{display:flex;align-items:baseline;gap:12px;padding:4px 2px 12px;
+            border-bottom:2px solid #263745;margin-bottom:6px}
+#tote-total .lbl{font-size:20px;color:var(--muted)}
+#tote-total .n{font-size:40px;font-weight:900;color:#8FA3B5;transition:color .3s,font-size .3s}
+#tote-total.live .n{color:var(--gold);font-size:52px}
+
+/* 칩이 걸린 줄로 날아와 쌓인다. ⚠️ 어느 모둠인지는 표시하지 않는다 (05 §4-3) */
+.tchips{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;min-height:14px;align-items:center}
+.tchip{width:14px;height:14px;border-radius:50%;
+       background:radial-gradient(circle at 35% 30%,#FFD97A,#DFA01E);
+       box-shadow:0 1px 2px rgba(0,0,0,.45),inset 0 -2px 0 rgba(0,0,0,.2)}
+.tchip.fly{animation:chipFly .5s cubic-bezier(.2,1.4,.45,1) backwards}
+@keyframes chipFly{
+  from{transform:translate(-180px,-46px) scale(.4) rotate(-90deg);opacity:0}
+  to  {transform:none;opacity:1}
+}
+.tmore{font-size:16px;font-weight:800;color:var(--gold);margin-left:4px}
+
+/* ── 정산 드럼롤 (§11-4) ── */
+/* 무대가 어두워지고 한 마리에만 빛이 떨어진다. 등수는 이 순간에만 나온다 */
+.spot{position:relative;overflow:hidden;border-radius:14px;background:#0A1017;
+      padding:34px 20px 30px;text-align:center;isolation:isolate}
+.spot .beam{position:absolute;left:50%;top:-40%;width:78%;height:190%;transform:translateX(-50%);
+            background:radial-gradient(ellipse 45% 55% at 50% 46%,rgba(242,180,65,.34),rgba(242,180,65,0) 70%);
+            animation:beamIn .8s ease-out}
+@keyframes beamIn{from{opacity:0;transform:translateX(-50%) scaleY(.3)}to{opacity:1}}
+.spot .star{position:relative;animation:starIn .55s cubic-bezier(.2,1.5,.4,1)}
+@keyframes starIn{from{transform:scale(.55);opacity:0}to{transform:none;opacity:1}}
+.spot .medal{font-size:56px;line-height:1}
+.spot .face{font-size:104px;line-height:1.1;filter:drop-shadow(0 6px 14px rgba(0,0,0,.7))}
+.spot .nm{font-size:52px;font-weight:900;color:var(--gold);margin-top:6px}
+.sofar{margin-top:14px;text-align:center}
+.sofar .past{font-size:30px;font-weight:700;color:#9FB2C4;line-height:1.6}
+
+/* 모둠 코인이 오르내린다 — 폰의 coinPop 감각을 TV 로 */
+.tally{font-weight:900}
+.tally.up{color:var(--ok)}
+.tally.down{color:var(--goal)}
+
+/* 우승 컨페티. 글자 위를 덮지만 클릭은 통과시킨다 */
+.confetti{position:fixed;inset:0;pointer-events:none;overflow:hidden;z-index:97}
+.confetti i{position:absolute;top:-24px;display:block;border-radius:2px;
+            animation-name:fall;animation-timing-function:linear;animation-fill-mode:both}
+@keyframes fall{
+  from{transform:translateY(-30px) rotate(0deg);opacity:1}
+  to  {transform:translateY(105vh) rotate(760deg);opacity:.15}
+}

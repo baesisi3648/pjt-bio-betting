@@ -19,6 +19,16 @@
  *    소켓 전송이 실패하면 같은 op 을 HTTP 라우트로 다시 보낸다.
  *
  * ⚠️ 교사 열쇠는 **매 메시지에 싣는다.** 소켓이 붙어 있다는 사실로 권한을 가정하지 않는다.
+ *
+ * ── 4b 연출 (MIGRATION §11) ──
+ *
+ * 4. **경주 무대**는 `./stage.ts` (PixiJS) 다. `import()` 로 늦게 부른다 — 정적으로 부르면
+ *    PixiJS 가 학생 폰 번들에도 실린다. 무대가 켜지면 4a 의 CSS 트랙(`#track`)을 숨기고,
+ *    `prefers-reduced-motion` 이거나 WebGL 이 없으면 무대를 아예 안 만들고 CSS 트랙으로 간다.
+ *    **어느 쪽이든 게임은 그대로 돈다** (§11-1).
+ *
+ * 5. **배당판**은 다시 그리지 않고 **고쳐 쓴다.** 트랙 레인과 같은 이유다 —
+ *    매번 innerHTML 로 갈면 굴러가던 숫자와 날아오던 칩이 매 푸시마다 처음으로 돌아간다.
  */
 
 import type { AnimalCode } from '../../game/config.ts';
@@ -27,7 +37,8 @@ import { ServerClock } from '../shared/clock.ts';
 import { FATAL, api, handle, hostOp, isOk } from '../shared/gateway.ts';
 import { qrSvg } from '../shared/qr.ts';
 import { GameSocket } from '../shared/socket.ts';
-import { $, confirmBox, esc, hideConn, maybe, showConn, toast } from '../shared/ui.ts';
+import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
+import type { RaceStage } from './stage.ts';
 
 // ────────────────────────────────────────────────────────────
 // 이 화면이 기억하는 것
@@ -42,6 +53,14 @@ let lastVersion = -1;
 const clock = new ServerClock();
 let sock: GameSocket | null = null;
 let playing = false;
+
+/** PixiJS 경주 무대. null 이면 4a 의 CSS 트랙으로 돈다 (reduced-motion · WebGL 없음) */
+let stage: RaceStage | null = null;
+let stageLoading = false;
+let stageRaf = 0;
+let stageLastAt = 0;
+/** 정지 화면을 매 프레임 다시 그리지 않기 위한 표식 */
+let stillKey = '';
 
 /** 배포 안내에 쓰는 학생 주소. 판을 만들 때 / 다시 보기 할 때 서버가 준다 */
 let studentUrl = '';
@@ -304,6 +323,69 @@ function goPlay(): void {
   });
   sock.connect();
   window.setInterval(tick, 1000);
+  void ensureStage();
+}
+
+// ────────────────────────────────────────────────────────────
+// 경주 무대 (MIGRATION §11-2)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * PixiJS 무대를 붙인다. **실패해도 조용히 CSS 트랙으로 돌아간다.**
+ *
+ * ⚠️ 여기서 예외를 밖으로 던지면 진행 화면이 통째로 멈춘다. 연출 때문에 수업이 멎는
+ *    것이 이 프로젝트에서 제일 나쁜 결과다 (§11-1 "연출은 거들 뿐").
+ * ⚠️ `import()` 여야 한다 — 정적 import 로 바꾸면 PixiJS 가 학생 폰 번들에도 실린다.
+ */
+async function ensureStage(): Promise<void> {
+  if (stage || stageLoading) return;
+  // 캔버스 안은 CSS 미디어쿼리가 못 막는다. 여기서 물어보고 아예 만들지 않는다
+  if (reducedMotion()) return;
+  stageLoading = true;
+  try {
+    const mod = await import('./stage.ts');
+    const s = await mod.createStage($('race-stage'));
+    if (!s) return;                                  // WebGL 없음 — CSS 트랙 그대로
+    stage = s;
+    $('race-stage').classList.remove('hidden');
+    $('track').classList.add('hidden');
+    if (LAST) s.still(LAST);
+    if (typeof ResizeObserver !== 'undefined') {
+      // 카드 폭이 바뀌면 칸 눈금·결승선 위치가 전부 틀어진다 — 다시 짓게 한다
+      new ResizeObserver(() => { s.resize(); stillKey = ''; }).observe($('race-stage'));
+    }
+    startStageLoop();
+  } catch {
+    /* 무대가 없어도 게임은 돈다 */
+  } finally {
+    stageLoading = false;
+  }
+}
+
+/**
+ * 무대의 유일한 시간축. **서버 시각으로 계산한 진행률**을 넣는다 (§11-2) —
+ * 늦게 들어온 폰·TV 가 같은 지점에서 같은 경주를 본다.
+ *
+ * ⚠️ 정지 화면은 상태가 바뀔 때만 다시 그린다. 매 프레임 다 그리면 교실 TV(대개 낡은
+ *    노트북)가 아무 일도 없는 3분 토론 동안 팬을 돌린다.
+ */
+function startStageLoop(): void {
+  if (stageRaf) return;
+  const tick = (now: number): void => {
+    stageRaf = requestAnimationFrame(tick);
+    const s = stage, d = LAST;
+    if (!s || !d || d.isOver) return;
+    const dt = stageLastAt ? Math.min(80, now - stageLastAt) : 16;
+    stageLastAt = now;
+
+    // ⚠️ 'moving' 이 아니라 raceMoves 로 판단한다 — 경주 중에 일시정지하면 phase 는
+    //    'paused' 가 되지만 경주는 그 자리에 서 있어야 한다 (elapsed 가 멈춰 준다)
+    const t = d.raceMoves ? clock.elapsed(d) : null;
+    if (t != null) { s.frame(d, t, dt); stillKey = ''; return; }
+    const key = d.stateVersion + '|' + d.phase;
+    if (key !== stillKey) { stillKey = key; s.still(d); }
+  };
+  stageRaf = requestAnimationFrame(tick);
 }
 
 async function resync(): Promise<void> {
@@ -350,11 +432,14 @@ function render(d: TeacherView): void {
   $('btn-pause').textContent = d.phase === 'paused' ? '▶ 이어하기' : '⏸ 일시정지';
   $('btn-pause').classList.toggle('hidden', waiting);
 
-  // 경주 20초 — 4a 에서는 문구만. 4b 가 이 자리(#race-stage)에 PixiJS 무대를 넣는다
+  // 경주 20초. 무대가 켜져 있으면 라운드 번호·카운트다운을 무대가 크게 보여주므로
+  // 이 문구는 감춘다 — 겹쳐 놓으면 8m 밖에서 두 글자가 서로를 가린다 (§11-1)
   const note = $('phase-note');
   if (d.phase === 'moving') {
-    note.textContent = '🏇 경주 중';
-    note.classList.remove('hidden');
+    if (stage) { note.classList.add('hidden'); } else {
+      note.textContent = '🏇 경주 중';
+      note.classList.remove('hidden');
+    }
   } else if (waiting) {
     note.textContent = `${next}라운드 준비`;
     note.classList.remove('hidden');
@@ -461,40 +546,153 @@ function teamLabel(no: number, name: string): string {
   return n === no + '모둠' ? n : `${no}모둠 ${n}`;
 }
 
-/* ── 배당판 ──
-   판돈 막대로 "어디에 돈이 몰렸는지"를 보이고, 배당이 움직이면 숫자가 튀며 ▲▼를 단다.
+/* ── 라이브 배당판 (MIGRATION §11-3) ──
+   이 이전의 눈에 보이는 성과다. 폴링 2초가 아니라 **베팅이 확정되는 순간** 움직인다.
+
+   판돈 막대로 "어디에 돈이 몰렸는지"를 보이고, 늘어난 줄에는 칩이 날아와 쌓이고,
+   배당은 롤링 숫자로 굴러가며 ▲▼를 단다.
    화살표를 같이 쓰는 건 색만으로 뜻을 전하지 않기 위해서다 (05-design-system §2)
 
-   ⚠️ 인기순으로 정렬하지 않는다. 줄이 바뀌면 눈이 못 따라간다 (05 §4-2) */
+   ⚠️ **인기순으로 정렬하지 않는다.** 줄이 바뀌면 눈이 못 따라간다 (05 §4-2)
+   ⚠️ **어느 모둠이 걸었는지는 표시하지 않는다** (05 §4-3, §11-6). 그걸 보이면 토론이 망가진다.
+      늘어난 개수는 `pool` 차이로만 안다
+   ⚠️ **줄을 매번 다시 짓지 않는다.** 트랙 레인과 같은 이유다 — innerHTML 로 갈아끼우면
+      굴러가던 숫자와 날아오던 칩이 매 상태 푸시마다 처음으로 돌아간다 */
+
+/** 손으로 맞춘 값들. 8m 가독성을 해치지 않는 선에서 조절하는 자리 */
+const TOTE = {
+  /** 배당 숫자가 굴러가는 시간(ms). 05 §5 "애니메이션은 0.6초를 넘지 않는다" */
+  rollMs: 500,
+  /** 한 줄에 쌓아 보여주는 칩의 최대 개수. 넘으면 +n 으로 적는다 */
+  maxChips: 24
+};
+
+let toteKey: string | null = null;
+let prevBets: Partial<Record<AnimalCode, number>> = {};
+let prevTotal: number | null = null;
+
+interface Roll { from: number; to: number; at: number; digits: number; suffix: string }
+const rolls = new Map<string, Roll>();
+let rollRaf = 0;
+
+/** 숫자를 이전 값에서 새 값으로 굴린다 (odometer). reduced-motion 이면 즉시 바꾼다 */
+function roll(id: string, from: number, to: number, digits: number, suffix: string): void {
+  const el = maybe(id);
+  if (!el) return;
+  if (reducedMotion() || from === to) {
+    rolls.delete(id);
+    el.textContent = to.toFixed(digits) + suffix;
+    return;
+  }
+  rolls.set(id, { from, to, at: performance.now(), digits, suffix });
+  if (!rollRaf) rollRaf = requestAnimationFrame(rollTick);
+}
+
+function rollTick(now: number): void {
+  rollRaf = 0;
+  for (const [id, r] of [...rolls]) {
+    const u = Math.min(1, (now - r.at) / TOTE.rollMs);
+    const e = 1 - Math.pow(1 - u, 3);                  // 끝에서 부드럽게 멎는다
+    const el = maybe(id);
+    if (el) el.textContent = (r.from + (r.to - r.from) * e).toFixed(r.digits) + r.suffix;
+    if (u >= 1) rolls.delete(id);
+  }
+  if (rolls.size) rollRaf = requestAnimationFrame(rollTick);
+}
+
 function drawTote(d: TeacherView, codes: AnimalCode[]): void {
   let total = 0;
   const bets: Partial<Record<AnimalCode, number>> = {};
-  codes.forEach((c) => { bets[c] = Math.max(0, d.pool[c] - d.seedCoins); total += bets[c]!; });
+  codes.forEach((c) => { bets[c] = Math.max(0, d.pool[c] - d.seedCoins); total += bets[c] as number; });
 
-  $('odds').innerHTML = codes.map((c, i) => {
-    const now = d.odds[c], prev = prevOdds[c];
-    const moved = prev !== undefined && Math.abs(prev - now) > 0.005;
-    const up = moved && now > prev!;
-    const share = total ? (bets[c]! / total * 100) : 0;
-    return '<tr>' +
+  const key = codes.join(',');
+  const fresh = toteKey !== key;
+  if (fresh) {
+    $('odds').innerHTML = codes.map((c, i) =>
+      `<tr id="tr-${c}">` +
       `<td class="t-silk"><span class="silk s${i % SILK}">${i + 1}</span></td>` +
       `<td class="t-name">${d.emojis[c] || ''} ${esc(d.animals[c])}</td>` +
       '<td><div class="pool-wrap">' +
-        `<div class="pool-fill" id="pf-${c}" data-w="${share.toFixed(1)}"></div></div></td>` +
-      `<td class="t-coins num">${bets[c]}<span class="u">코인</span></td>` +
-      `<td class="t-odds"><span class="odds num${moved ? ' pop' : ''}">${now.toFixed(2)}배</span>` +
-        `<span class="delta ${moved ? (up ? 'up' : 'down') : ''}">${moved ? (up ? '▲' : '▼') : ''}</span></td></tr>`;
-  }).join('');
+        `<div class="pool-fill" id="pf-${c}"></div></div>` +
+        `<div class="tchips" id="ch-${c}"></div></td>` +
+      `<td class="t-coins num"><span id="tc-${c}">0</span><span class="u">코인</span></td>` +
+      '<td class="t-odds">' +
+        `<span class="odds num" id="to-${c}">${d.odds[c].toFixed(2)}배</span>` +
+        `<span class="delta" id="td-${c}"></span></td></tr>`).join('');
+    toteKey = key;
+    prevBets = {};
+    prevTotal = null;
+    rolls.clear();
+  }
 
-  // 0에서 한 프레임 뒤에 늘려야 막대가 자라는 게 보인다
-  requestAnimationFrame(() => {
-    codes.forEach((c) => {
-      const el = maybe('pf-' + c);
-      if (el) el.style.width = el.getAttribute('data-w') + '%';
-    });
+  codes.forEach((c) => {
+    const now = d.odds[c];
+    const prev = prevOdds[c];
+    const moved = prev !== undefined && Math.abs(prev - now) > 0.005;
+    const up = moved && now > (prev as number);
+
+    roll('to-' + c, prev === undefined ? now : prev, now, 2, '배');
+    const oddsEl = maybe('to-' + c);
+    if (oddsEl && moved && !reducedMotion()) {
+      oddsEl.classList.remove('pop');
+      void oddsEl.offsetWidth;                        // 애니메이션을 다시 트는 표준 수법
+      oddsEl.classList.add('pop');
+    }
+    const dl = maybe('td-' + c);
+    if (dl) {
+      dl.textContent = moved ? (up ? '▲' : '▼') : '';
+      dl.className = 'delta ' + (moved ? (up ? 'up' : 'down') : '');
+    }
+
+    const mine = bets[c] as number;
+    const was = prevBets[c];
+    const coins = maybe('tc-' + c);
+    if (coins) coins.textContent = String(mine);
+    const bar = maybe('pf-' + c);
+    if (bar) bar.style.width = (total ? mine / total * 100 : 0).toFixed(1) + '%';
+    if (was === undefined || mine !== was) addChips(c, mine, was === undefined ? mine : mine - was);
+    prevBets[c] = mine;
   });
+
+  // 카드 위의 "지금 걸린 코인 총합" — 베팅 단계에만 강조한다
+  const box = $('tote-total');
+  box.classList.toggle('live', d.phase === 'betting');
+  roll('tote-total-n', prevTotal == null ? total : prevTotal, total, 0, '');
+  prevTotal = total;
+
   prevOdds = {};
   codes.forEach((c) => { prevOdds[c] = d.odds[c]; });
+}
+
+/**
+ * 그 줄의 칩 더미를 `count` 개로 맞춘다. 새로 늘어난 만큼만 날아 들어온다.
+ * ⚠️ 이미 쌓여 있는 칩을 다시 만들지 않는다 — 매번 새로 지으면 상태 푸시마다
+ *    판 전체의 칩이 다시 날아와서 어디가 늘었는지 알 수 없게 된다
+ */
+function addChips(c: AnimalCode, count: number, added: number): void {
+  const box = maybe('ch-' + c);
+  if (!box) return;
+  const want = Math.min(count, TOTE.maxChips);
+  const have = box.querySelectorAll('.tchip').length;
+  const over = box.querySelector('.tmore') as HTMLElement | null;
+
+  if (want < have) { box.innerHTML = ''; }            // 줄었다(다음 판) — 다시 쌓는다
+  const from = want < have ? 0 : have;
+  const flying = !reducedMotion() && added > 0;
+  for (let i = from; i < want; i++) {
+    const s = document.createElement('span');
+    // 날아온 칩만 애니메이션. 처음 그릴 때(added 가 없을 때)는 그냥 놓는다
+    s.className = 'tchip' + (flying && i >= want - added ? ' fly' : '');
+    if (s.classList.contains('fly')) s.style.animationDelay = ((i - (want - added)) * 45) + 'ms';
+    box.appendChild(s);
+  }
+  const extra = count - TOTE.maxChips;
+  if (extra > 0) {
+    const el = over || document.createElement('span');
+    el.className = 'tmore num';
+    el.textContent = '+' + extra;
+    if (!over) box.appendChild(el);
+  } else if (over) over.remove();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -540,10 +738,19 @@ function askFinalize(): void {
 }
 
 // ────────────────────────────────────────────────────────────
-// S3 정산 — 한 단계씩 넘긴다 (한 번에 다 보여주면 김빠진다)
-// ⚠️ 4b 가 여기에 드럼롤·스포트라이트·컨페티를 붙인다 (MIGRATION §11-4).
-//    그때도 이 단계 구분(3등→2등→1등 → 계산 → 우승)은 그대로 쓴다
+// S3 정산 드럼롤 (MIGRATION §11-4)
+//
+// 한 번에 표를 다 띄우면 김빠진다. 교사가 '다음'을 눌러 한 단계씩 넘기고,
+// 각 단계에 연출이 붙는다: 스포트라이트 3등 → 2등 → 1등 → 코인 카운트업 → 컨페티.
+//
+// ⚠️ **공개 순서는 3등 → 2등 → 1등이다** (§11-4). 4a 는 1등부터 보여줬는데,
+//    그러면 제일 궁금한 것을 맨 처음에 말해 버려서 나머지 두 단계가 소화 절차가 된다.
+// ⚠️ 마지막에는 **지금까지의 결과표가 그대로 남는다** — 인쇄·기록용이다.
+// ⚠️ 서버는 연출을 모른다. `reveal`·`finalize` 응답 한 벌로 화면이 전부 만든다.
 // ────────────────────────────────────────────────────────────
+
+/** 컨페티 조각 수. 오래된 TV 에서 버벅이면 제일 먼저 줄일 값이다 */
+const CONFETTI = 90;
 
 let step = 0;
 let RES: TeacherView | null = null;
@@ -564,29 +771,85 @@ function nextStep(): void {
   const body = $('r-body');
 
   if (step <= 3) {
-    $('r-step').innerHTML = '<div class="podium">' +
-      truth.slice(0, step).map((c, i) => `${medal[i]} ${i + 1}등 ${d.emojis[c] || ''} ${esc(d.animals[c])}`).join('<br>') +
-      '</div>';
+    // step 1 → 3등, 2 → 2등, 3 → 1등
+    const rank = 4 - step;                       // 3, 2, 1
+    const c = truth[rank - 1];
+    if (!c) return;
+    // 스포트라이트 한 마리. 이미 밝혀진 등수는 아래에 남겨 둔다 — 8m 밖에서
+    // "지금까지 뭐가 나왔더라"를 다시 물을 수 없기 때문이다
+    const sofar = truth.slice(0, 3).map((x, i) => ({ x, i }))
+      .filter(({ i }) => i + 1 > rank)          // 이미 밝힌 등수만. 지금 것은 스포트라이트에 있다
+      .sort((a, b) => b.i - a.i)
+      .map(({ x, i }) => `<div class="past">${medal[i]} ${i + 1}등 ${d.emojis[x] || ''} ${esc(d.animals[x])}</div>`)
+      .join('');
+
+    $('r-step').innerHTML =
+      '<div class="spot">' +
+        '<div class="beam"></div>' +
+        `<div class="star"><div class="medal">${medal[rank - 1]}</div>` +
+          `<div class="face">${d.emojis[c] || ''}</div>` +
+          `<div class="nm">${rank}등 · ${esc(d.animals[c])}</div></div>` +
+      '</div>' +
+      `<div class="sofar">${sofar}</div>`;
     $('r-next').textContent = step < 3 ? '다음 순위 공개' : '모둠별 계산 보기';
-  } else if (step === 4) {
-    body.innerHTML = '<div class="card"><h2>모둠별 계산</h2>' + (d.settlement || []).map((s) =>
-      `<details><summary>${s.teamNo}모둠 ${esc(s.teamName)} — ${s.finalCoins}코인</summary>` +
+    return;
+  }
+
+  if (step === 4) {
+    const list = d.settlement || [];
+    body.innerHTML = '<div class="card"><h2>모둠별 계산</h2>' + list.map((s) =>
+      `<details><summary>${s.teamNo}모둠 ${esc(s.teamName)} — ` +
+      `<span class="tally num" id="sc-${s.teamNo}">${s.finalCoins - s.gained}</span>코인</summary>` +
       s.lines.map((l) =>
         `<div class="line">${esc(d.animals[l.animalCode])} (${l.finalRank}등) ${l.coins}코인 × ` +
         `${l.odds.toFixed(2)}배 × ${Math.round(l.payoutRate * 100)}% = <b>${l.gained}</b></div>`).join('') +
       `<div class="line">획득 합계 ${s.gained}코인</div></details>`).join('') + '</div>';
+    // 폰의 coinPop 감각을 TV 로 (§11-4). 딴 건지 잃은 건지가 숫자가 움직이는 방향으로 보인다
+    list.forEach((s, i) => {
+      const el = maybe('sc-' + s.teamNo);
+      if (el && s.gained !== 0) el.classList.add(s.gained > 0 ? 'up' : 'down');
+      window.setTimeout(() => roll('sc-' + s.teamNo, s.finalCoins - s.gained, s.finalCoins, 0, ''), 120 * i);
+    });
     $('r-next').textContent = '우승 발표';
-  } else {
-    const list = d.settlement || [];
-    const w = list[0];
-    if (!w) return;
-    body.innerHTML = `<div class="card"><div class="podium">🏆 ${w.teamNo}모둠 ${esc(w.teamName)}<br>` +
-      `<span style="color:var(--gold)">${w.finalCoins}코인</span></div><table><tbody>` +
-      list.slice(1).map((s) =>
-        `<tr><td>${s.rank}위</td><td>${esc(s.teamName)}</td><td class="num">${s.finalCoins}코인</td></tr>`).join('') +
-      '</tbody></table></div>';
-    $('r-next').classList.add('hidden');
+    return;
   }
+
+  const list = d.settlement || [];
+  const w = list[0];
+  if (!w) return;
+  body.innerHTML = `<div class="card"><div class="podium">🏆 ${w.teamNo}모둠 ${esc(w.teamName)}<br>` +
+    `<span style="color:var(--gold)">${w.finalCoins}코인</span></div><table><tbody>` +
+    list.slice(1).map((s) =>
+      `<tr><td>${s.rank}위</td><td>${esc(s.teamName)}</td><td class="num">${s.finalCoins}코인</td></tr>`).join('') +
+    '</tbody></table></div>';
+  $('r-next').classList.add('hidden');
+  confetti();
+}
+
+/**
+ * 우승 모둠 컨페티. DOM 조각으로 만든다 — 여기서 PixiJS 를 또 띄울 이유가 없다
+ * (무대는 S2 에 있고, S3 에서는 이미 숨겨져 있다).
+ * ⚠️ 글자 위를 덮지 않게 `pointer-events:none` 이고, 다 떨어지면 스스로 지운다.
+ */
+function confetti(): void {
+  if (reducedMotion()) return;
+  const box = document.createElement('div');
+  box.className = 'confetti';
+  const colors = ['#F2B441', '#4FC3F7', '#8BC34A', '#EF5350', '#BA68C8', '#FF8A65'];
+  let html = '';
+  for (let i = 0; i < CONFETTI; i++) {
+    const left = Math.random() * 100;
+    const delay = Math.random() * 900;
+    const dur = 2200 + Math.random() * 1600;
+    const col = colors[i % colors.length];
+    const w = 6 + Math.random() * 7;
+    html += `<i style="left:${left.toFixed(1)}%;background:${col};width:${w.toFixed(0)}px;` +
+      `height:${(w * 1.6).toFixed(0)}px;animation-delay:${delay.toFixed(0)}ms;` +
+      `animation-duration:${dur.toFixed(0)}ms"></i>`;
+  }
+  box.innerHTML = html;
+  document.body.appendChild(box);
+  window.setTimeout(() => box.remove(), 5200);
 }
 
 // ────────────────────────────────────────────────────────────

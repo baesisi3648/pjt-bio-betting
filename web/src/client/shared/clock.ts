@@ -50,4 +50,29 @@ export class ServerClock {
     if (left == null || !view || !view.phaseSeconds) return 1;
     return Math.max(0, Math.min(1, left / view.phaseSeconds));
   }
+
+  /**
+   * **지나간** 비율(0 → 1). 경주 애니메이션의 시간축이다 (MIGRATION §11-2).
+   * 단계가 없으면(대기·종료) null.
+   *
+   * ⚠️ `progress()` 를 뒤집어 쓰면 안 된다 — 저건 `secondsLeft` 를 거치면서 **초 단위로
+   *    올림**된 값이라, 1초에 한 번씩 말이 계단처럼 튄다. 여기서는 `phaseEndsAt` 과
+   *    `now()` 로 ms 를 직접 재서 프레임마다 매끄럽게 움직인다.
+   *
+   * ⚠️ 일시정지 중에는 서버가 멈춰 준 `secondsLeft` 로 계산한다. 그래야 무대가
+   *    **그 자리에** 선다. 여기서 now() 를 쓰면 정지 중에도 말이 계속 달린다.
+   */
+  elapsed(view: Timed | null): number | null {
+    if (!view || !view.phaseSeconds || view.phaseSeconds <= 0) return null;
+    if (view.phase === 'paused') {
+      if (view.secondsLeft == null) return null;
+      return clamp01(1 - view.secondsLeft / view.phaseSeconds);
+    }
+    if (view.phaseEndsAt == null) return null;
+    return clamp01(1 - (view.phaseEndsAt - this.now()) / (view.phaseSeconds * 1000));
+  }
+}
+
+function clamp01(v: number): number {
+  return v < 0 ? 0 : v > 1 ? 1 : v;
 }

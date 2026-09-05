@@ -88,6 +88,24 @@ export function toast(msg: string): void {
   el._t = window.setTimeout(() => el.classList.add('hidden'), 3500);
 }
 
+/**
+ * 움직임을 줄여 달라고 설정한 기기인가.
+ *
+ * ⚠️ CSS 의 `@media (prefers-reduced-motion)` 만으로는 부족하다 (base.css 에 있다).
+ *    **캔버스 안은 미디어쿼리가 못 막는다** — PixiJS 무대도 폰 미니 트랙도 스스로 물어보고
+ *    꺼져야 한다 (MIGRATION §11-1 "연출은 거들 뿐"). 꺼지면 4a 의 CSS 트랙으로 돌아가고
+ *    결과는 즉시 보인다. 게임은 그대로 돈다.
+ *
+ * ⚠️ 매번 물어본다 — 수업 중에 접근성 설정을 켜는 사람이 있다. 값을 캐시하면 그때 안 듣는다.
+ */
+export function reducedMotion(): boolean {
+  try {
+    return !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  } catch {
+    return false;   // matchMedia 가 없는 오래된 브라우저 — 연출을 켠다
+  }
+}
+
 /** 진동 — 안드로이드 크롬만 듣는다. iOS는 조용히 무시되므로 분기하지 않는다 */
 export function buzz(pattern: number | number[]): void {
   try { if (navigator.vibrate) navigator.vibrate(pattern); } catch { /* 지원 안 함 */ }

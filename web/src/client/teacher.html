@@ -91,13 +91,19 @@
     <div class="timer num" id="p-timer"></div>
   </div>
   <div class="card">
-    <!-- 4b(연출)가 PixiJS 경주 무대를 넣을 자리. 지금은 비어 있고, 비어 있어도 게임은 돈다 -->
+    <!-- PixiJS 경주 무대 (teacher/stage.ts). 켜지면 아래 #track 을 숨긴다.
+         ⚠️ reduced-motion 이거나 WebGL 이 없으면 무대는 안 만들어지고 #track 이 그대로 남는다.
+            어느 쪽이든 게임은 돈다 (MIGRATION §11-1) -->
     <div id="race-stage" class="hidden"></div>
     <div id="phase-note" class="phase-big hidden"></div>
     <div id="track"></div>
   </div>
   <div class="two">
-    <div class="card"><h2>💰 배당률</h2><table class="tote"><tbody id="odds"></tbody></table></div>
+    <div class="card"><h2>💰 배당률</h2>
+      <!-- 지금 걸린 코인 총합 — 베팅 단계에만 강조된다 (MIGRATION §11-3).
+           어느 모둠이 걸었는지는 절대 표시하지 않는다 (05 §4-3) -->
+      <div id="tote-total"><span class="lbl">지금 걸린 코인 총합</span><span class="n num" id="tote-total-n">0</span></div>
+      <table class="tote"><tbody id="odds"></tbody></table></div>
     <div class="card"><h2>모둠 현황</h2><table><tbody id="prog"></tbody></table></div>
   </div>
   <div class="card controls">

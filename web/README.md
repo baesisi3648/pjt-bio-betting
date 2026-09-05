@@ -41,14 +41,16 @@
 - [x] **화면 — 기능 이식 (4a)** — `src/client/`. `apps-script/Teacher.html`·`Team.html`·`Shared.html`
       을 옮기고 폴링을 WebSocket 구독으로 바꿨습니다. 프레임워크 없음, 번들은 Vite,
       **외부 자원 0개**(QR 도 번들 안의 구현입니다 — `src/client/shared/qr.ts`, 게이트 `test/qr.ts`)
-- [ ] 화면 — 연출 (4b): PixiJS 경주 무대 · 정산 드럼롤 · 폰 미니 경주 (`MIGRATION.md` §11)
+- [x] **화면** — `src/client/`. 프레임워크 없이 Vite 번들, 소켓 푸시 + 재연결. 경주 무대는 PixiJS
+      (`teacher/stage.ts`, 동적 import 로 교사 번들에만), 폰 미니 트랙은 Canvas 2D. 두 화면이
+      `shared/race.ts` 안무 하나를 같이 써서 같은 경주를 본다. 라이브 배당판·정산 드럼롤·칩 날리기 (MIGRATION §11)
 - [ ] 문제은행 관리 화면 (가져오기는 끝났습니다 — 남은 건 CRUD 화면)
 - [ ] 배포
 
 ## 돌려보기
 
 ```bash
-npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + QR 10
+npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + QR 10 + 경주 9
 npm run room     # 방 코어만
 npm run gateway  # 게이트웨이(HTTP 라우트 · 인증)만
 npm run qr       # 화면이 그리는 QR 이 실제로 디코드되는지만

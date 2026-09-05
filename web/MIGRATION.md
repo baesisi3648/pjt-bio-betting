@@ -77,14 +77,14 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 - `web/src/do/ops.ts` — 이름표(dispatch) + 암호 연속 실패 잠금. Worker 와 소켓이 같은 걸 쓴다
 - `web/migrations/` — D1 스키마 + 시드(54문항·동물 8·설정 8). `scripts/import-questions.ts` 가 만든다
 - `web/src/client/` — 교사·학생 화면. 프레임워크 없음, Vite 번들, 소켓 푸시 + 재연결
-- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `qr.ts` 10
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `qr.ts` 10 · `race.ts` 9
 
-**남은 것** — §7에 단계별로 있습니다. 화면 연출(4b) → 문제은행 관리 화면 → 배포
+**남은 것** — §7에 단계별로 있습니다. 문제은행 관리 화면(5단계) → 배포(6단계)
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + QR 10
+npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + QR 10 + 경주 9
 npm run dev           # web/ — vite build 후 wrangler dev (먼저 d1 migrations apply --local)
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
@@ -285,10 +285,10 @@ web/
 **완료 판정**: `SEC1`~`SEC11`에 대응하는 게이트가 전부 통과. 그리고 **수정 전 코드에
 돌려 실제로 실패하는지 확인**할 것 — 통과만으로는 게이트가 진짜인지 모릅니다.
 
-### 4단계 — 화면 (4a ✅ 완료 · 4b 연출 남음)
+### 4단계 — 화면 (4a ✅ 완료 · 4b ✅ 완료)
 
 `src/client/`(index.html 학생 · teacher.html 교사 · shared/ 소켓·시계·봉투·QR) + Vite 빌드 +
-Worker `assets`. 4a 는 헤드리스 Chrome 두 탭으로 한 판을 끝까지 돌려 확인했습니다.
+Worker `assets`. 4a·4b 모두 헤드리스 Chrome 두 탭으로 한 판을 끝까지 돌려 확인했습니다.
 
 - 기존 HTML 이식, 폴링을 WebSocket 구독으로 교체
 - 배당판이 실시간으로 움직이는 것이 이 이전의 눈에 보이는 성과입니다
@@ -297,9 +297,27 @@ Worker `assets`. 4a 는 헤드리스 Chrome 두 탭으로 한 판을 끝까지 �
   4단계는 둘로 자릅니다 — **4a** 기능 이식(연출 없이 WebSocket 으로 한 판 도는 것),
   **4b** 연출. 4a 없이 4b 를 시작하지 마세요
 
+4b 에서 더해진 것 (전부 `src/client/` 안):
+
+| 파일 | 하는 일 |
+|---|---|
+| `shared/race.ts` | 경주 **안무 순수 함수** (`raceFrame`·`racePhase`). **TV 와 폰이 이것 하나를 같이 쓴다** |
+| `shared/rng.ts` | mulberry32 + FNV-1a. 시드는 `판코드:라운드` (§11-2) |
+| `shared/theme.ts` | 캔버스가 쓰는 색값 한 벌 (CSS 변수를 캔버스가 못 읽는다) |
+| `teacher/stage.ts` | PixiJS 경주 무대. **동적 `import()` 로만 부른다** — 학생 번들에 pixi 가 들어가면 안 된다 |
+| `team/mini.ts` | 폰 미니 트랙 (Canvas 2D, pixi 없음) |
+| `shared/clock.ts` `elapsed()` | 진행률을 **ms 로** 잰다. `progress()` 를 뒤집으면 초 단위로 튄다 |
+| `test/race.ts` | 게이트 9개 — `RACE-END`·`START`·`MONO`·`BOUND`·`DET`·`ZERO`·`SHAKE`·`PHASE`·`SEED` |
+
 **완료 판정**: 브라우저 2개(교사·모둠)로 한 판을 끝까지 돌려볼 것.
 `prefers-reduced-motion`에서도 게임이 그대로 돌 것. TV 와 폰에서 **같은 경주**가 보일 것
 (§11-2 시드).
+
+⚠️ 회귀를 부르기 쉬운 두 곳:
+- `stage.ts` 를 정적 import 로 바꾸면 **학생 폰 번들에 PixiJS 가 실린다.**
+  `npm run build` 뒤 `grep -l -i pixi dist/client/assets/*.js` 가 `stage-*` 계열만 나와야 합니다
+- `race.ts` 의 `SEGMENTS` 를 1 로 되돌리면 경주가 등속이 되어 순위 흔들림이 사라집니다
+  (`RACE-SHAKE` 가 잡습니다)
 
 ### 5단계 — 문제은행 관리 화면
 
@@ -504,7 +522,7 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
 QR     QR-1~QR-9   ← 새 구현에선 라이브러리를 써도 됩니다
 ```
 
-`web/` 31개 — `gates.ts` 17 + `parity.ts` 14.
+`web/` 105개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 32 + `gateway.ts` 23 + `qr.ts` 10 + `race.ts` 9.
 
 ---
 
