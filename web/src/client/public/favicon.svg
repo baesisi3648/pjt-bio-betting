@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64">
+  <!-- 파비콘 — 외부 자원 없이 SVG 하나. 색은 05-design-system (배경 #0F1720 · 금 #F2B441 · 결승선 #EF5350) -->
+  <rect width="64" height="64" rx="14" fill="#0F1720"/>
+  <!-- 결승선 체크무늬 (아래) -->
+  <g fill="#EAF0F5">
+    <rect x="8" y="50" width="6" height="6"/><rect x="20" y="50" width="6" height="6"/><rect x="32" y="50" width="6" height="6"/><rect x="44" y="50" width="6" height="6"/>
+    <rect x="14" y="44" width="6" height="6"/><rect x="26" y="44" width="6" height="6"/><rect x="38" y="44" width="6" height="6"/><rect x="50" y="44" width="6" height="6"/>
+  </g>
+  <rect x="8" y="42" width="48" height="2" fill="#EF5350"/>
+  <!-- 달리는 치타 (이모지) -->
+  <text x="32" y="36" text-anchor="middle" font-size="30" font-family="Apple Color Emoji,Segoe UI Emoji,Noto Color Emoji,sans-serif">🐆</text>
+</svg>
