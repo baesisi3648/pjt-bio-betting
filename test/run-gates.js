@@ -4,6 +4,11 @@
  * Apps Script에는 테스트 도구가 없으므로, Game.gs를 순수 함수로 만들어
  * node에서 그대로 불러 검증한다. 같은 파일이 앱스 스크립트에서도 돈다.
  *
+ * ⚠️ 정답 유출 게이트(H4·H4b)는 **서비스가 실제로 쓰는** Code.gs 의 teamView 를 본다.
+ *    예전에는 Game.gs 에 있던 사본(toTeamView)을 검사해서, 진짜 함수만 고쳐도
+ *    게이트는 그대로 통과했다 — 정답이 새는데 초록불이 켜지는 상태였다.
+ *    그래서 사본을 지우고 Code.gs 를 같이 싣는다.
+ *
  *   node test/run-gates.js
  */
 
@@ -12,10 +17,11 @@ const path = require('path');
 const vm = require('vm');
 
 const ROOT = path.join(__dirname, '..');
-const sandbox = { module: { exports: {} }, Math, JSON, console, Array, Object };
+const sandbox = { module: { exports: {} }, Math, JSON, console, Array, Object, String, Number, Date };
 sandbox.global = sandbox;
 vm.createContext(sandbox);
-['Config.gs', 'Game.gs'].forEach(f => {
+// Code.gs 는 여기서 함수 정의만 한다 — 아래 게이트가 부르는 teamView 는 시트를 건드리지 않는다
+['Config.gs', 'Game.gs', 'Code.gs'].forEach(f => {
   vm.runInContext(fs.readFileSync(path.join(ROOT, 'apps-script', f), 'utf8'), sandbox, { filename: f });
 });
 const G = sandbox;
@@ -94,17 +100,22 @@ gate('H3-b', '어려움 6개만으로 1·2·3등 유일 결정', () => {
   return { ok: uniq === sample.length, detail: `${uniq}/${sample.length} 유일 결정 (어려움만 6개)` };
 });
 
-gate('H4', '모둠 응답에 정답이 안 담김', () => {
+function viewState(over) {
   const r = races[0];
-  const state = {
-    round: 3, phase: 'betting', truth: r.truth, moves: r.moves, lastRound: r.lastRound,
-    isOver: false, pool: seedPool(),
+  return {
+    code: 'TEST', round: over ? r.lastRound : 3, phase: over ? 'done' : 'betting',
+    truth: r.truth, moves: r.moves, lastRound: r.lastRound, isOver: !!over,
+    pool: seedPool(), settings: G.DEFAULTS, animals: {}, emojis: {}, questionPlan: {},
+    phaseEndsAt: null, pausedAt: null, stateVersion: 1,
     teams: [
       { no: 1, name: '1모둠', pin: '1111', coins: 14, hints: [{ round: 1, level: '어려움', text: '치타는 1·2·3등 안에 반드시 듭니다.' }], answered: {}, bets: {}, betLocked: {} },
       { no: 2, name: '2모둠', pin: '2222', coins: 20, hints: [{ round: 1, level: '쉬움', text: '거북이는 5등 이하입니다.' }], answered: {}, bets: {}, betLocked: {} }
     ]
   };
-  const view = G.toTeamView(state, 1, G.DEFAULTS);
+}
+
+gate('H4', '모둠 응답에 정답이 안 담김', () => {
+  const view = G.teamView(viewState(false), 1);
   const s = JSON.stringify(view);
   const leaks = [];
   if (s.includes('truth')) leaks.push('truth');
@@ -116,15 +127,18 @@ gate('H4', '모둠 응답에 정답이 안 담김', () => {
 });
 
 gate('H4b', '게임이 끝나면 정답이 공개된다', () => {
-  const r = races[0];
-  const state = {
-    round: r.lastRound, phase: 'done', truth: r.truth, moves: r.moves, lastRound: r.lastRound,
-    isOver: true, pool: seedPool(),
-    teams: [{ no: 1, name: '1모둠', pin: '1111', coins: 5, hints: [], answered: {}, bets: {}, betLocked: {} }]
-  };
-  const view = G.toTeamView(state, 1, G.DEFAULTS);
-  const ok = Array.isArray(view.truth) && view.truth.join('') === r.truth.join('');
+  const view = G.teamView(viewState(true), 1);
+  const ok = Array.isArray(view.truth) && view.truth.join('') === races[0].truth.join('');
   return { ok, detail: ok ? '정산 후에만 공개됨' : 'truth 누락 또는 불일치' };
+});
+
+gate('H4e', '교사 응답에도 정산 전에는 정답이 없다', () => {
+  const before = G.teacherView(viewState(false));
+  const after = G.teacherView(viewState(true));
+  const s = JSON.stringify(before);
+  const leaked = s.includes('moves') || (before.truth !== null && before.truth !== undefined);
+  const ok = !leaked && Array.isArray(after.truth);
+  return { ok, detail: ok ? '정산 전 null · 정산 후 공개' : '⛔ 정산 전에 정답이 담겼다' };
 });
 
 gate('H9', '정산 계산', () => {

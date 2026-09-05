@@ -9,10 +9,11 @@ const ROOT = path.join(__dirname, '..');
 
 // ── 앱스 스크립트 흉내 ──
 const tabs = {};
+const READS = {};                       // 어떤 탭을 몇 번 읽었나 (게이트 PERF1)
 function sheetStub(name) {
   tabs[name] = tabs[name] || [];
   return {
-    getDataRange: () => ({ getValues: () => tabs[name].length ? tabs[name] : [[]] }),
+    getDataRange: () => ({ getValues: () => { READS[name] = (READS[name] || 0) + 1; return tabs[name].length ? tabs[name] : [[]]; } }),
     appendRow: r => tabs[name].push(r.slice()),
     getLastRow: () => tabs[name].length,
     getRange: (row, col, nr, nc) => ({
@@ -59,7 +60,7 @@ tabs['게임'] = [['판코드', '반이름', '단원', '상태JSON', '만든시�
 tabs['기록'] = [['번호', '판코드', '라운드', '모둠', '종류', '내용', '시각']];
 
 // ── 시뮬레이션 ──
-let pass = 0, fail = 0, DATE_DETAIL = '', D6B_DETAIL = '', RACE_DETAIL = '';
+let pass = 0, fail = 0, DATE_DETAIL = '', D6B_DETAIL = '', RACE_DETAIL = '', PERF_DETAIL = '', PERF2_DETAIL = '', CFG_DETAIL = '', CFG2_DETAIL = '';
 function check(id, title, ok, detail) {
   console.log(`  ${ok ? 'PASS' : 'FAIL'}  ${id.padEnd(6)} ${title}\n         ${detail}`);
   ok ? pass++ : fail++;
@@ -295,6 +296,70 @@ check('RACE1', '단계가 끝나는 순간의 폴링이 확정된 답을 덮어�
       ' (힌트 ' + hints + '개, phase=' + after.phase + ')';
   return kept && after.phase === 'discuss';
 })(), RACE_DETAIL);
+
+// ══ 수업 중에는 '문제' 탭을 다시 읽지 않는다 ══
+check('PERF1', '모둠 폴링이 문제 탭을 다시 읽지 않는다', (() => {
+  const g = G.gwCreateGame({ className: 'T', unit: '유전', teamCount: 6, teamNames: [] }).data;
+  G.gwAdvanceRound(g.code, g.hostKey);
+  for (let t = 1; t <= 6; t++) {
+    const raw = JSON.parse(tabs['게임'].find(r => r[0] === g.code)[3]);
+    const q = G.readQuestions().rows.find(x => x.id === raw.questionPlan[raw.round]['쉬움']);
+    G.gwChooseLevel(g.code, t, '쉬움', g.pins[t]);
+    G.gwSubmitAnswer(g.code, t, '쉬움', q.answer, g.pins[t]);
+  }
+  Object.keys(READS).forEach(k => delete READS[k]);
+  for (let i = 0; i < 30; i++) for (let t = 1; t <= 6; t++) G.gwGetState(g.code, 'team:' + t, null, g.pins[t]);
+  const n = READS['문제'] || 0;
+  PERF_DETAIL = `6모둠 × 30회 폴링(약 1분) → 문제 탭 읽기 ${n}번`;
+  return n === 0;
+})(), PERF_DETAIL);
+
+check('PERF2', '굳혀둔 문제와 시트의 문제가 같다', (() => {
+  const g = G.gwCreateGame({ className: 'U', unit: '유전', teamCount: 2, teamNames: [] }).data;
+  const raw = JSON.parse(tabs['게임'].find(r => r[0] === g.code)[3]);
+  const sheet = G.readQuestions().rows;
+  let n = 0;
+  for (const r in raw.questionPlan) {
+    for (const lv in raw.questionPlan[r]) {
+      const id = raw.questionPlan[r][lv];
+      const frozen = raw.questionById[id], live = sheet.find(x => x.id === id);
+      if (!frozen || !live) return false;
+      if (frozen.text !== live.text || frozen.answer !== live.answer) return false;
+      if (frozen.choices.join('|') !== live.choices.join('|')) return false;
+      n++;
+    }
+  }
+  PERF2_DETAIL = `${n}개 배정 문항 전부 일치`;
+  return n > 0;
+})(), PERF2_DETAIL);
+
+// ══ '설정' 탭에 이상한 값이 들어와도 수업이 멎지 않는다 ══
+check('CFG1', '잘못 적힌 설정값은 기본값으로 되돌리고 알린다', (() => {
+  const backup = tabs['설정'].slice();
+  tabs['설정'] = [['항목', '값', '설명'],
+    ['시드코인', 0, ''],            // 0 → 배당이 0으로 나누기가 된다
+    ['문제시간초', '90초', ''],      // 숫자가 아니다 → NaN
+    ['토론시간초', 99999, ''],       // 범위 밖
+    ['초기코인', 25, '']];           // 정상 — 그대로 쓰여야 한다
+  const issues = [];
+  const st = G.readSettings(issues);
+  tabs['설정'] = backup;
+  CFG_DETAIL = `되돌린 값 ${issues.length}개, 정상값(초기코인 ${st.initialCoins})은 유지`;
+  return st.seedCoins === G.DEFAULTS.seedCoins &&
+         st.quizSeconds === G.DEFAULTS.quizSeconds &&
+         st.discussSeconds === G.DEFAULTS.discussSeconds &&
+         st.initialCoins === 25 && issues.length === 3;
+})(), CFG_DETAIL);
+
+check('CFG2', '시드가 0이어도 배당률이 NaN 이 되지 않는다', (() => {
+  const zero = {}; G.ANIMAL_CODES.forEach(c => { zero[c] = 0; });
+  const o1 = G.computeOdds(zero);
+  const one = {}; G.ANIMAL_CODES.forEach(c => { one[c] = 0; }); one.A = 5;
+  const o2 = G.computeOdds(one);
+  const finite = v => Object.keys(v).every(k => isFinite(v[k]));
+  CFG2_DETAIL = `전부 0 → ${o1.A}배 / 한 마리에만 5 → A ${o2.A}배, B ${o2.B}배`;
+  return finite(o1) && finite(o2);
+})(), CFG2_DETAIL);
 
 // ── 응답에 Date 가 섞이면 앱스 스크립트가 통째로 실패시킨다 ──
 function findDates(v, path, out) {

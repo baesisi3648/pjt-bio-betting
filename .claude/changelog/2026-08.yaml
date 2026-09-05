@@ -703,3 +703,95 @@ entries:
     description: Refactor Setup
     impact:
       - none
+  - date: "2026-08-05T21:06:53"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Shared.html
+    description: 움직임을 불편해하는 사람을 위한 prefers-reduced-motion, 그리고 진동(buzz)
+    impact:
+      - 연출만 꺼진다. 게임 진행은 그대로
+  - date: "2026-08-05T21:16:22"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Teacher.html
+    description: 칸 격자였던 트랙을 실제 경주 트랙으로. 말이 미끄러지듯 달리고 결승선에서 번쩍인다
+    impact:
+      - 레인 DOM 은 판이 바뀔 때만 짓는다. 매번 innerHTML 로 갈면 말이 순간이동한다
+  - date: "2026-08-05T21:16:36"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Teacher.html
+    description: 배당률 표를 배당판(tote board)으로. 판돈 막대와 ▲▼ 로 돈이 어디 몰렸는지 보인다
+    impact:
+      - 색만으로 뜻을 전하지 않는다 (05-design-system 2절)
+  - date: "2026-08-05T21:16:44"
+    type: feature
+    domain: apps-script
+    files:
+      - apps-script/Team.html
+    description: 건 코인만큼 칩이 쌓이고, 코인이 변하면 튀고, 마감 10초 전 막대가 빨개진다
+    impact:
+      - 베팅에 무게감이 생긴다. 숫자만 오르내리면 아무것도 안 건 것 같다
+  - date: "2026-09-05T10:20:00"
+    type: fix
+    domain: apps-script
+    files:
+      - apps-script/Code.gs
+      - apps-script/Config.gs
+      - apps-script/Game.gs
+      - apps-script/Setup.gs
+      - apps-script/Sheet.gs
+      - apps-script/Shared.html
+      - apps-script/Teacher.html
+      - apps-script/Team.html
+    description: 판 코드만 알면 정답 순위와 모둠 암호가 보이던 문제 — 교사 열쇠 도입
+    impact:
+      - 서버 계약 변경. 재배포하지 않으면 학생 화면이 멎는다
+      - 모둠 행동에 매번 암호가 필요하다
+      - 정답은 gwReveal 을 부른 그 순간에만 나간다
+  - date: "2026-09-05T10:22:00"
+    type: fix
+    domain: apps-script
+    files:
+      - apps-script/Sheet.gs
+    description: 캐시 복구 뒤 같은 힌트가 두 번 나가던 문제 (replayEvent 가 hintGiven 을 안 되살렸다)
+    impact:
+      - 게이트 D6 이 지키는 규칙이 복구 경로에서만 깨져 있었다
+  - date: "2026-09-05T10:24:00"
+    type: fix
+    domain: apps-script
+    files:
+      - apps-script/Code.gs
+    description: 단계가 끝나는 순간의 폴링이 방금 확정된 답을 덮어쓰던 문제
+    impact:
+      - gwGetState 만 잠금 밖에서 상태를 썼다. 마감 직전 정답이 미제출로 덮였다
+  - date: "2026-09-05T10:45:00"
+    type: refactor
+    domain: apps-script
+    files:
+      - apps-script/Code.gs
+    description: 배정된 문항 내용을 판 만들 때 상태에 굳힌다 — 폴링마다 문제 탭을 다시 읽지 않게
+    impact:
+      - 6모둠 기준 분당 시트 읽기 180번에서 0번으로
+  - date: "2026-09-05T10:50:00"
+    type: fix
+    domain: root
+    files:
+      - test/run-gates.js
+      - apps-script/Game.gs
+    description: 정답 유출 게이트가 사본(toTeamView)을 검사하던 문제 — 사본을 지우고 진짜 teamView 를 본다
+    impact:
+      - 진짜 함수만 고쳐도 게이트가 통과하던 상태였다
+  - date: "2026-09-05T10:55:00"
+    type: fix
+    domain: apps-script
+    files:
+      - apps-script/Config.gs
+      - apps-script/Sheet.gs
+      - apps-script/Game.gs
+    description: 설정 탭에 숫자 아닌 값이나 범위 밖 값이 들어오면 기본값으로 되돌리고 알린다
+    impact:
+      - 시드코인 0 이면 배당률이 NaN 이 되어 정산까지 무너졌다

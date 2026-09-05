@@ -217,8 +217,20 @@ function gwCreateGame(config) {
       hintPool: buildHints(race.truth, v.animals.names),
       hintGiven: {},
       questionPlan: planQuestions(byLevel, race.lastRound),
+      questionById: {},                     // 아래에서 채운다
       pool: pool, teams: teams, settings: settings, isOver: false
     };
+
+    // 배정된 문항의 내용을 상태에 함께 굳힌다.
+    // 이러면 수업 중에는 '문제' 탭을 한 번도 다시 읽지 않는다 (아래 questionFor 주석)
+    var byId = {};
+    v.questions.forEach(function (q) { byId[q.id] = q; });
+    for (var r in state.questionPlan) {
+      for (var lv in state.questionPlan[r]) {
+        var id = state.questionPlan[r][lv];
+        if (id != null && byId[id]) state.questionById[id] = byId[id];
+      }
+    }
 
     saveSnapshot(state);
 
@@ -392,11 +404,25 @@ function takeHint(state, team, level) {
   return null;
 }
 
+/**
+ * ⚠️ 되돌리면 문제 푸는 90초 동안 앱스 스크립트가 시트만 읽는다.
+ *
+ * 이 함수는 모둠 폴링(2초)마다 불린다 — 답을 낸 모둠은 문제 본문을 계속 봐야 하니까.
+ * 예전에는 그때마다 readQuestions() 로 '문제' 탭 전체를 다시 읽었다.
+ * 6모둠이면 1분에 180번이다. 문제은행이 커질수록 그대로 느려진다.
+ *
+ * 문항은 판을 만들 때 이미 다 배정해 두므로(questionPlan), 그 내용도 같이 굳혀 둔다.
+ * 시트를 다시 읽는 건 이 수정 이전에 만든 판을 이어할 때뿐이다.
+ */
 function questionFor(state, round, level) {
   var plan = state.questionPlan[round];
   if (!plan || !plan[level]) return null;
-  var all = readQuestions().rows;
-  for (var i = 0; i < all.length; i++) if (all[i].id === plan[level]) return all[i];
+  var id = plan[level];
+
+  if (state.questionById && state.questionById[id]) return state.questionById[id];
+
+  var all = readQuestions().rows;              // 예전 판 — 시트에서 찾는다
+  for (var i = 0; i < all.length; i++) if (all[i].id === id) return all[i];
   return null;
 }
 

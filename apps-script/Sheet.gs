@@ -106,7 +106,11 @@ function readHintTemplates() {
   return { rows: rows, bad: bad };
 }
 
-function readSettings() {
+/**
+ * '설정' 탭을 읽는다. 범위를 벗어난 값은 기본값으로 되돌린다.
+ * issues 배열을 넘기면 무엇을 되돌렸는지 담아준다 (판 만들기 화면 경고용).
+ */
+function readSettings(issues) {
   var s = {};
   for (var k in DEFAULTS) s[k] = DEFAULTS[k];
   var map = {
@@ -117,7 +121,21 @@ function readSettings() {
   readRows(SHEETS.SETTINGS).forEach(function (r) {
     var key = map[String(r[0] || '').trim()];
     if (!key || r[1] === '') return;
-    s[key] = (key === 'studentUrl') ? String(r[1]).trim() : Number(r[1]);
+
+    if (key === 'studentUrl') { s[key] = String(r[1]).trim(); return; }
+
+    var raw = r[1], n = Number(raw), rule = SETTING_RANGE[key];
+    var okNum = typeof n === 'number' && isFinite(n) && Math.floor(n) === n;
+    if (!okNum || (rule && (n < rule.min || n > rule.max))) {
+      if (issues) {
+        issues.push("'설정' 탭 " + (rule ? rule.label : key) + ' — ' +
+                    (okNum ? n + ' 은(는) ' + rule.min + '~' + rule.max + ' 범위 밖이라'
+                           : "'" + raw + "' 은(는) 숫자가 아니라") +
+                    ' 기본값 ' + DEFAULTS[key] + ' 을(를) 씁니다.');
+      }
+      return;                                  // 기본값 유지
+    }
+    s[key] = n;
   });
   return s;
 }
@@ -125,6 +143,8 @@ function readSettings() {
 /** 판 만들기 전 검사 (specs/screens/teacher-setup.yaml validations) */
 function validateSheets(unit) {
   var blocking = [], warnings = [];
+
+  readSettings(warnings);          // 잘못 적힌 설정값을 판 만들기 전에 알린다
 
   var animals = readAnimals();
   if (!animals.ok) blocking.push(animals.message);

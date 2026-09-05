@@ -24,6 +24,25 @@ var DEFAULTS = {
   payout: { 1: 1.0, 2: 0.7, 3: 0.5 }
 };
 
+/**
+ * '설정' 탭 값의 허용 범위.
+ *
+ * 선생님이 직접 고치는 칸이라 무엇이든 들어올 수 있다.
+ * 빈칸도 아니고 숫자도 아닌 값('20개' 같은)은 Number() 가 NaN 을 낸다.
+ * NaN 이 시간에 들어가면 타이머가 멎고, 시드코인에 0 이 들어가면
+ * 배당률이 0으로 나누기가 되어 화면에 'NaN배' 가 뜬다.
+ * 그래서 범위를 벗어나면 기본값을 쓰고, 판 만들기 화면에 그 사실을 알린다.
+ */
+var SETTING_RANGE = {
+  initialCoins:   { min: 1,  max: 500, label: '초기코인' },
+  maxBetPerRound: { min: 1,  max: 50,  label: '라운드당최대베팅' },
+  seedCoins:      { min: 1,  max: 500, label: '시드코인' },
+  quizSeconds:    { min: 10, max: 900, label: '문제시간초' },
+  discussSeconds: { min: 10, max: 900, label: '토론시간초' },
+  betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
+  trackCells:     { min: 4,  max: 30,  label: '트랙칸수' }
+};
+
 var ANIMAL_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'];
 var LEVELS = ['쉬움', '중간', '어려움'];
 
@@ -100,4 +119,4 @@ var SPREADSHEET_ID = '1BGPCWghYREs15EbMsO-asazFdntPiFYqjmkaxoruL1A';
 
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec';
 
-var DEPLOY_VERSION = '2026-09-05a';  // 화면 하단에 표시 — 재배포 누락 감지용
+var DEPLOY_VERSION = '2026-09-05b';  // 화면 하단에 표시 — 재배포 누락 감지용

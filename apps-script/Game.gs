@@ -212,13 +212,21 @@ function countTop3Candidates(predicates, limit) {
 // 3. 배당률 · 베팅 · 정산
 // ────────────────────────────────────────────────────────────
 
-/** 파리뮤추얼. 시드는 0으로 나누기 방지 겸 배당 상한 조절 (리뷰 C6) */
+/**
+ * 파리뮤추얼. 시드는 0으로 나누기 방지 겸 배당 상한 조절 (리뷰 C6)
+ *
+ * 시드는 '설정' 탭에서 오므로 0 이 들어올 수 있었다. 그러면 total/0 이 되어
+ * 화면에 'NaN배' 가 뜨고 정산 금액도 전부 NaN 이 된다.
+ * readSettings 가 이미 막지만, 이 함수만 봐도 안전하도록 여기서도 막는다.
+ */
 function computeOdds(pool) {
   var total = 0;
   for (var c in pool) total += pool[c];
   var out = {};
   for (var code in pool) {
-    out[code] = Math.round((total / pool[code]) * 100) / 100;
+    if (total <= 0) { out[code] = 1; continue; }
+    var share = pool[code] > 0 ? pool[code] : 1;
+    out[code] = Math.round((total / share) * 100) / 100;
   }
   return out;
 }
@@ -346,46 +354,6 @@ function makeHostKey(rng) {
   return s;
 }
 
-/**
- * ⚠️ 되돌리면 개발자 도구로 정답이 보인다 (00-loop.md)
- * ⚠️ 실제로 서비스가 쓰는 것은 Code.gs 의 teamView 다. 이쪽은 게이트 검사용 사본이라
- *    두 벌이 갈라질 수 있다 — 고칠 때는 반드시 양쪽을 같이 본다.
- */
-function toTeamView(state, teamNo, settings) {
-  var me = null, progress = [];
-  state.teams.forEach(function (t) {
-    progress.push({
-      no: t.no, name: t.name,
-      answered: !!(t.answered && t.answered[state.round]),
-      betLocked: !!(t.betLocked && t.betLocked[state.round])
-    });
-    if (t.no === teamNo) me = t;
-  });
-
-  var view = {
-    round: state.round,
-    phase: state.phase,
-    positions: positionsAtRound(state.moves, state.round),
-    odds: computeOdds(state.pool),
-    teamProgress: progress,
-    isOver: !!state.isOver,
-    me: me ? {
-      no: me.no, name: me.name, coins: me.coins,
-      hints: me.hints || [],
-      myBets: me.bets || {},
-      chosenLevel: me.answered && me.answered[state.round] ? me.answered[state.round].level : null,
-      canAnswer: state.phase === PHASES.QUIZ && !(me.answered && me.answered[state.round]),
-      canBet: state.phase === PHASES.BETTING && !(me.betLocked && me.betLocked[state.round])
-    } : null
-  };
-
-  // 정답 순위는 게임이 끝난 뒤에만. 이 검사를 빼면 게임이 무너진다.
-  if (state.isOver) {
-    view.truth = rankByPosition(positionsAtRound(state.moves, state.lastRound), state.truth);
-  }
-  return view;
-}
-
 if (typeof module !== 'undefined') {
   module.exports = {
     planRace: planRace, planOneAnimal: planOneAnimal, splitIntoMoves: splitIntoMoves,
@@ -393,6 +361,6 @@ if (typeof module !== 'undefined') {
     buildHints: buildHints, buildHintPredicates: buildHintPredicates, countTop3Candidates: countTop3Candidates,
     computeOdds: computeOdds, validateBet: validateBet, settle: settle,
     planQuestions: planQuestions, shuffle: shuffle, permute: permute,
-    makeCode: makeCode, makePin: makePin, makeHostKey: makeHostKey, toTeamView: toTeamView
+    makeCode: makeCode, makePin: makePin, makeHostKey: makeHostKey
   };
 }
