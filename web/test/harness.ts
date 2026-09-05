@@ -291,9 +291,21 @@ export function errOf(res: ApiResponse): string {
   return res.body.ok ? 'ok' : res.body.error;
 }
 
+/**
+ * 판 하나를 만든다 — 게이트 대부분이 여기서 시작한다.
+ *
+ * ⚠️ 관리자 비밀번호를 싣는다. 판 만들기도 `adminDenied` 를 지나기 때문이다
+ *    (2026-09-05 사용자 결정 — router.ts `createRoute` 주석). 그물의 값을 그대로 쓰므로
+ *    게이트가 `net.adminPassword` 를 바꾸면 여기도 따라간다.
+ *
+ * ⚠️ `net.adminPassword = undefined` 로 만든 **뒤에** 부르면 `ADMIN_DISABLED` 로 던진다.
+ *    미설정 배포를 검사하는 게이트는 판을 **먼저** 만들고 나서 꺼야 한다 (SEC12).
+ */
 export async function open(net: Net, unit = '유전', teamCount = 6, className = '2학년 3반'): Promise<Opened> {
-  const res = await net.call('POST', '/api/game', { body: { className, unit, teamCount } });
-  if (!res.body.ok) throw new Error('판 생성 실패: ' + res.body.message);
+  const res = await net.call('POST', '/api/game', {
+    headers: admin(net.adminPassword ?? ''), body: { className, unit, teamCount }
+  });
+  if (!res.body.ok) throw new Error('판 생성 실패: ' + res.body.error + ' ' + res.body.message);
   const d = dataOf(res);
   return {
     code: String(d.code), hostKey: String(d.hostKey),

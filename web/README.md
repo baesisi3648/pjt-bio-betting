@@ -52,7 +52,7 @@
 ## 돌려보기
 
 ```bash
-npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + 관리 8 + QR 10 + 경주 9
+npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 41 + 게이트웨이 25 + 관리 8 + QR 10 + 경주 9
 npm run room     # 방 코어만
 npm run gateway  # 게이트웨이(HTTP 라우트 · 인증)만
 npm run admin    # 문제은행 관리 라우트만
@@ -72,17 +72,28 @@ open http://localhost:8787/teacher     # 교사 화면
 open http://localhost:8787/admin       # 문제은행 관리 (관리자 비밀번호)
 curl localhost:8787/api/version
 curl -X POST -H 'content-type: application/json' \
+     -H 'X-Admin-Password: <ADMIN_PASSWORD>' \
      -d '{"className":"2학년 3반","unit":"유전","teamCount":6}' \
      localhost:8787/api/game
 ```
 
-관리자 경로(`POST /api/admin/host-key` — 교사 열쇠 되찾기, `/api/admin/*` — 문제은행)는
-`ADMIN_PASSWORD` 를 넣어야 열립니다. **안 넣으면 맞는 값을 줘도 거부합니다** — secret 하나
-빠뜨린 배포에서 판 코드만 아는 학생이 정답과 모든 모둠 암호를 가져가면 안 되기 때문입니다.
+관리자 비밀번호(`ADMIN_PASSWORD`)를 넣어야 열리는 경로:
+`POST /api/game`(**판 만들기**), `POST /api/admin/host-key`(교사 열쇠 되찾기),
+`/api/admin/*`(문제은행). 전부 헤더 `X-Admin-Password` 를 **매 호출** 확인합니다 —
+세션도 쿠키도 토큰도 없습니다.
+
+**안 넣고 배포하면 맞는 값을 줘도 거부합니다** — secret 하나 빠뜨린 배포에서 판 코드만
+아는 학생이 정답과 모든 모둠 암호를 가져가면 안 되기 때문입니다. 그런 배포에서는
+**판도 하나도 안 만들어집니다**(`ADMIN_DISABLED`). 이것도 의도입니다: 그렇게 만들어진 판은
+교사 열쇠를 잃어버려도 회수할 길이 없어서, 수업 중에 그걸 알게 되는 것보다 낫습니다.
+
+판 만들기에 비밀번호를 요구하게 된 것은 2026-09-05 사용자 결정입니다 — 그전에는 인증이
+없어서 주소만 알면 학생이 빈 판을 만들어 '최근 판' 목록을 어지럽힐 수 있었습니다
+(MIGRATION.md §8-1b ※).
 
 ⚠️ **비밀번호는 영문·숫자·기호로 하세요.** HTTP 헤더 값은 Latin-1 바이트만 실을 수 있어서,
 한글이나 이모지가 든 비밀번호는 **브라우저가 요청을 만들다가 던집니다**(서버까지 가지도 않습니다).
-관리 화면은 보내기 전에 걸러 이유를 말하지만, 교사 화면의 '이어하기'는 아직 그 안내가 없습니다.
+세 자리(관리 화면 · 교사 '새 판 만들기' · '이어하기')가 모두 보내기 전에 걸러 이유를 말합니다.
 
 ```bash
 npx wrangler secret put ADMIN_PASSWORD          # 배포용
@@ -160,12 +171,15 @@ src/client/
   index.html      학생 (S4 접속 · S5 게임 · S6 결과)   ← /
   teacher.html    교사 (S1 시작 · 배포 안내 · S2 진행 · S3 정산)   ← /teacher
   admin.html      문제은행 관리 (문제 · 동물 · 설정)   ← /admin
-  shared/         base.css · ui(토스트·확인대화·배너) · socket · clock · gateway · qr
+  shared/         base.css · ui(토스트·확인대화·배너) · socket · clock · gateway · qr · pw
   team/  teacher/  admin/   화면별 CSS 와 로직
 ```
 
 **관리 화면은 별도 진입점입니다.** 수업용 교사 번들에 관리 코드가 실리면 안 되기 때문입니다
 (PixiJS 를 학생 번들에서 떼어 둔 것과 같은 규칙). 교사 화면에는 링크 하나뿐입니다.
+두 화면이 공유하는 것은 관리자 비밀번호 **저장소**뿐입니다 — `shared/pw.ts` 의 `pwStore`
+하나가 `sessionStorage` 에 두고, 같은 출처라 한 번만 넣으면 `/teacher` 와 `/admin` 이
+같이 열립니다 (`localStorage` 로 바꾸지 마세요 — 교실 공용 노트북에 영구히 남습니다).
 
 ```bash
 npm run build && grep -l "api/admin/questions" dist/client/assets/*.js   # admin-*.js 만 나와야 합니다

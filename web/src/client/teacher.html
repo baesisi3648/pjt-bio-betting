@@ -21,6 +21,17 @@
   </div>
 
   <div id="pane-new" class="card">
+    <!-- ⚠️ 판 만들기에도 관리자 비밀번호가 필요합니다 (2026-09-05 사용자 결정).
+         예전에는 인증이 없어서, 주소만 아는 학생이 빈 판을 만들어 '최근 판' 목록을
+         어지럽힐 수 있었습니다. 값은 sessionStorage 에 두고 '이어하기'의 입력란과
+         같은 값을 가리킵니다 — 한 번만 넣으면 /admin 까지 함께 열립니다 (shared/pw.ts) -->
+    <div class="admin-row">
+      <label for="cadmin">관리자 비밀번호</label>
+      <input id="cadmin" type="password" autocomplete="current-password">
+      <div class="qrhint">판을 만들 때만 확인합니다. 학생은 필요 없습니다</div>
+      <!-- ⚠️ 토스트가 아니라 여기 남깁니다. 거절 사유는 고칠 때까지 보여야 합니다 -->
+      <div id="create-msg" class="stop hidden"></div>
+    </div>
     <label for="cls">반 이름</label><input id="cls" placeholder="2학년 3반">
     <label for="unit">단원</label><select id="unit"></select>
     <div id="no-questions" class="warn hidden">

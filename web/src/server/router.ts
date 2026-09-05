@@ -117,6 +117,9 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
   if (path === '/api/units') return unitsRoute(ports);
   if (path === '/api/prepare') return prepareRoute(req, ports);
 
+  // ── 관리자 비밀번호 필요 ──
+  // 판 만들기는 `/api/admin/` 으로 시작하지 않지만 **같은 문**(adminDenied)을 지난다.
+  // 이유는 createRoute 머리 주석에 적혀 있다
   if (path === '/api/game' && method === 'POST') return createRoute(req, ports);
 
   const m = GAME.exec(path);
@@ -199,7 +202,26 @@ const MAX_TEAMS = 12;
 /** 판 코드가 이미 쓰이고 있으면 다시 뽑는다 */
 const CODE_ATTEMPTS = 5;
 
+/**
+ * 판 만들기. **관리자 비밀번호를 매 호출 요구한다** (2026-09-05 사용자 결정).
+ *
+ * 예전에는 인증이 없었다. 근거는 "열쇠를 발급하는 호출이라 열쇠를 요구할 수 없다"였고
+ * 그건 지금도 맞다 — 다만 요구하는 것이 열쇠가 아니라 **관리자 비밀번호**라 상관없다.
+ * 바꾼 이유: 주소만 알면 학생이 빈 판을 얼마든지 만들어 '최근 판' 목록을 어지럽힐 수 있었다.
+ * 목록은 인증 없이 나가는 것이라(`GET /api/units`) 지운 흔적도 남지 않는다.
+ *
+ * ⚠️ `ADMIN_PASSWORD` 를 안 넣고 배포하면 판이 **하나도** 안 만들어진다 (`ADMIN_DISABLED`).
+ *    이건 의도다. 그런 배포에서 만들어진 판은 열쇠를 잃어버려도 회수할 길이 없다
+ *    (`POST /api/admin/host-key` 도 같은 문에 막혀 있다) — 수업 중에 그걸 알게 되는 것보다
+ *    판을 못 만드는 편이 낫다.
+ *
+ * ⚠️ 확인이 **맨 앞**에 있다. D1 을 읽기 전에, 방을 부르기 전에 거절한다 —
+ *    거절당한 요청이 문제은행 검사만 돌리고 가도, 방 객체만 만들고 가도 안 된다.
+ */
 async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> {
+  const denied = adminDenied(req, ports);
+  if (denied) return denied;
+
   const body = bodyOf(req);
   const className = String(body.className ?? '').trim();
   const unit = String(body.unit ?? '').trim();
@@ -285,6 +307,9 @@ async function prepareRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse>
  *
  * ⚠️ 관리자 라우트가 늘어도 **이 함수 하나**를 지난다. 각 라우트가 저마다 확인하면
  *    새 라우트 하나에서 빠뜨리는 날이 오고, 그때 문제은행 전체가 열린다.
+ *
+ * 이 문을 지나는 것: `/api/admin/*` 전부 · `POST /api/admin/host-key` ·
+ * **`POST /api/game`**(판 만들기 — 왜인지는 `createRoute` 머리 주석에).
  */
 function adminDenied(req: ApiRequest, ports: Ports): ApiResponse | null {
   if (!ports.adminPassword) return fail('ADMIN_DISABLED');

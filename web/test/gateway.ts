@@ -21,7 +21,7 @@ import { THROTTLE } from '../src/do/ops.ts';
 import { validateUnit } from '../src/server/bank.ts';
 import type { ApiResponse, RecentGame } from '../src/server/ports.ts';
 import {
-  Net, ORIGIN, allKeys, answerOf, createGates, dataOf, errOf, host, open, pin
+  Net, ORIGIN, admin, allKeys, answerOf, createGates, dataOf, errOf, host, open, pin
 } from './harness.ts';
 
 const { gate, done } = createGates('게이트웨이 게이트 (인메모리 포트 · 가짜 시계)');
@@ -195,8 +195,10 @@ await gate('SEC12', '관리자 비밀번호로만 교사 열쇠를 되찾는다'
 
   // ⚠️ secret 을 안 넣고 배포하면 **맞는 값을 줘도** 열리면 안 된다
   const off = new Net();
-  off.adminPassword = undefined;
+  // ⚠️ 판을 **먼저** 만든다. 판 만들기도 관리자 비밀번호를 요구하므로(GW-CREATE-AUTH),
+  //    끄고 나서 부르면 여기서 ADMIN_DISABLED 로 걸려 검사하려던 것에 닿지도 못한다
   const g2 = await open(off, '유전', 2);
+  off.adminPassword = undefined;
   const offRes = await off.call('POST', url, { headers: { 'X-Admin-Password': 'sEcRet-비밀번호-1234' }, body: { code: g2.code } });
 
   const leaked = [none, wrong, shortPw, missing, offRes].some((r) => JSON.stringify(r.body).includes(g.hostKey));
@@ -225,7 +227,7 @@ await gate('SEC13', 'DO 의 op 는 공개 경로에 없다 — 판 생성은 /ap
   const noRoom = !net.rooms.get('XXXX') || net.rooms.get('XXXX')!.room.raw() === null;
 
   // 그리고 유일한 생성 경로는 D1 문제은행을 거친다 — 없는 단원으로는 판이 안 만들어진다
-  const noUnit = await net.call('POST', '/api/game', { body: { className: 'A', unit: '없는단원', teamCount: 2 } });
+  const noUnit = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: 'A', unit: '없는단원', teamCount: 2 } });
   // 만들어진 판의 문항은 D1 에서 온 것이다 (문항 내용이 상태에 굳어 있다 — §4-6)
   const g = await open(net, '유전', 2);
   const st = net.state(g.code);
@@ -336,6 +338,53 @@ await gate('GW-SKIP', "'지금 넘어가기'는 교사 열쇠로만 — 넘길 �
 // 게이트웨이 자체
 // ════════════════════════════════════════════════════════════
 
+await gate('GW-CREATE-AUTH', '판 만들기도 관리자 비밀번호를 요구한다 — 거부되면 아무것도 안 남는다', async () => {
+  const net = new Net();
+  const body = { className: '2학년 3반', unit: '유전', teamCount: 6 };
+  const bad: string[] = [];
+
+  // 1) 헤더 없음  2) 틀린 값  3) 길이가 다른 값 (길이로 힌트를 주면 안 된다)
+  const tries: [string, Record<string, string> | undefined][] = [
+    ['없음', undefined],
+    ['틀림', admin('아무거나')],
+    ['짧음', admin('s')]
+  ];
+  for (const [label, headers] of tries) {
+    const r = await net.call('POST', '/api/game', headers ? { headers, body } : { body });
+    if (errOf(r) !== 'ADMIN_DENIED' || r.status !== 403) bad.push(`${label} → ${errOf(r)}(${r.status})`);
+    // ⚠️ 거절 응답이 판 코드·열쇠·암호를 흘리면 안 된다
+    for (const k of ['code', 'hostKey', 'pins']) if (allKeys(r.body).has(k)) bad.push(`${label} 응답에 ${k}`);
+  }
+
+  // ⚠️ 거절만 확인하고 끝내면 "거절은 했는데 그전에 이미 만들었다"를 못 잡는다.
+  //    D1 '최근 판' 표에 줄이 없고, DO 에 상태를 가진 방도 없어야 한다
+  const noRow = net.db.games.length === 0;
+  const noRoom = [...net.rooms.values()].every((r) => r.room.raw() === null);
+  const recent = dataOf(await net.call('GET', '/api/units')).recent as RecentGame[];
+  if (!noRow) bad.push(`games ${net.db.games.length}줄`);
+  if (!noRoom) bad.push('DO 에 방이 섰다');
+  if (recent.length) bad.push(`최근 판 목록 ${recent.length}줄`);
+
+  // secret 을 안 넣고 배포하면 **맞는 값을 줘도** 판이 안 만들어진다. 이건 의도다 —
+  // 그런 배포에서 만들어진 판은 열쇠를 잃어버려도 회수할 길이 없다 (SEC12 와 같은 문)
+  const off = new Net();
+  off.adminPassword = undefined;
+  const offRes = await off.call('POST', '/api/game', { headers: admin('sEcRet-비밀번호-1234'), body });
+  if (errOf(offRes) !== 'ADMIN_DISABLED' || offRes.status !== 503) bad.push(`(미설정) ${errOf(offRes)}(${offRes.status})`);
+  if (off.db.games.length) bad.push('(미설정) games 에 줄이 남았다');
+
+  // 그리고 맞는 비밀번호로는 만들어진다 (게이트가 "전부 거부"만 확인하고 끝나면 안 된다)
+  const okRes = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body });
+  const made = dataOf(okRes);
+
+  return {
+    ok: bad.length === 0 && okRes.body.ok && !!made.code && !!made.hostKey && net.db.games.length === 1,
+    detail: bad.length ? '⛔ ' + bad.join(', ')
+      : `없음·틀림·짧음 전부 ADMIN_DENIED(403) · 거부 뒤 games 0줄 · DO 방 0개 · ` +
+        `미설정이면 ADMIN_DISABLED(503) · 맞으면 ${String(made.code)} 생성 (games 1줄)`
+  };
+});
+
 await gate('GW1', '판 생성 → 6모둠 접속 → 진행 → 정산까지 HTTP 로 완주', async () => {
   const net = new Net();
   const g = await open(net, '유전', 6);
@@ -383,7 +432,7 @@ await gate('GW1', '판 생성 → 6모둠 접속 → 진행 → 정산까지 HTT
 await gate('GW2', '생성 응답에 studentUrl·warnings, D1 games 에 한 줄', async () => {
   const net = new Net();
   // '항상성' 은 어려움이 3문항뿐 — 경고가 나되 판은 만들어져야 한다
-  const res = await net.call('POST', '/api/game', { body: { className: '2학년 5반', unit: '항상성', teamCount: 5, teamNames: ['가', '나'] } });
+  const res = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: '2학년 5반', unit: '항상성', teamCount: 5, teamNames: ['가', '나'] } });
   const d = dataOf(res);
   const row = net.db.games[0];
   const teams = d.teams as { no: number; name: string }[];
@@ -425,7 +474,7 @@ await gate('GW3', '판 코드가 겹치면 다시 뽑아 성공한다', async ()
     validateUnit('유전', net.db.questions.filter((q) => q.unit === '유전'), net.db.animals, net.db.settings).questions,
     { names: {} as Record<AnimalCode, string>, emojis: {} as Record<AnimalCode, string> });
 
-  const res = await net.call('POST', '/api/game', { body: { className: '뒷반', unit: '유전', teamCount: 2 } });
+  const res = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: '뒷반', unit: '유전', teamCount: 2 } });
   const code = String(dataOf(res).code);
   // 앞 판을 덮어쓰지 않았다
   const kept = net.db.games.find((x) => x.code === 'AAAA')!.className === '앞반' &&
@@ -474,8 +523,9 @@ await gate('GW5', '없는 판·없는 주소·깨진 본문에도 봉투로 답�
   const net = new Net();
   const notFound = await net.call('GET', '/api/game/ZZZZ/lobby');
   const badPath = await net.call('GET', '/api/모름');
-  const badBody = await net.call('POST', '/api/game', { body: undefined });     // 본문 없음
-  const badTeams = await net.call('POST', '/api/game', { body: { className: 'A', unit: '유전', teamCount: 99 } });
+  // ⚠️ 관리자 비밀번호는 맞게 싣는다 — 여기서 보려는 것은 **본문 검사**이지 인증이 아니다
+  const badBody = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: undefined });
+  const badTeams = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: 'A', unit: '유전', teamCount: 99 } });
   const wrongMethod = await net.call('GET', '/api/game/ZZZZ/advance');
   return {
     ok: errOf(notFound) === 'GAME_NOT_FOUND' && notFound.status === 404 &&

@@ -23,8 +23,16 @@ const { gate, done } = createGates('문제은행 관리 게이트');
 
 const PW = 'sEcRet-비밀번호-1234';
 
-/** 관리자 라우트 전부. ADM1 이 이 표를 통째로 순회한다 */
+/**
+ * 관리자 비밀번호를 요구하는 라우트 전부. ADM1 이 이 표를 통째로 순회한다.
+ *
+ * ⚠️ `POST /api/game` 도 여기 있다. 주소가 `/api/admin/` 으로 시작하지 않을 뿐
+ *    **같은 문**(`router.ts` 의 `adminDenied`)을 지나기 때문이다 (2026-09-05 사용자 결정).
+ *    이 표에 없으면, 그 문을 옮기다가 판 만들기만 빠뜨리는 날 아무도 모른다.
+ *    (판이 실제로 안 만들어지는지는 게이트웨이 쪽 `GW-CREATE-AUTH` 가 더 자세히 본다)
+ */
 const ROUTES: [string, string, unknown][] = [
+  ['POST', '/api/game', { className: '2학년 3반', unit: '유전', teamCount: 6 }],
   ['GET', '/api/admin/questions', undefined],
   ['GET', '/api/admin/questions?unit=유전', undefined],
   ['POST', '/api/admin/questions', { unit: '유전', level: '쉬움', text: 'ㅁ', choices: ['1', '2', '3', '4'], answer: 1 }],
@@ -61,8 +69,9 @@ await gate('ADM1', '비밀번호 없이는 관리자 경로가 하나도 안 열
       if (code !== 'ADMIN_DENIED') bad.push(`${m} ${p} (${label}) → ${code}`);
     }
   }
-  // 거부만 하고 실제로 아무것도 안 바뀌었다
+  // 거부만 하고 실제로 아무것도 안 바뀌었다 — 문제은행도, '최근 판' 표도
   const untouched = net.db.questions.length === before &&
+    net.db.games.length === 0 &&
     net.db.animals.map((a) => a.name).join(',') === '치타,사자,호랑이,늑대,얼룩말,타조,개구리,거북이';
 
   // ⚠️ secret 을 안 넣고 배포하면 **맞는 값을 줘도** 열리면 안 된다.
@@ -80,7 +89,7 @@ await gate('ADM1', '비밀번호 없이는 관리자 경로가 하나도 안 열
     ok: bad.length === 0 && untouched && okRes.body.ok,
     detail: bad.length ? '⛔ ' + bad.join(', ')
       : `라우트 ${ROUTES.length}개 × (없음·틀림·짧음) 전부 ADMIN_DENIED · 미설정이면 전부 ADMIN_DISABLED · ` +
-        `문제은행 그대로 ${untouched} · 맞는 비밀번호로는 열림`
+        `문제은행·판 목록 그대로 ${untouched} · 맞는 비밀번호로는 열림`
   };
 });
 

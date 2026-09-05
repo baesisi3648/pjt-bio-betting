@@ -11,6 +11,11 @@
  *    `POST /api/admin/host-key`. `ADMIN_PASSWORD` 를 안 넣고 배포하면 이 경로는 통째로
  *    닫히고(`ADMIN_DISABLED`), 그때는 판을 만든 브라우저 말고는 이어갈 방법이 없다.
  *
+ * 1b. **판 만들기도 그 비밀번호를 요구한다** (2026-09-05 사용자 결정). 예전에는 인증이
+ *    없어서 주소만 아는 학생이 빈 판을 만들어 '최근 판' 목록을 어지럽힐 수 있었다.
+ *    입력란은 둘이지만 값은 하나다 — '새 판'의 `cadmin` 과 '이어하기'의 `radmin` 이
+ *    서로를 따라가고, 저장소는 `/admin` 과 같다 (`shared/pw.ts`).
+ *
  * 2. **'🔧 진단' 버튼이 없다.** 그 버튼이 보여주던 것은 전부 스프레드시트 상태였다
  *    (getActive · openById · listUnits …). 문제은행이 D1 으로 옮겨져 해당하는 것이 없다.
  *
@@ -40,6 +45,7 @@ import type { AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
 import { FATAL, HEADER_UNSAFE_MSG, api, handle, headerSafe, hostOp, isOk } from '../shared/gateway.ts';
+import { pwStore } from '../shared/pw.ts';
 import { qrSvg } from '../shared/qr.ts';
 import { GameSocket } from '../shared/socket.ts';
 import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
@@ -85,6 +91,40 @@ function keyStore(code: string, val?: string): string | null {
     localStorage.setItem('wd_host_' + code, val);
   } catch { /* 막힌 브라우저 */ }
   return val ?? null;
+}
+
+// ────────────────────────────────────────────────────────────
+// 관리자 비밀번호 — 판 만들기 · 열쇠 되찾기가 **같은 값**을 쓴다
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 판 만들기(`POST /api/game`)도 관리자 비밀번호를 요구한다 (2026-09-05 사용자 결정 —
+ * router.ts `createRoute` 주석). 그래서 이 화면에는 비밀번호 입력란이 둘이다:
+ * '새 판 만들기'의 `cadmin` 과 '이어하기'의 `radmin`.
+ *
+ * ⚠️ 둘은 **같은 값**을 가리킨다. 탭마다 따로 넣게 두면, 판을 만들고 나서 열쇠를
+ *    되찾을 때 같은 비밀번호를 또 넣어야 한다. 저장소도 `/admin` 과 같은 것을 쓰므로
+ *    (`shared/pw.ts`) 수업 준비 중에 한 번만 넣으면 세 자리가 다 열린다.
+ */
+function setAdminPw(v: string): void {
+  ($('cadmin') as HTMLInputElement).value = v;
+  ($('radmin') as HTMLInputElement).value = v;
+}
+
+function adminPw(): string {
+  return (($('cadmin') as HTMLInputElement).value || '').trim();
+}
+
+/**
+ * '새 판' 폼의 거절 사유 상자.
+ *
+ * ⚠️ 토스트가 아니다. 비밀번호가 틀렸다는 문장은 **고칠 때까지 남아 있어야** 한다 —
+ *    사라지고 나면 선생님은 "판 만들기 버튼이 안 먹는다" 로만 기억한다.
+ */
+function createMsg(text: string): void {
+  const box = $('create-msg');
+  box.textContent = text;
+  box.classList.toggle('hidden', !text);
 }
 
 // ────────────────────────────────────────────────────────────
@@ -178,15 +218,53 @@ function create(): void {
   const unit = ($('unit') as HTMLSelectElement).value;
   if (!unit) { toast('단원을 골라주세요'); return; }
 
+  const pw = adminPw();
+  if (!pw) {
+    createMsg('관리자 비밀번호를 넣어주세요. 판을 만들 때만 확인합니다.');
+    ($('cadmin') as HTMLInputElement).focus();
+    return;
+  }
+  // 한글·이모지 비밀번호는 헤더에 실리지 못해 **브라우저가 요청을 만들다가 던진다**.
+  // 그냥 두면 "서버에 닿지 못했어요" 만 떠서 배포가 고장 난 줄 안다 (shared/gateway.ts)
+  if (!headerSafe(pw)) {
+    createMsg(HEADER_UNSAFE_MSG);
+    ($('cadmin') as HTMLInputElement).focus();
+    return;
+  }
+  createMsg('');
+
   api('/api/game', {
     method: 'POST',
+    // ⚠️ 매 호출 싣는다. 서버는 세션도 쿠키도 만들지 않는다 (MIGRATION §10)
+    headers: { 'X-Admin-Password': pw },
     body: {
       className: ($('cls') as HTMLInputElement).value || '우리 반',
       unit, teamCount: n, teamNames: names
     }
   }).then((env) => {
-    const d = handle(env, $('btn-create') as HTMLButtonElement) as CreateResult | null;
-    if (!d) return;
+    if (!isOk(env)) {
+      if (env.error === 'ADMIN_DENIED') {
+        // 서버 문장을 그대로 남긴다 — 화면이 말을 지어내면 서버 쪽을 고친 날 갈라진다
+        createMsg(env.message || '관리자 비밀번호가 달라요');
+        pwStore(null);                       // 틀린 값을 다음번에 미리 채워 주면 안 된다
+        const box = $('cadmin') as HTMLInputElement;
+        box.focus();
+        box.select();
+        return;
+      }
+      if (env.error === 'ADMIN_DISABLED') {
+        // 선생님이 고칠 수 있는 문제가 아니다 — 배포 설정을 짚어 준다
+        createMsg('관리자 기능이 꺼져 있어요 — 배포 설정(ADMIN_PASSWORD)을 확인해주세요');
+        return;
+      }
+      handle(env, $('btn-create') as HTMLButtonElement);
+      return;
+    }
+    const d = env.data as CreateResult;
+    // 서버가 통과시켰으니 맞는 값이다. 여기서만 저장한다 — '이어하기'와 /admin 이 같이 쓴다
+    pwStore(pw);
+    setAdminPw(pw);
+    createMsg('');
     CODE = d.code;
     HOSTKEY = d.hostKey;
     keyStore(CODE, HOSTKEY);
@@ -262,16 +340,17 @@ function resume(): void {
 
   // 이 기기에 열쇠가 없다 — 관리자 비밀번호로 되찾는다 (MIGRATION §10)
   const row = $('key-row');
-  const pw = ($('radmin') as HTMLInputElement).value || '';
-  if (row.classList.contains('hidden') || !pw) {
-    row.classList.remove('hidden');
+  const pw = (($('radmin') as HTMLInputElement).value || '').trim();
+  // ⚠️ 실패하면 고칠 자리가 보여야 한다 — 성공하기 전에는 계속 열어 둔다
+  row.classList.remove('hidden');
+  if (!pw) {
     ($('radmin') as HTMLInputElement).focus();
     toast('이 기기에 교사 열쇠가 없어요. 관리자 비밀번호를 넣어주세요');
     return;
   }
 
   // 한글·이모지 비밀번호는 헤더에 실리지 못해 브라우저가 던진다 — 보내기 전에 이유를 말한다
-  if (!headerSafe(pw)) { toast(HEADER_UNSAFE_MSG); ($('radmin') as HTMLInputElement).value = ''; return; }
+  if (!headerSafe(pw)) { toast(HEADER_UNSAFE_MSG); ($('radmin') as HTMLInputElement).focus(); return; }
 
   api('/api/admin/host-key', {
     method: 'POST', headers: { 'X-Admin-Password': pw }, body: { code: c }
@@ -280,12 +359,18 @@ function resume(): void {
       // ADMIN_DISABLED 는 사용자가 고칠 수 있는 문제가 아니다 — 배포 설정을 알려준다
       if (env.error === 'ADMIN_DISABLED') {
         toast('관리자 기능이 꺼져 있어요 — 배포 설정(ADMIN_PASSWORD)을 확인해주세요');
-      } else toast(env.message);
-      ($('radmin') as HTMLInputElement).value = '';
+      } else {
+        toast(env.message);
+        // 틀린 값을 저장해 두면 '새 판' 입력란에까지 미리 채워진다
+        if (env.error === 'ADMIN_DENIED') pwStore(null);
+      }
+      ($('radmin') as HTMLInputElement).focus();
       return;
     }
     const d = env.data as { code: string; hostKey: string };
-    ($('radmin') as HTMLInputElement).value = '';
+    // 서버가 통과시킨 값이다. '새 판' 입력란·/admin 과 같이 쓴다 (한 번만 넣게)
+    pwStore(pw);
+    setAdminPw(pw);
     verifyAndPlay(c, d.hostKey);
   }).catch(() => toast('서버 응답이 없어요'));
 }
@@ -1001,10 +1086,26 @@ function wire(): void {
   ($('rcode') as HTMLInputElement).addEventListener('keydown', (e) => {
     if ((e as KeyboardEvent).key === 'Enter') resume();
   });
+
+  // 관리자 비밀번호 입력란 둘을 붙여 둔다 — 어느 쪽에 넣어도 다른 쪽이 따라간다.
+  // ⚠️ 저장은 여기서 하지 않는다. 맞는 값인지는 서버만 알기 때문이다 (setAdminPw 주석).
+  //    타이핑할 때마다 저장하면 틀린 값이 /admin 에까지 미리 채워진다
+  for (const [from, to] of [['cadmin', 'radmin'], ['radmin', 'cadmin']] as const) {
+    ($(from) as HTMLInputElement).addEventListener('input', () => {
+      ($(to) as HTMLInputElement).value = ($(from) as HTMLInputElement).value;
+      if (from === 'cadmin') createMsg('');
+    });
+  }
+  ($('cadmin') as HTMLInputElement).addEventListener('keydown', (e) => {
+    if ((e as KeyboardEvent).key === 'Enter') create();
+  });
 }
 
 function start(): void {
   wire();
+  // 같은 탭에서 이미 넣은 관리자 비밀번호가 있으면 두 입력란에 미리 채운다.
+  // /admin 과 같은 저장소를 쓰므로 (shared/pw.ts) 거기서 로그인했으면 여기도 채워진다
+  setAdminPw(pwStore());
   api('/api/version').then((env) => {
     if (isOk(env)) $('ver-badge').textContent = '배포 ' + (env.data as { v: string }).v;
   }).catch(() => { $('ver-badge').textContent = ''; });

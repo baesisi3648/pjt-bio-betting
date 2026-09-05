@@ -9,8 +9,9 @@
  * ── 이 파일이 지키는 것 ──
  *
  * 1. **비밀번호는 매 요청 헤더에 싣는다.** 세션도 쿠키도 토큰도 없습니다 (§10 — 사용자 결정).
- *    `sessionStorage` 에 두는 이유: 탭을 닫으면 잊어야 하기 때문입니다. `localStorage` 로
- *    바꾸지 마세요 — 교실 공용 노트북에 관리자 비밀번호가 영구히 남습니다.
+ *    저장은 `shared/pw.ts` 의 `pwStore` 하나가 맡습니다 — 교사 화면(판 만들기 ·
+ *    열쇠 되찾기)이 **같은 열쇠**를 쓰기 때문에, 같은 출처에서 한 번만 넣으면 둘 다 통합니다.
+ *    (`sessionStorage` 인 이유와 `localStorage` 로 바꾸면 안 되는 이유도 거기 적혀 있습니다)
  *
  * 2. **별도 진입점입니다.** 수업용 교사 번들(`teacher.html`)에 이 코드가 실리지 않게
  *    `admin.html` 을 Vite input 으로 따로 두었습니다 (vite.config.ts).
@@ -27,6 +28,7 @@
  */
 
 import { HEADER_UNSAFE_MSG, api, headerSafe, isOk } from '../shared/gateway.ts';
+import { pwStore } from '../shared/pw.ts';
 import { $, confirmBox, esc, maybe, toast } from '../shared/ui.ts';
 import type { Envelope } from '../../do/room.ts';
 
@@ -64,20 +66,6 @@ let UNITS: string[] = [];
 let editing: AdminQuestion | null = null;
 let ANIMALS: AnimalsData | null = null;
 let SETTINGS: SettingsData | null = null;
-
-/**
- * ⚠️ sessionStorage 다 (localStorage 아님). 탭을 닫으면 잊습니다 —
- *    교실 공용 노트북에 관리자 비밀번호를 영구히 남기지 않기 위해서입니다.
- *    막힌 브라우저에서도 그 세션 동안은 변수에 있으니 화면은 그대로 돕니다.
- */
-function pwStore(val?: string | null): string {
-  try {
-    if (val === undefined) return sessionStorage.getItem('wd_admin_pw') || '';
-    if (val === null) sessionStorage.removeItem('wd_admin_pw');
-    else sessionStorage.setItem('wd_admin_pw', val);
-  } catch { /* 막힌 브라우저 */ }
-  return val || '';
-}
 
 // ────────────────────────────────────────────────────────────
 // 서버 부르기 — 비밀번호는 **매 호출** 헤더로

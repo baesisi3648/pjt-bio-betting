@@ -14,6 +14,10 @@ label{display:block;margin:14px 0 6px;font-size:20px;color:var(--muted)}
 input,select{width:100%;padding:14px;font-size:22px;border-radius:8px;border:2px solid #33475A;
              background:#0B131B;color:var(--text)}
 .names{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+/* 관리자 비밀번호는 이 폼에서 성격이 다른 한 칸이다 — 수업 설정이 아니라 권한 확인이라
+   선을 그어 묶어 둔다. 첫 label 의 margin-top 은 상자 자체가 대신한다 */
+.admin-row{border-bottom:1px solid #33475A;padding-bottom:16px;margin-bottom:6px}
+.admin-row>label:first-child{margin-top:0}
 .primary{background:var(--gold);color:#1B2734;padding:18px 34px;font-size:24px;font-weight:700;margin-top:20px}
 .warn{background:#3A2E12;border-left:6px solid var(--wait);padding:14px;border-radius:8px;margin-top:14px;font-size:20px;white-space:pre-line}
 .stop{background:#3A1A1A;border-left:6px solid var(--goal);padding:14px;border-radius:8px;margin-top:14px;font-size:20px;white-space:pre-line}

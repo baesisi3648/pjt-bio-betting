@@ -382,7 +382,8 @@ npx wrangler deploy
 
 1. 폰(학교 와이파이, LTE 끄고)에서 `https://<주소>/` 가 열리는가 — 학교망 차단이 가장 흔한 사고
 2. 노트북에서 `/teacher` → 단원 3개가 드롭다운에 뜨는가 (안 뜨면 `migrations apply --remote` 누락)
-3. 판 만들기 → 판 코드 + QR. **폰 카메라로 QR 을 비춰** 실제로 열리는가
+3. 판 만들기 → **관리자 비밀번호**를 넣어야 만들어지는가 (비워 두면 입력란 아래에 거절 사유가 뜬다).
+   만들어지면 판 코드 + QR. **폰 카메라로 QR 을 비춰** 실제로 열리는가
 4. 폰으로 접속 → 라운드 시작 → 경주 20초가 TV 와 폰에서 **같은 순서**로 보이는가
 5. 문제 제출 → 힌트 → 베팅 → TV 배당판이 즉시 움직이는가
 6. 폰 와이파이를 5초 껐다 켜기 → 배너가 뜨고 다시 붙어 상태가 맞는가
@@ -454,7 +455,7 @@ gwVersion() / gwDiagnose()
 
 | 경로 | 인증 | 입력 | 응답 `data` |
 |---|---|---|---|
-| `POST /api/game` | — ※ | `{className, unit, teamCount, teamNames?}` | `{code, hostKey, pins, teams, warnings, studentUrl}` |
+| `POST /api/game` | 관리자 ※ | `{className, unit, teamCount, teamNames?}` | `{code, hostKey, pins, teams, warnings, studentUrl}` |
 | `POST /api/game/:code/handout` | 열쇠 | — | `handoutView` + `studentUrl` |
 | `POST /api/game/:code/advance` | 열쇠 | — | `teacherView` |
 | `POST /api/game/:code/pause` | 열쇠 | — | `teacherView` |
@@ -495,15 +496,25 @@ gwVersion() / gwDiagnose()
 ⚠️ **확인은 `router.ts` 의 `adminDenied` 한 곳입니다.** `/api/admin/` 으로 시작하는 경로는
 전부 그 문을 지납니다 — 라우트마다 따로 확인하면 새 라우트 하나에서 빠뜨리는 날이 옵니다.
 `admin.ts` 안에는 비밀번호를 비교하는 코드가 없습니다.
+**`POST /api/game`(판 만들기)도 같은 문을 지납니다** — 주소가 `/api/admin/` 으로 시작하지
+않을 뿐입니다 (위 ※).
 
 ⚠️ **비밀번호는 ASCII 여야 합니다.** HTTP 헤더 값은 Latin-1 바이트만 싣습니다 —
 한글·이모지가 든 비밀번호는 브라우저가 요청을 만들다가 던집니다 (서버까지 가지도 않습니다).
 관리 화면은 보내기 전에 걸러 이유를 말합니다.
 
-※ 판 만들기에는 열쇠를 요구할 수 없습니다 — **열쇠를 발급하는 것이 이 호출**입니다.
-앱스 스크립트판도 같았습니다(교사 화면을 여는 누구나 판을 만들 수 있었습니다).
-가로막는 것은 열쇠가 아니라 **만들어도 아무 이득이 없다**는 사실입니다: 새 판은
-자기 코드의 빈 판이고, 남의 판은 코드를 알아도 열쇠 없이는 아무것도 못 합니다.
+※ **예전에는 인증이 없었습니다.** 근거는 "열쇠를 발급하는 호출이라 열쇠를 요구할 수 없다"
+였고 그건 지금도 맞습니다 — 다만 요구하는 것이 열쇠가 아니라 **관리자 비밀번호**(같은
+`ADMIN_PASSWORD`, 헤더 `X-Admin-Password`, `router.ts` 의 `adminDenied`)라 상관없습니다.
+**2026-09-05 사용자 결정으로 요구합니다.** 이유: 주소만 알면 학생이 빈 판을 얼마든지
+만들어 '최근 판' 목록을 어지럽힐 수 있었습니다. 그 목록은 인증 없이 나가는 것이라
+(`GET /api/units`) 만든 사람도, 지운 흔적도 남지 않습니다.
+
+⚠️ 그래서 `ADMIN_PASSWORD` 를 안 넣고 배포하면 **판이 하나도 안 만들어집니다**
+(`ADMIN_DISABLED`). 이건 의도입니다 — 그런 배포에서 만들어진 판은 열쇠를 잃어버려도
+회수할 길이 없습니다(`POST /api/admin/host-key` 도 같은 문에 막혀 있습니다).
+수업 중에 그걸 알게 되는 것보다 판을 못 만드는 편이 낫습니다.
+지키는 게이트: `GW-CREATE-AUTH` (+ `ADM1` 이 라우트 표에 함께 순회합니다).
 
 ⚠️ **`op` 는 어떤 공개 경로에도 없습니다.** Worker 는 GameRoom 의 **RPC 메서드**
 (`stub.op(name, args)`)로만 방을 부릅니다. 2단계의 `/room/:code/op` 는 없앴습니다 —
@@ -641,7 +652,7 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
 QR     QR-1~QR-9   ← 새 구현에선 라이브러리를 써도 됩니다
 ```
 
-`web/` 123개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 41 + `gateway.ts` 24 + `admin.ts` 8 + `qr.ts` 10 + `race.ts` 9.
+`web/` 124개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 41 + `gateway.ts` 25 + `admin.ts` 8 + `qr.ts` 10 + `race.ts` 9.
 
 조기 종료 게이트 10개 (`test/room.ts` 9 + `test/gateway.ts` 1):
 
@@ -650,6 +661,13 @@ SKIP1 SKIP2 SKIP3 SKIP4      교사 '지금 넘어가기' — 세 단계 · 거�
 AUTO1 AUTO2 AUTO3 AUTO4      자동 단축 — 문제 · 베팅 · 토론 제외 · 끄기
 VIEW-SKIP                    canSkip·allDone 은 교사 뷰에만
 GW-SKIP                      POST /skip 라우트와 열쇠
+```
+
+판 만들기 인증 게이트 1개 (`test/gateway.ts`):
+
+```
+GW-CREATE-AUTH   판 만들기도 관리자 비밀번호를 요구한다 — 없음·틀림·짧음은 ADMIN_DENIED 이고
+                 거절 뒤 D1 games 에도 DO 에도 아무것도 남지 않는다. 미설정이면 ADMIN_DISABLED
 ```
 
 관리 게이트 8개 (`test/admin.ts`):
@@ -688,6 +706,7 @@ ADM-GAME     고친 문항은 다음 판부터 — 이미 만든 판은 옛 문�
 | 문제은행 관리 화면 인증 | **같은 관리자 비밀번호 하나.** 계정·로그인 시스템 없음. 서버는 매 호출 확인 |
 | 화면 프레임워크 | **없음.** 경주 트랙만 **PixiJS 무대**, 나머지는 기존 HTML 유지 + 연출 강화. 빌드는 Vite |
 | 경주 단계 | **서버에 `moving`(20초) 단계를 넣는다.** TV 와 폰이 같은 경주를 같은 시각에 본다 |
+| 판 만들기 인증 | **`POST /api/game` 도 관리자 비밀번호를 요구한다.** 주소만 알면 학생이 빈 판을 만들어 '최근 판' 목록을 어지럽혔다. `ADMIN_PASSWORD` 가 없는 배포에서는 판이 안 만들어진다 — 그런 판은 열쇠 회수도 안 되므로 의도한 것이다 |
 
 배경: 선생님 한 분이 자기 반에서 쓰는 앱입니다. 비밀번호 하나로 관리 권한을 여는 것이
 계정 시스템보다 부품이 적고, "수업 중 고장을 혼자 고친다"는 제약에 맞습니다.
