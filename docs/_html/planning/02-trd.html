@@ -205,7 +205,7 @@ Shared.html    공통 CSS + 폴링 함수 (HtmlService include로 끼워 넣음)
 <hr>
 <h2 id="loop-metadata">Loop Metadata</h2>
 <ul><li>참조한 상위 문서: 01-prd</li><li>영향 주는 하위 문서: 04-database, 06-screens, 07-coding-convention, 08-test-plan</li><li>아직 안 정한 것:<ul><li>캐시가 만료된 상태에서 라운드 중간에 복구할 때, 진행 중이던 베팅을 살릴지 버릴지</li><li>잠금 대기 10초가 6모둠 동시 제출에 충분한지 (실측 필요)</li></ul></li><li>전제:<ul><li>학교망에서 <code>script.google.com</code> 접속 가능</li><li>앱스 스크립트 V8 런타임 사용</li></ul></li><li>확인 기준:<ul><li>폰 6대 + TV 1대가 동시에 붙은 상태에서 상태 조회 응답이 평균 0.3초 이하</li><li>6모둠이 같은 순간에 베팅해도 코인 합계가 어긋나지 않음</li></ul></li><li>위험:<ul><li><strong>캐시 소실</strong> — 구글이 캐시를 임의로 비울 수 있음. 라운드 시작 시점 시트 저장으로 최대 1라운드만 손실</li><li><strong>재배포 누락</strong> — 코드 고치고 재배포를 안 해서 수업 중 옛 화면이 뜨는 사고. 08-test-plan에 수업 전 점검 항목으로 넣음</li><li><strong>학교망 차단</strong> — 사전 접속 테스트 필수</li></ul></li></ul>
-<div class="meta-foot">원본: <code>02-trd.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+<div class="meta-foot">원본: <code>02-trd.md</code> · 자동 생성 2026-09-05 · md-to-html</div>
 </main>
 </div>
 

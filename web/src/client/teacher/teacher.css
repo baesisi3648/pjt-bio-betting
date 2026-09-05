@@ -42,47 +42,67 @@ th{color:var(--muted);font-size:20px}
 .timer{font-size:64px;font-weight:900;color:var(--gold)}
 .timer.urgent{color:var(--goal)}
 /* ══ 레이스 트랙 ══
-   트랙은 판이 시작될 때 한 번만 만들고, 그 뒤엔 말의 left 값만 바꾼다.
+   트랙은 판이 시작될 때 한 번만 만들고, 그 뒤엔 말의 right 값만 바꾼다.
    ⚠️ innerHTML로 매번 다시 그리면 DOM이 새로 생겨서 transition이 걸릴 대상이 사라진다.
-      (예전 코드가 그래서 말이 순간이동했다) */
+      (예전 코드가 그래서 말이 순간이동했다)
+
+   ⚠️ **진행 방향은 오른쪽 → 왼쪽이다. 출발선이 오른쪽, 결승선이 왼쪽.**
+      동물 이모지(🐆 🐅 🦓 🐎 🦒 🦘 🐇 🐢)는 대부분 왼쪽을 보고 그려져 있어서,
+      왼쪽 출발 / 오른쪽 결승으로 두면 말이 뒷걸음질치는 그림이 된다 (사용자 결정).
+      되돌리려면 CSS 트랙(여기) · PixiJS 무대(stage.ts) · 폰 미니 트랙(mini.ts)
+      **셋을 동시에** 되돌려야 한다. 하나만 되돌리면 reduced-motion 폴백에서
+      TV 와 폰이 서로 반대로 달린다.
+      ⚠️ 이모지를 scaleX(-1) 로 뒤집는 것은 사용자가 고르지 않은 방법이다. 넣지 말 것.
+
+   레인 배치도 함께 뒤집었다 — `n/10`(칸수)이 결승선 옆, 배지·이름이 출발선 옆이다.
+   뒤집기 전과 **같은 짝**을 유지한 것이다(원래도 이름은 출발선 옆, 칸수는 결승선 옆이었다).
+   덤으로 26px 굵은 이름이 흰 체크무늬 결승선에 붙지 않아 8m 가독성이 유지된다. */
 #track{padding:2px 0}
 .lane{display:flex;align-items:center;gap:14px;height:60px}
 .lane + .lane{border-top:1px solid #223240}
-.lane-tag{width:230px;flex:none;display:flex;align-items:center;gap:11px}
+/* 배지가 바깥(오른쪽 끝), 이름이 트랙 쪽 — 뒤집기 전 왼쪽 배치를 그대로 거울에 비춘 것 */
+.lane-tag{width:230px;flex:none;display:flex;align-items:center;justify-content:flex-end;gap:11px}
 /* 레인 배지 — 색이 안 보여도 번호로 구분된다. 낡은 TV와 색각이상 둘 다를 위해 */
 .silk{width:38px;height:38px;flex:none;border-radius:9px;display:flex;align-items:center;
       justify-content:center;font-size:22px;font-weight:900;color:#0F1720;background:#8FA3B5}
 .s0{background:#F2B441} .s1{background:#4FC3F7} .s2{background:#8BC34A} .s3{background:#EF5350}
 .s4{background:#BA68C8} .s5{background:#FF8A65} .s6{background:#4DB6AC} .s7{background:#DCE775}
 .lane-name{font-size:26px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.lane-pos{width:78px;flex:none;text-align:right;font-size:20px;font-weight:800;color:#6E8398}
+/* 왼쪽 정렬 — 글자가 화면 바깥쪽에 붙어 결승선 체크무늬에서 떨어진다 (뒤집기 전 오른쪽 정렬의 거울) */
+.lane-pos{width:78px;flex:none;text-align:left;font-size:20px;font-weight:800;color:#6E8398}
 .lane.finished .lane-name{color:var(--gold)}
 .lane.finished .lane-pos{color:var(--gold)}
 
+/* 칸 눈금도 오른쪽(출발선)에서 왼쪽(결승선)으로 센다 — 270deg */
 .course{position:relative;flex:1;height:50px;border-radius:10px;overflow:hidden;
         background:
-          repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),#2A3B4B calc(10% - 2px) 10%),
+          repeating-linear-gradient(270deg,transparent 0 calc(10% - 2px),#2A3B4B calc(10% - 2px) 10%),
           linear-gradient(#1E2C3A,#16212C)}
-.covered{position:absolute;left:32px;top:0;bottom:0;width:0;
-         background:linear-gradient(90deg,rgba(79,195,247,.10),rgba(79,195,247,.30));
+/* 지나온 거리 — **출발선(오른쪽)에 붙어** 말 쪽(왼쪽)으로 자란다 */
+.covered{position:absolute;right:32px;top:0;bottom:0;width:0;
+         background:linear-gradient(270deg,rgba(79,195,247,.10),rgba(79,195,247,.30));
          transition:width 1.15s cubic-bezier(.33,.86,.36,1)}
-.lane.finished .covered{background:linear-gradient(90deg,rgba(242,180,65,.14),rgba(242,180,65,.36))}
+.lane.finished .covered{background:linear-gradient(270deg,rgba(242,180,65,.14),rgba(242,180,65,.36))}
 
-/* 결승선 — 체크무늬는 gradient 두 장으로. 외부 이미지를 쓰지 않는다 */
-.finish{position:absolute;right:0;top:0;bottom:0;width:34px;border-left:3px solid var(--goal);
+/* 결승선 — 체크무늬는 gradient 두 장으로. 외부 이미지를 쓰지 않는다.
+   ⚠️ 왼쪽 끝이다. 빨간 선은 말이 오는 쪽(오른쪽) 모서리에 둔다 */
+.finish{position:absolute;left:0;top:0;bottom:0;width:34px;border-right:3px solid var(--goal);
         background-color:#1B2734;
         background-image:linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%),
                          linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%);
         background-size:14px 14px;background-position:0 0,7px 7px;opacity:.9}
 
-/* 말은 크기 0짜리 기준점에 얹는다 — left(이동)와 transform(질주 동작)이 서로 안 싸우게 */
-.runway{position:absolute;top:0;bottom:0;left:32px;right:24px}
-.runner{position:absolute;left:0;top:50%;width:0;height:0;
-        transition:left 1.15s cubic-bezier(.33,.86,.36,1)}
+/* 말은 크기 0짜리 기준점에 얹는다 — right(이동)와 transform(질주 동작)이 서로 안 싸우게.
+   ⚠️ runway 는 결승선 쪽 24px · 출발선 쪽 32px 를 들여쓴다 (뒤집기 전과 같은 값의 거울).
+      합이 56px 이고 main.ts 의 coveredW() 가 그 56 을 그대로 쓴다 — 같이 고칠 것 */
+.runway{position:absolute;top:0;bottom:0;left:24px;right:32px}
+.runner{position:absolute;right:0;top:50%;width:0;height:0;
+        transition:right 1.15s cubic-bezier(.33,.86,.36,1)}
 .horse{position:absolute;left:0;top:0;font-size:38px;line-height:1;
        transform:translate(-50%,-50%);filter:drop-shadow(0 3px 5px rgba(0,0,0,.6))}
-.trail{position:absolute;right:16px;top:50%;width:0;height:7px;border-radius:4px;opacity:0;
-       transform:translateY(-50%);background:linear-gradient(90deg,transparent,rgba(79,195,247,.8))}
+/* 속도선은 말 **뒤(오른쪽)** 로 뻗는다 */
+.trail{position:absolute;left:16px;top:50%;width:0;height:7px;border-radius:4px;opacity:0;
+       transform:translateY(-50%);background:linear-gradient(270deg,transparent,rgba(79,195,247,.8))}
 .runner.galloping .horse{animation:gallop .32s ease-in-out infinite}
 .runner.galloping .trail{animation:trail .32s linear infinite}
 @keyframes gallop{

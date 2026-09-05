@@ -473,8 +473,17 @@ function tick(): void {
 }
 
 /* ── 트랙 그리기 ──
-   ⚠️ 되돌리면 안 되는 곳: 레인 DOM은 판이 바뀔 때만 짓고, 그 뒤엔 left 값만 만진다.
-      매번 innerHTML로 갈아끼우면 요소가 새로 생겨서 말이 순간이동한다. */
+   ⚠️ 되돌리면 안 되는 곳: 레인 DOM은 판이 바뀔 때만 짓고, 그 뒤엔 right 값만 만진다.
+      매번 innerHTML로 갈아끼우면 요소가 새로 생겨서 말이 순간이동한다.
+
+   ⚠️ **진행 방향은 오른쪽 → 왼쪽이다** (출발선 오른쪽 · 결승선 왼쪽). 동물 이모지가
+      대부분 왼쪽을 보고 있어서, 반대로 두면 말이 뒷걸음질치는 그림이 된다 (사용자 결정).
+      그래서 말은 `left` 가 아니라 **`right` 퍼센트**로 민다 — pctOf() 는 그대로
+      "출발선에서 얼마나 갔나"를 돌려주고, 그 값을 어느 쪽 끝에서 재느냐만 다르다.
+      되돌리려면 teacher.css · stage.ts · team/mini.ts 를 **동시에** 되돌릴 것.
+
+   레인 안의 순서도 뒤집혔다: 칸수(n/10) → 트랙 → 이름 → 배지.
+   뒤집기 전과 **같은 짝**을 지킨 것이다 (이름은 출발선 옆, 칸수는 결승선 옆). */
 const SILK = 8;
 let trackKey: string | null = null;
 let wasFinished: Record<string, boolean> = {};
@@ -486,17 +495,23 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
   if (trackKey !== key) {
     $('track').innerHTML = codes.map((c, i) => {
       const pct = pctOf(d.positions[c], d.trackCells);
+      // 레인의 flex 자식 순서 = 화면 순서 (칸수 → 트랙 → 이름 → 배지).
+      // row-reverse 로 뒤집지 않은 이유는, 이 HTML 을 읽는 사람이 "보이는 순서"를
+      // 그대로 볼 수 있게 하기 위해서다.
+      // ⚠️ 반대로 `.course` **안쪽** 순서는 건드리지 않는다 — 셋 다 absolute 라
+      //    DOM 순서가 곧 겹치는 순서다. finish 를 앞으로 옮기면 골인한 말이 체크무늬
+      //    **위**로 올라와, 뒤집기 전과 다른 그림이 된다 (이번 변경은 방향만 바꾼다)
       return `<div class="lane" id="ln-${c}">` +
-        `<div class="lane-tag"><span class="silk s${i % SILK}">${i + 1}</span>` +
-          `<span class="lane-name">${esc(d.animals[c])}</span></div>` +
+        `<div class="lane-pos num" id="lp-${c}"></div>` +
         '<div class="course">' +
           `<div class="covered" id="cv-${c}" style="width:${coveredW(pct)}"></div>` +
-          `<div class="runway"><div class="runner" id="rn-${c}" style="left:${pct}%">` +
+          `<div class="runway"><div class="runner" id="rn-${c}" style="right:${pct}%">` +
             `<div class="trail"></div><div class="horse">${d.emojis[c] || '🐎'}</div>` +
           '</div></div>' +
           '<div class="finish"></div>' +
         '</div>' +
-        `<div class="lane-pos num" id="lp-${c}"></div></div>`;
+        `<div class="lane-tag"><span class="lane-name">${esc(d.animals[c])}</span>` +
+          `<span class="silk s${i % SILK}">${i + 1}</span></div></div>`;
     }).join('');
     trackKey = key; wasFinished = {};   // 이어하기로 들어온 판은 처음 위치에서 시작 — 질주 연출 없음
   }
@@ -513,7 +528,8 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
     if (!runner || !lane) return;
 
     const moved = runner._pct !== undefined && pct > runner._pct;
-    runner.style.left = pct + '%';
+    // 출발선(오른쪽)에서 잰다 — pct 가 커질수록 말이 왼쪽 결승선에 가까워진다
+    runner.style.right = pct + '%';
     const cv = maybe('cv-' + c);
     if (cv) cv.style.width = coveredW(pct);
     const lp = maybe('lp-' + c);
@@ -540,7 +556,8 @@ function pctOf(pos: number, cells: number): number {
 }
 
 /* 지나온 거리 막대는 말과 끝이 맞아야 한다.
-   말은 runway(양옆 32px·24px 들여쓴 칸) 기준이고 막대는 course 전체 기준이라, 그 차이를 여기서 맞춘다 */
+   말은 runway(결승선 쪽 24px · 출발선 쪽 32px 들여쓴 칸) 기준이고 막대는 course 전체
+   기준이라, 그 차이(합 56px)를 여기서 맞춘다. 막대는 출발선(오른쪽)에 붙어 왼쪽으로 자란다 */
 function coveredW(pct: number): string { return `calc((100% - 56px) * ${pct / 100})`; }
 
 /* 이름을 비우면 서버가 '1모둠'으로 채운다(room.ts). 거기에 번호를 또 붙이면 '1모둠 1모둠'이 된다 */

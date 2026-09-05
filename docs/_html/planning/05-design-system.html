@@ -89,9 +89,19 @@ img{max-width:100%;border-radius:8px}
 <hr>
 <h2 id="4-부품">4. 부품</h2>
 <h3 id="4-1-레이스-트랙-tv-전용">4-1. 레이스 트랙 (TV 전용)</h3>
-<pre class="code"><code>[🐆 치타 ]  ▓▓▓▓▓▓░░░░ 🏁
-[🦁 사자 ]  ▓▓▓▓░░░░░░ 🏁</code></pre>
-<ul><li>한 줄 높이 64px, 8줄이 화면 절반을 차지</li><li>지나온 칸은 <code>--run</code>, 남은 칸은 어둡게, 마지막 칸은 <code>--goal</code></li><li>골인한 동물은 줄 전체가 살짝 빛나고 왼쪽에 순위 배지 (단, <strong>정산 전에는 등수를 안 보여준다</strong> — 골인 순서만 보임)</li><li>이동은 CSS <code>transition 0.6s</code>만. 복잡한 연출은 이번 범위 밖</li></ul>
+<p><strong>말은 오른쪽에서 왼쪽으로 달린다. 출발선이 오른쪽, 결승선이 왼쪽.</strong></p>
+<pre class="code"><code> 6/10  🏁░░░░🐆▓▓▓▓▓▓   치타 [1]
+ 4/10  🏁░░░░░░🦓▓▓▓▓   얼룩말 [2]
+        ↑결승선      출발선↑</code></pre>
+<ul><li>방향을 뒤집은 이유: 쓰는 동물 이모지(🐆 🐅 🦓 🐎 🦒 🦘 🐇 🐢)가 대부분 <strong>왼쪽을 보고</strong> 그려져 있다.</li></ul>
+<p>왼쪽 출발 / 오른쪽 결승으로 두면 여덟 마리가 전부 뒷걸음질치는 그림이 된다. 이모지를 좌우 반전(<code>scaleX(-1)</code>)하지 않고 <strong>트랙을 뒤집는 쪽</strong>을 골랐다 (사용자 결정)</p>
+<ul><li>그래서 레인 배치도 거울처럼 뒤집혀 있다 — <strong>칸수(<code>n/10</code>)가 왼쪽</strong>(결승선 옆), <strong>동물 이름·배지가 오른쪽</strong>(출발선 옆).</li></ul>
+<p>뒤집기 전과 같은 짝을 지킨 것이고(원래도 이름은 출발선 옆·칸수는 결승선 옆이었다), 덤으로 제일 굵은 글자인 동물 이름이 흰 체크무늬 결승선에 붙지 않아 8m 가독성이 산다</p>
+<ul><li>⚠️ 이 방향은 <strong>세 렌더러가 전부 같아야 한다</strong> — TV PixiJS 무대(<code>teacher/stage.ts</code>),</li></ul>
+<p>그 폴백인 CSS 트랙(<code>teacher.css</code> + <code>teacher/main.ts</code>), 폰 미니 트랙(<code>team/mini.ts</code>). 하나만 되돌리면 <code>prefers-reduced-motion</code> 이나 WebGL 없는 TV 에서 폰과 반대로 달린다</p>
+<ul><li>한 줄 높이 64px, 8줄이 화면 절반을 차지</li><li>지나온 칸은 <code>--run</code>, 남은 칸은 어둡게, 마지막 칸은 <code>--goal</code>.</li></ul>
+<p>지나온 거리 막대는 <strong>출발선(오른쪽)에서 말까지</strong> 자란다. 먼지·속도선은 말 <strong>뒤(오른쪽)</strong> 로 흩어진다</p>
+<ul><li>골인한 동물은 줄 전체가 살짝 빛나고 순위 배지 (단, <strong>정산 전에는 등수를 안 보여준다</strong> — 골인 순서만 보임)</li><li>이동은 CSS <code>transition 0.6s</code>만. 복잡한 연출은 이번 범위 밖</li></ul>
 <h3 id="4-2-배당률-전광판-tv-전용">4-2. 배당률 전광판 (TV 전용)</h3>
 <div class="table-wrap"><table><thead><tr><th>동물</th><th>걸린 코인</th><th>배당률</th></tr></thead><tbody><tr><td>🐆 치타</td><td>12</td><td><strong>2.14배</strong></td></tr><tr><td>🦁 사자</td><td>3</td><td><strong>5.80배</strong></td></tr></tbody></table></div>
 <ul><li>배당률은 <code>--gold</code>, 28px 굵게</li><li>값이 바뀐 줄은 0.4초 동안 배경이 잠깐 밝아진다 (뭐가 움직였는지 보이게)</li><li>코인이 많이 걸린 순서로 정렬하지 <strong>않는다</strong> — 동물 순서 고정. 순서가 바뀌면 눈이 못 따라감</li></ul>
@@ -130,7 +140,7 @@ img{max-width:100%;border-radius:8px}
 <hr>
 <h2 id="loop-metadata">Loop Metadata</h2>
 <ul><li>참조한 상위 문서: 01-prd, 03-user-flow</li><li>영향 주는 하위 문서: 06-screens, 07-coding-convention</li><li>아직 안 정한 것: 교실 TV의 실제 크기·해상도 (1920×1080 가정) — 첫 수업 전 확인 필요</li><li>전제: 학생 폰은 대부분 세로로 쓴다</li><li>확인 기준: 교실 맨 뒷자리에서 배당률 숫자가 읽힌다</li><li>위험: 낡은 TV는 색이 뭉개져 난이도 색 구분이 안 될 수 있음 → 색 + 글자 병기로 이미 대응</li></ul>
-<div class="meta-foot">원본: <code>05-design-system.md</code> · 자동 생성 2026-07-31 · md-to-html</div>
+<div class="meta-foot">원본: <code>05-design-system.md</code> · 자동 생성 2026-09-05 · md-to-html</div>
 </main>
 </div>
 

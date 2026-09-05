@@ -16,6 +16,18 @@
  *
  * ⚠️ **정산 전에는 등수를 그리지 않는다** (§4-1). 골인한 말에는 '골인'만 붙는다.
  *
+ * ⚠️ **진행 방향은 오른쪽 → 왼쪽이다.** 출발선이 오른쪽, 결승선이 왼쪽.
+ *    동물 이모지(🐆 🐅 🦓 🐎 🦒 🦘 🐇 🐢)는 대부분 왼쪽을 보고 그려져 있어서,
+ *    왼쪽 출발 / 오른쪽 결승으로 두면 말이 뒷걸음질치는 그림이 된다 (사용자 결정).
+ *    되돌리려면 이 무대 · `teacher.css` 의 CSS 트랙 · `team/mini.ts` 의 폰 미니 트랙을
+ *    **셋 다 동시에** 되돌려야 한다. 하나만 되돌리면 reduced-motion 이나 WebGL 없는 TV 에서
+ *    폴백으로 뜨는 CSS 트랙이 폰과 반대로 달린다.
+ *    ⚠️ 이모지를 scaleX(-1) 로 뒤집는 것은 사용자가 고르지 않은 방법이다. 넣지 말 것.
+ *
+ * 레인 배치도 함께 뒤집었다 — `n/10`(칸수)이 왼쪽(결승선 옆), 이름·배지가 오른쪽(출발선 옆).
+ * 뒤집기 전과 **같은 짝**을 지킨 것이고(원래도 이름은 출발선 옆·칸수는 결승선 옆이었다),
+ * 덤으로 제일 굵은 글자(이름 26px)가 흰 체크무늬 결승선에서 떨어져 8m 가독성이 산다 (§11-1).
+ *
  * 외부 자원 없음 — 말은 '동물' 설정의 이모지를 Pixi `Text` 로 그려 텍스처로 굽는다.
  * 이미지도 글꼴도 받아오지 않는다 (§11-1).
  */
@@ -53,7 +65,11 @@ interface Lane {
   flash: Sprite;
   code: AnimalCode;
   index: number;
-  /** 트랙 안쪽 좌표계 */
+  /**
+   * 트랙 안쪽 좌표계. `x0` 은 **출발선(오른쪽)**, `x1` 은 **결승선(왼쪽)** 이라
+   * `w = x1 - x0` 는 **음수**다. 그 덕에 `x0 + w * pct` 라는 식은 방향을 뒤집기
+   * 전과 글자 하나 안 바뀌었다 — 방향은 x0·x1 을 어디로 잡느냐로만 정해진다.
+   */
   x0: number; x1: number; w: number;
   finished: boolean;
   dustDebt: number;
@@ -184,13 +200,18 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     lanes = [];
     world.removeChildren();
 
+    // 화면 순서: [칸수 posW] GAP [트랙 courseW] [이름·배지 tagW]
+    // ⚠️ 결승선이 왼쪽이라 칸수도 왼쪽이다. 뒤집기 전에는 정확히 좌우가 반대였다
     const tagW = Math.round(300 * scale);
     const posW = Math.round(96 * scale);
-    const courseX = tagW;
+    const courseX = posW + GAP;
     const courseW = Math.max(120, width - tagW - posW - GAP);
     const courseH = Math.round(laneH * 0.82);
     const finishW = Math.round(34 * scale);
     const pad = Math.round(30 * scale);          // 출발선·결승선 안쪽 여백 (말이 잘리지 않게)
+    // 출발선(오른쪽)과 결승선(왼쪽). 말이 지나는 구간은 xStart → xGoal 로 **왼쪽으로** 간다
+    const xStart = courseX + courseW - pad;
+    const xGoal = courseX + finishW;
 
     codes.forEach((code, i) => {
       const root = new Container();
@@ -199,13 +220,14 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       const bg = new Graphics();
       const top = Math.round((laneH - courseH) / 2);
       bg.roundRect(courseX, top, courseW, courseH, 10 * scale).fill(C.lane);
-      // 칸 눈금 — 몇 칸 갔는지 눈으로 셀 수 있어야 한다 (05 §4-1)
+      // 칸 눈금 — 몇 칸 갔는지 눈으로 셀 수 있어야 한다 (05 §4-1).
+      // 출발선(오른쪽)에서 결승선(왼쪽) 쪽으로 센다
       for (let k = 1; k < v.trackCells; k++) {
-        const x = courseX + pad + (courseW - pad - finishW) * (k / v.trackCells);
+        const x = xStart + (xGoal - xStart) * (k / v.trackCells);
         bg.rect(x, top, Math.max(1, scale), courseH).fill({ color: C.grid, alpha: 0.9 });
       }
-      // 결승선 체크무늬 — 외부 이미지 없이 사각형으로 짠다
-      const fx = courseX + courseW - finishW;
+      // 결승선 체크무늬 — 외부 이미지 없이 사각형으로 짠다. **왼쪽 끝**이다
+      const fx = courseX;
       bg.rect(fx, top, finishW, courseH).fill(C.laneDark);
       const cell = Math.round(9 * scale) || 4;
       for (let r = 0; r * cell < courseH; r++) {
@@ -215,25 +237,30 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
             Math.min(cell, finishW - q * cell), Math.min(cell, courseH - r * cell)).fill(0xeaf0f5);
         }
       }
-      bg.rect(fx, top, Math.max(2, 3 * scale), courseH).fill(C.goal);
+      // 빨간 골인선은 **말이 오는 쪽(오른쪽)** 모서리에 둔다 — 말이 먼저 닿는 선이다
+      const goalW = Math.max(2, 3 * scale);
+      bg.rect(fx + finishW - goalW, top, goalW, courseH).fill(C.goal);
       root.addChild(bg);
 
       // 지나온 거리.
-      // ⚠️ 출발선(x0)에서 시작한다. 트랙 왼쪽 끝(courseX)에서 그리면 아직 한 칸도 못 간
-      //    말에게도 파란 막대가 붙어서, 8m 밖에서는 "이미 출발했다"로 읽힌다
+      // ⚠️ 출발선(xStart, 오른쪽)에서 시작해 왼쪽으로 자란다. 트랙 오른쪽 끝에서 그리면
+      //    아직 한 칸도 못 간 말에게도 파란 막대가 붙어서, 8m 밖에서는 "이미 출발했다"로 읽힌다.
+      //    ⚠️ 폭만이 아니라 **x 도 매 프레임 옮긴다** (place 참조) — Pixi Sprite 는 왼쪽 위가
+      //    기준점이라, 오른쪽에 고정된 막대를 왼쪽으로 늘리려면 x 를 같이 당겨야 한다
       const covered = new Sprite(Texture.WHITE);
       covered.tint = C.run;
       covered.alpha = 0.3;
-      covered.x = courseX + pad;
+      covered.x = xStart;
       covered.y = top + 2;
       covered.height = courseH - 4;
       covered.width = 0;
       root.addChild(covered);
 
-      // 레인 배지 — **색 + 숫자**. 색만으로 뜻을 전하지 않는다 (05 §2)
+      // 레인 배지 — **색 + 숫자**. 색만으로 뜻을 전하지 않는다 (05 §2).
+      // ⚠️ 화면 **오른쪽 끝**이다 (출발선 쪽). 뒤집기 전 왼쪽 끝 배치를 그대로 거울에 비춘 것
       const badge = Math.round(38 * scale);
       const silk = new Graphics()
-        .roundRect(0, Math.round((laneH - badge) / 2), badge, badge, 9 * scale)
+        .roundRect(width - badge, Math.round((laneH - badge) / 2), badge, badge, 9 * scale)
         .fill(silkOf(i));
       root.addChild(silk);
       const silkNo = new Text({
@@ -241,25 +268,27 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
         style: { fontFamily: FONT, fontSize: Math.round(22 * scale), fontWeight: '900', fill: C.bg }
       });
       silkNo.anchor.set(0.5);
-      silkNo.x = badge / 2;
+      silkNo.x = width - badge / 2;
       silkNo.y = laneH / 2;
       root.addChild(silkNo);
 
+      // 이름은 배지 왼쪽에 오른쪽 정렬 — 8줄의 이름 끝이 한 줄로 맞는다
       const nameText = new Text({
         text: v.animals[code] || '',
         style: { fontFamily: FONT, fontSize: Math.round(26 * scale), fontWeight: '700', fill: C.text }
       });
-      nameText.anchor.set(0, 0.5);
-      nameText.x = badge + Math.round(11 * scale);
+      nameText.anchor.set(1, 0.5);
+      nameText.x = width - badge - Math.round(11 * scale);
       nameText.y = laneH / 2;
       root.addChild(nameText);
 
+      // 칸수는 화면 **왼쪽 끝**(결승선 옆). 왼쪽 정렬이라 체크무늬에서 떨어져 앉는다
       const posText = new Text({
         text: '',
         style: { fontFamily: FONT, fontSize: Math.round(20 * scale), fontWeight: '800', fill: 0x6e8398 }
       });
-      posText.anchor.set(1, 0.5);
-      posText.x = width;
+      posText.anchor.set(0, 0.5);
+      posText.x = 0;
       posText.y = laneH / 2;
       root.addChild(posText);
 
@@ -280,7 +309,7 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       world.addChild(root);
       lanes.push({
         root, covered, horse, posText, nameText, flash, code, index: i,
-        x0: courseX + pad, x1: courseX + courseW - finishW, w: 0,
+        x0: xStart, x1: xGoal, w: 0,      // x0 > x1 — 말은 왼쪽으로 간다
         finished: false, dustDebt: 0
       });
     });
@@ -320,16 +349,18 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     lane.root.setChildIndex(s, Math.min(2, lane.root.children.length - 1));
     s.x = x; s.y = y;
     s.visible = true;
+    // ⚠️ vx 는 **양수**다. 말이 왼쪽으로 달리므로 먼지·속도선은 오른쪽(뒤)으로 흩어진다.
+    //    부호를 되돌리면 먼지가 말보다 앞서 날아가 "브레이크를 밟는" 그림이 된다
     if (kind === 'dust') {
       s.tint = 0x8fa3b5;
       s.scale.set((3 + Math.random() * 4) * scale / 8);
-      p.vx = -(20 + Math.random() * 50) * scale;
+      p.vx = (20 + Math.random() * 50) * scale;
       p.vy = (Math.random() - 0.5) * 40 * scale;
       p.max = 420 + Math.random() * 260;
     } else {
       s.tint = C.run;
       s.scale.set(1.4 * scale / 8, 0.5 * scale / 8);
-      p.vx = -(220 + Math.random() * 140) * scale;
+      p.vx = (220 + Math.random() * 140) * scale;
       p.vy = 0;
       p.max = 200 + Math.random() * 120;
     }
@@ -356,9 +387,13 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
 
   function place(l: Lane, cellPos: number, cells: number, moving: boolean, bob: number): void {
     const pct = Math.max(0, Math.min(1, cellPos / Math.max(1, cells)));
+    // x0 = 출발선(오른쪽), w = x1 - x0 < 0 이므로 pct 가 클수록 말이 왼쪽으로 간다
     l.horse.x = l.x0 + l.w * pct;
     l.horse.y = laneH / 2 + bob;
-    l.covered.width = Math.max(0, l.horse.x - l.covered.x);
+    // 지나온 거리 막대는 출발선(l.x0)에 오른쪽 끝을 붙인 채 말 쪽으로 자란다.
+    // ⚠️ Sprite 의 x 는 왼쪽 끝이라 폭만 늘리면 막대가 반대쪽(오른쪽)으로 뻗는다
+    l.covered.x = l.horse.x;
+    l.covered.width = Math.max(0, l.x0 - l.horse.x);
     const fin = cellPos >= cells - 1e-9;
     l.posText.text = fin ? '골인' : `${Math.floor(cellPos)}/${cells}`;
     l.posText.style.fill = fin ? C.gold : 0x6e8398;
@@ -438,11 +473,11 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
         l.dustDebt += TUNING.dustPerSecond * (dt / 1000);
         while (l.dustDebt >= 1) {
           l.dustDebt -= 1;
-          spawn(l, l.horse.x - 12 * scale, laneH / 2 + 10 * scale, 'dust');
+          spawn(l, l.horse.x + 12 * scale, laneH / 2 + 10 * scale, 'dust');   // 말 뒤 = 오른쪽
         }
         // 속도선은 **빨리 갈 때만**. 늘 나오면 누가 앞서는지 안 보인다
         if (speedPx > 90 * scale && Math.random() < 0.5) {
-          spawn(l, l.horse.x - 26 * scale, laneH / 2 - 6 * scale, 'speed');
+          spawn(l, l.horse.x + 26 * scale, laneH / 2 - 6 * scale, 'speed');
         }
       }
       if (l.flash.alpha > 0) l.flash.alpha = Math.max(0, l.flash.alpha - dt / TUNING.flashMs);
