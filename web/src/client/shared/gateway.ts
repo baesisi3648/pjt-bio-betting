@@ -105,6 +105,7 @@ export async function api(path: string, opts: ApiOptions = {}): Promise<Envelope
 export const TEACHER_HTTP: Record<string, string> = {
   advanceRound: 'advance',
   togglePause: 'pause',
+  skipPhase: 'skip',
   finalize: 'finalize',
   reveal: 'reveal',
   handout: 'handout'

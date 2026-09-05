@@ -41,6 +41,14 @@ th{color:var(--muted);font-size:20px}
 .round{font-size:64px;font-weight:900}
 .timer{font-size:64px;font-weight:900;color:var(--gold)}
 .timer.urgent{color:var(--goal)}
+/* 자동 단축으로 마감이 당겨지면 숫자가 61 → 5 로 튄다. 그 순간 한 번 튕겨서
+   "뭔가 바뀌었다"가 8m 밖에서도 보이게 한다.
+   ⚠️ keyframe 은 아래 배당판의 oddsPop 을 **그대로 재사용**한다 — 같은 뜻(값이 바뀌었다)에
+      화면마다 다른 동작을 붙이면 보는 사람이 매번 새로 배워야 한다.
+      base.css 의 prefers-reduced-motion 규칙이 이 애니메이션도 같이 눌러 준다.
+   ⚠️ transform-origin 은 오른쪽이어야 한다 — 이 숫자는 화면 오른쪽 끝에 붙어 있어서,
+      가운데에서 키우면 커진 만큼 밖으로 삐져나가 마지막 글자가 잘린다 (실제로 잘렸다) */
+.timer.pop{animation:oddsPop .5s ease-out;transform-origin:right center}
 /* ══ 레이스 트랙 ══
    트랙은 판이 시작될 때 한 번만 만들고, 그 뒤엔 말의 right 값만 바꾼다.
    ⚠️ innerHTML로 매번 다시 그리면 DOM이 새로 생겨서 transition이 걸릴 대상이 사라진다.
@@ -138,6 +146,12 @@ th{color:var(--muted);font-size:20px}
 .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .btn-red{background:var(--goal);color:#fff;padding:18px 32px;font-size:26px;font-weight:700}
 .btn-pause{background:#3E5468;color:#fff;padding:18px 28px;font-size:22px}
+/* 조기 종료 — 일시정지(회색)와도 정산(빨강)과도 다른 색이어야 손이 잘못 가지 않는다.
+   ⚠️ 색은 거들 뿐이다. ▶ 와 '넘어가기'라는 글자가 뜻을 다 말하고 있어야 한다 (§11-1) */
+.btn-skip{background:var(--run);color:#0F1720;padding:18px 28px;font-size:22px;font-weight:800}
+/* '모둠이 다 끝났어요' — ✅ 와 글자가 뜻을 말하고, 초록은 거들 뿐이다.
+   8m 에서 읽혀야 하므로 22px 아래로 내리지 말 것 */
+.skip-note{font-size:22px;font-weight:800;color:var(--ok);white-space:nowrap}
 .btn-small{background:transparent;color:var(--muted);font-size:16px;padding:10px;text-decoration:underline}
 .phase-big{text-align:center;font-size:44px;font-weight:800;padding:30px}
 #toast{position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#000;color:#fff;

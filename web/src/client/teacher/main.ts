@@ -18,16 +18,21 @@
  *    잠깐 끊긴 사이에도 선생님은 라운드를 넘겨야 한다. shared/gateway.ts 의 hostOp 이
  *    소켓 전송이 실패하면 같은 op 을 HTTP 라우트로 다시 보낸다.
  *
+ * 4. **'지금 넘어가기'에는 확인 대화상자가 없다** (MIGRATION §8-3, 사용자 결정).
+ *    정답 공개·정산과 달리 되돌릴 게 없다 — 잘못 눌러도 다음 단계로 갈 뿐이다. 반대로
+ *    수업 중에 한 번 더 묻게 하면, 아끼려던 그 몇 초를 대화상자가 도로 먹는다.
+ *    막는 것은 **두 번 눌리는 것**뿐이다 — 응답 전에 또 누르면 단계가 두 개 지나간다.
+ *
  * ⚠️ 교사 열쇠는 **매 메시지에 싣는다.** 소켓이 붙어 있다는 사실로 권한을 가정하지 않는다.
  *
  * ── 4b 연출 (MIGRATION §11) ──
  *
- * 4. **경주 무대**는 `./stage.ts` (PixiJS) 다. `import()` 로 늦게 부른다 — 정적으로 부르면
+ * 5. **경주 무대**는 `./stage.ts` (PixiJS) 다. `import()` 로 늦게 부른다 — 정적으로 부르면
  *    PixiJS 가 학생 폰 번들에도 실린다. 무대가 켜지면 4a 의 CSS 트랙(`#track`)을 숨기고,
  *    `prefers-reduced-motion` 이거나 WebGL 이 없으면 무대를 아예 안 만들고 CSS 트랙으로 간다.
  *    **어느 쪽이든 게임은 그대로 돈다** (§11-1).
  *
- * 5. **배당판**은 다시 그리지 않고 **고쳐 쓴다.** 트랙 레인과 같은 이유다 —
+ * 6. **배당판**은 다시 그리지 않고 **고쳐 쓴다.** 트랙 레인과 같은 이유다 —
  *    매번 innerHTML 로 갈면 굴러가던 숫자와 날아오던 칩이 매 푸시마다 처음으로 돌아간다.
  */
 
@@ -435,6 +440,14 @@ function render(d: TeacherView): void {
   $('btn-pause').textContent = d.phase === 'paused' ? '▶ 이어하기' : '⏸ 일시정지';
   $('btn-pause').classList.toggle('hidden', waiting);
 
+  // 조기 종료 버튼 (MIGRATION §8-3).
+  // ⚠️ 단계 이름으로 여기서 다시 판단하지 않는다 — 서버가 계산한 canSkip 하나만 본다
+  //    (views.canSkipNow). 조건을 화면에 한 벌 더 쓰면, 눌리는데 서버가 NOT_SKIPPABLE 로
+  //    거절하는 버튼(또는 눌러야 하는데 죽어 있는 버튼)이 언젠가 생긴다.
+  // ⚠️ 비활성(disabled)이 아니라 **감춘다.** 대기 중에는 그 자리가 '라운드 시작'의 것이고,
+  //    경주 20초는 학생이 결과를 보는 시간이라 애초에 넘길 것이 아니다.
+  $('btn-skip').classList.toggle('hidden', !d.canSkip);
+
   // 경주 20초. 무대가 켜져 있으면 라운드 번호·카운트다운을 무대가 크게 보여주므로
   // 이 문구는 감춘다 — 겹쳐 놓으면 8m 밖에서 두 글자가 서로를 가린다 (§11-1)
   const note = $('phase-note');
@@ -462,6 +475,10 @@ function nextRoundNo(d: TeacherView): number {
   return d.roundStarted ? d.round + 1 : d.round;
 }
 
+/** 타이머가 튄 것을 알아보기 위해 지난 초를 기억한다 (아래 tick 주석) */
+let prevLeft: number | null = null;
+let prevPhase = '';
+
 /** 1초마다. 서버 시각으로 다시 센다 (폴링이 아니다) */
 function tick(): void {
   const d = LAST;
@@ -469,7 +486,56 @@ function tick(): void {
   const left = clock.secondsLeft(d);
   const t = $('p-timer');
   t.textContent = (PHASE_KO[d.phase] || '') + (left != null ? `  ⏱ ${left}` : '');
-  t.className = 'timer num' + (left != null && left <= 10 ? ' urgent' : '');
+  // ⚠️ className 을 통째로 다시 쓰지 않는다 — 아래에서 붙인 pop 이 다음 상태 푸시에
+  //    지워져서 애니메이션이 중간에 끊긴다
+  t.classList.toggle('urgent', left != null && left <= 10);
+
+  /* 자동 단축이 걸리면 서버는 phaseEndsAt 만 당긴다(phaseSeconds 는 그대로) — 그래서
+     숫자가 61 → 5 로 한 번 튄다. **정상이다.** 다만 8m 밖에서는 숫자가 작아진 것을
+     못 보고 지나치므로, 튀는 그 순간 타이머를 한 번 튕겨 준다.
+     10초 이하의 붉은색(urgent)은 기존 로직이 알아서 붙인다.
+
+     ⚠️ 같은 단계 안에서 줄었을 때만이다. 단계가 바뀌면 남은 초는 늘어나지(90 → 180)
+        줄지 않으므로, 이 조건은 사실상 자동 단축 하나만 잡는다.
+     ⚠️ 문턱이 2 가 아니라 3 인 이유: 탭이 뒤에 있으면 브라우저가 1초 interval 을 밀어
+        2초가 한꺼번에 줄어드는 일이 흔하다. 그때마다 튕기면 신호가 아니라 잡음이 된다. */
+  if (d.phase === prevPhase && left != null && prevLeft != null && prevLeft - left >= 3) pop(t);
+  prevPhase = d.phase;
+  prevLeft = left;
+
+  skipNote(d, left);
+}
+
+/**
+ * "값이 바뀌었다"를 한 번 튕겨 보인다. 배당 숫자와 **같은 keyframe(oddsPop)** 을 쓴다 —
+ * 같은 뜻에 화면마다 다른 동작을 붙이면 보는 사람이 매번 새로 배워야 한다.
+ * (reduced-motion 은 base.css 가 0.01ms 로 눌러 준다)
+ */
+function pop(el: HTMLElement): void {
+  el.classList.remove('pop');
+  void el.offsetWidth;                                // 애니메이션을 다시 트는 표준 수법
+  el.classList.add('pop');
+}
+
+/**
+ * '✅ 모둠이 다 끝났어요 · N초 뒤 넘어갑니다'.
+ *
+ * ⚠️ 서버가 준 `allDone` 만 본다 (views.allTeamsDone). 모둠 표를 세어 직접 판단하면
+ *    자동 단축이 도는 조건과 문구가 갈라져서, "다 끝났어요"라고 써 놓고 시계는 안 줄어드는
+ *    상태가 생긴다 (MIGRATION §5 — 사본을 만들지 말 것).
+ * ⚠️ 토론에서는 `allDone` 이 언제나 false 다. 토론 180초는 줄이지 않기 때문이고,
+ *    그래서 토론 중에 이 문구가 안 뜨는 것이 정상이다 (§8-3).
+ * ⚠️ 멈춰 있는 동안에는 초를 적지 않는다 — 시간이 안 흐르므로 'N초 뒤'가 거짓말이 된다.
+ *    (임의 결정) ✅ 와 글자가 뜻을 다 말한다. 초록색은 거들 뿐이다 (§11-1).
+ */
+function skipNote(d: TeacherView, left: number | null): void {
+  const el = $('skip-note');
+  el.classList.toggle('hidden', !d.allDone);
+  if (!d.allDone) return;
+  el.textContent =
+    d.phase === 'paused' ? '✅ 모둠이 다 끝났어요 · 일시정지 중'
+    : left != null ? `✅ 모둠이 다 끝났어요 · ${left}초 뒤 넘어갑니다`
+    : '✅ 모둠이 다 끝났어요';
 }
 
 /* ── 트랙 그리기 ──
@@ -732,6 +798,29 @@ async function host(op: string, btn?: HTMLButtonElement): Promise<unknown | null
 function nextRound(): void { void host('advanceRound', $('btn-round') as HTMLButtonElement); }
 function togglePause(): void { void host('togglePause', $('btn-pause') as HTMLButtonElement); }
 
+/** 응답을 기다리는 동안 또 눌리는 것만 막는다 (파일 머리 4번 — 확인 대화상자는 없다) */
+let skipping = false;
+
+/**
+ * '지금 넘어가기' (MIGRATION §8-3).
+ *
+ * ⚠️ 응답의 `data` 는 **이미 다음 단계의 teacherView** 다 — 서버가 알람을 기다리지 않고
+ *    동기로 넘긴 뒤 그 결과를 돌려주기 때문이다 (room.ts skipPhase). 그대로 그리면 된다.
+ *    소켓 푸시를 기다렸다가 그리면, 그 몇백 ms 동안 화면이 안 바뀌어 선생님이 다시 누른다.
+ * ⚠️ 실패는 handle() 이 서버 문장 그대로 토스트로 띄운다 (NOT_SKIPPABLE·PAUSED·NOT_HOST).
+ *    여기서 코드별로 문장을 다시 쓰지 않는다 — 말투가 두 벌이 된다 (gateway.ts 머리 주석).
+ */
+async function skipPhase(): Promise<void> {
+  if (skipping) return;
+  skipping = true;
+  try {
+    const d = await host('skipPhase', $('btn-skip') as HTMLButtonElement);
+    if (d) applyState(d as TeacherView);
+  } finally {
+    skipping = false;
+  }
+}
+
 /**
  * 정답은 상시 응답에 담기지 않는다. 누른 그 순간에만 따로 받아온다 (§4-1, room.ts reveal).
  * ⚠️ 이 화면은 TV 에 연결돼 있을 수 있어서, 띄우기 전에 한 번 묻고 12초 뒤 스스로 감춘다.
@@ -903,6 +992,7 @@ function wire(): void {
 
   $('btn-round').addEventListener('click', nextRound);
   $('btn-pause').addEventListener('click', togglePause);
+  $('btn-skip').addEventListener('click', () => { void skipPhase(); });
   $('btn-handout').addEventListener('click', showHandout);
   $('btn-reveal').addEventListener('click', askReveal);
   $('btn-finalize').addEventListener('click', askFinalize);

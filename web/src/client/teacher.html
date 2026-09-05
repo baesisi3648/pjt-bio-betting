@@ -117,6 +117,12 @@
   <div class="card controls">
     <button class="btn-red" id="btn-round">🎲 라운드 시작</button>
     <button class="btn-pause" id="btn-pause">⏸ 일시정지</button>
+    <!-- 조기 종료 (MIGRATION §8-3). 문제·토론·베팅에서만 보인다 — 대기·경주 중에는
+         감춘다(비활성이 아니라). 대기 중 이 자리는 '라운드 시작'의 것이고,
+         경주 20초는 학생이 결과를 보는 시간이라 넘길 것이 아니다 -->
+    <button class="btn-skip hidden" id="btn-skip">지금 넘어가기 ▶</button>
+    <!-- 모든 모둠이 끝나면 서버가 마감을 당긴다. 그 사실을 글자로 적는 자리 -->
+    <span class="skip-note hidden" id="skip-note"></span>
     <span style="flex:1"></span>
     <button class="btn-small" id="btn-handout">학생 주소·암호 다시 보기</button>
     <button class="btn-small" id="btn-reveal">정답 순위 보기</button>
