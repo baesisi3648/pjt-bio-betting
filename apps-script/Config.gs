@@ -42,8 +42,20 @@ var CODE_ALPHABET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';  // 0 O 1 I 제외
 var CODE_LENGTH = 4;
 var PIN_LENGTH = 4;
 
+/**
+ * 교사 열쇠 — 교사 화면만 알아야 하는 값.
+ *
+ * ⚠️ 판 코드는 칠판에 적혀 있어서 비밀이 아니다.
+ *    코드만으로 교사 화면을 열 수 있으면 학생이 정답 순위와 모둠 암호를 그대로 본다.
+ *    그래서 진행·정산·정답에 관한 함수는 전부 이 열쇠를 확인한다.
+ *    열쇠는 판을 만들 때 한 번 발급되어 교사 브라우저에 저장되고,
+ *    잃어버리면 스프레드시트 메뉴('교사 열쇠 확인')에서 다시 본다 — 시트는 교사만 연다.
+ */
+var HOST_KEY_LENGTH = 12;
+
 var LIMITS = {
   lockWaitMs:      10000,
+  pollLockWaitMs:   2000,   // 폴링은 오래 기다리지 않는다. 못 잡으면 2초 뒤 어차피 다시 온다
   cacheSeconds:    21600,   // 6시간
   maxStateBytes:   100000,  // CacheService 한도
   reverseAttempts: 50,      // 이동 역산 재시도
@@ -62,7 +74,8 @@ var ERRORS = {
   NOT_ENOUGH_COINS: '코인이 모자라요',
   PAUSED:           '선생님이 잠시 멈췄어요',
   LOCK_TIMEOUT:     '잠시 후 다시 눌러주세요',
-  SHEET_INVALID:    '시트 구성을 확인해주세요'
+  SHEET_INVALID:    '시트 구성을 확인해주세요',
+  NOT_HOST:         '이 판의 교사 화면이 아니에요. 교사 열쇠를 확인해주세요'
 };
 
 /**
@@ -87,4 +100,4 @@ var SPREADSHEET_ID = '1BGPCWghYREs15EbMsO-asazFdntPiFYqjmkaxoruL1A';
 
 var WEBAPP_URL = 'https://script.google.com/macros/s/AKfycbyRHvpmemANRgY0Gf6I5FvRL7iKs0JrdYR7v0NkIfpZROOAaaStrWmGx4nDo0AKifo/exec';
 
-var DEPLOY_VERSION = '2026-08-04i';  // 화면 하단에 표시 — 재배포 누락 감지용
+var DEPLOY_VERSION = '2026-09-05a';  // 화면 하단에 표시 — 재배포 누락 감지용

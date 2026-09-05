@@ -338,7 +338,19 @@ function makePin(rng) {
   return s;
 }
 
-/** ⚠️ 되돌리면 개발자 도구로 정답이 보인다 (00-loop.md) */
+/** 교사 열쇠. 판 코드와 달리 칠판에 적히지 않으므로 추측할 수 없을 만큼 길어야 한다 */
+function makeHostKey(rng) {
+  rng = rng || Math.random;
+  var s = '';
+  for (var i = 0; i < HOST_KEY_LENGTH; i++) s += CODE_ALPHABET[Math.floor(rng() * CODE_ALPHABET.length)];
+  return s;
+}
+
+/**
+ * ⚠️ 되돌리면 개발자 도구로 정답이 보인다 (00-loop.md)
+ * ⚠️ 실제로 서비스가 쓰는 것은 Code.gs 의 teamView 다. 이쪽은 게이트 검사용 사본이라
+ *    두 벌이 갈라질 수 있다 — 고칠 때는 반드시 양쪽을 같이 본다.
+ */
 function toTeamView(state, teamNo, settings) {
   var me = null, progress = [];
   state.teams.forEach(function (t) {
@@ -381,6 +393,6 @@ if (typeof module !== 'undefined') {
     buildHints: buildHints, buildHintPredicates: buildHintPredicates, countTop3Candidates: countTop3Candidates,
     computeOdds: computeOdds, validateBet: validateBet, settle: settle,
     planQuestions: planQuestions, shuffle: shuffle, permute: permute,
-    makeCode: makeCode, makePin: makePin, toTeamView: toTeamView
+    makeCode: makeCode, makePin: makePin, makeHostKey: makeHostKey, toTeamView: toTeamView
   };
 }

@@ -158,6 +158,41 @@ function 시트_상태_확인() {
   SpreadsheetApp.getUi().alert(lines.join('\n'));
 }
 
+/**
+ * 교사 열쇠를 다시 본다.
+ *
+ * 열쇠는 판을 만든 브라우저에만 저장된다. 다른 기기에서 이어하거나
+ * 브라우저 기록을 지웠으면 여기서 다시 받는다.
+ * 이 메뉴는 스프레드시트에서만 보이고 시트는 교사만 열 수 있으므로,
+ * 이것이 열쇠를 되찾는 안전한 통로다.
+ */
+function 교사_열쇠_확인() {
+  var ui = SpreadsheetApp.getUi();
+  var res = ui.prompt('교사 열쇠 확인', '판 코드 4자리를 넣어주세요', ui.ButtonSet.OK_CANCEL);
+  if (res.getSelectedButton() !== ui.Button.OK) return;
+
+  var code = String(res.getResponseText() || '').toUpperCase().trim();
+  var state = null;
+  try { state = loadState(code); } catch (e) {
+    ui.alert('판을 읽지 못했습니다: ' + e.message);
+    return;
+  }
+  if (!state) { ui.alert("'" + code + "' 판을 찾지 못했어요. 코드를 다시 확인해주세요."); return; }
+
+  // 이 수정 이전에 만든 판에는 열쇠가 없다. 여기서 한 번 발급해 붙여준다
+  if (!state.hostKey) {
+    state.hostKey = makeHostKey();
+    saveSnapshot(state);
+  }
+
+  ui.alert(
+    '판 ' + code + ' 의 교사 열쇠\n\n' + state.hostKey +
+    '\n\n─────────────\n' +
+    "교사 화면에서 '판 코드로 이어하기' 를 누르고 코드와 함께 넣으세요.\n" +
+    '⚠️ 학생에게는 보여주지 마세요. 이 열쇠로 정답 순위와 모둠 암호를 볼 수 있습니다.'
+  );
+}
+
 /** 스프레드시트 메뉴에 넣기 */
 function onOpen() {
   SpreadsheetApp.getUi().createMenu('와일드 더비')
@@ -167,6 +202,7 @@ function onOpen() {
     .addSeparator()
     .addItem('시트 상태 확인', '시트_상태_확인')
     .addItem('학생 주소 확인', '학생주소_확인')
+    .addItem('교사 열쇠 확인', '교사_열쇠_확인')
     .addSeparator()
     .addItem('샘플 문제만 넣기 (개발용)', 'insertSampleQuestions')
     .addToUi();

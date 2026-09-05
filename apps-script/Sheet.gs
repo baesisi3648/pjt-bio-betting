@@ -9,9 +9,9 @@
  * ⚠️ 되돌리면 6모둠 동시 베팅에 코인이 어긋난다 (00-loop.md).
  * 상태를 바꾸는 모든 함수는 이 안에서 돈다. 읽기만 하는 getState는 예외.
  */
-function withLock(fn) {
+function withLock(fn, waitMs) {
   var lock = LockService.getScriptLock();
-  if (!lock.tryLock(LIMITS.lockWaitMs)) {
+  if (!lock.tryLock(waitMs || LIMITS.lockWaitMs)) {
     return { ok: false, error: 'LOCK_TIMEOUT', message: ERRORS.LOCK_TIMEOUT };
   }
   try { return fn(); }
@@ -213,7 +213,11 @@ function replayEvent(state, row) {
   if (kind === 'answer' && team) {
     team.answered = team.answered || {};
     team.answered[round] = payload;
-    if (payload.correct && payload.hint) { team.hints = team.hints || []; team.hints.push(payload.hint); }
+    if (payload.correct && payload.hint) {
+      team.hints = team.hints || [];
+      team.hints.push(payload.hint);
+      markHintGiven(state, teamNo, payload.hint);
+    }
   } else if (kind === 'bet' && team) {
     team.bets = team.bets || {}; team.betLocked = team.betLocked || {};
     team.bets[round] = payload.bets;
@@ -228,6 +232,29 @@ function replayEvent(state, row) {
   }
   state.eventSeq = seq;
   state.stateVersion = (state.stateVersion || 0) + 1;
+}
+
+/**
+ * ⚠️ 되돌리면 캐시 복구 뒤 같은 힌트가 두 번 나간다.
+ *
+ * takeHint 는 '어려움#0' 같은 열쇠를 state.hintGiven 에 쌓아 중복을 막는다.
+ * 그런데 재생은 team.hints 만 되살리고 hintGiven 은 비워둔 채였다 —
+ * 그러면 복구 직후 같은 난이도를 또 맞힌 모둠에게 1번 힌트가 다시 간다.
+ * 게이트 D6 이 지키는 규칙이 정작 복구 경로에서만 깨져 있었다.
+ *
+ * 힌트 문구는 판을 만들 때 hintPool 에 굳어 있으므로, 문구로 자리를 되찾을 수 있다.
+ * (이러면 hintKey 같은 걸 새로 기록하지 않아도 예전 판의 기록까지 그대로 복구된다)
+ */
+function markHintGiven(state, teamNo, hint) {
+  if (!hint || !hint.level || !state.hintPool) return;
+  var pool = state.hintPool[hint.level] || [];
+  var idx = pool.indexOf(hint.text);
+  if (idx < 0) return;                       // 풀에 없는 문구 — 되찾을 자리가 없다
+  var key = hint.level + '#' + idx;
+  state.hintGiven = state.hintGiven || {};
+  var given = state.hintGiven[teamNo] || [];
+  if (given.indexOf(key) < 0) given.push(key);
+  state.hintGiven[teamNo] = given;
 }
 
 function listRecentGames(limit) {

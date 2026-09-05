@@ -43,19 +43,79 @@ th{color:var(--muted);font-size:20px}
 .round{font-size:64px;font-weight:900}
 .timer{font-size:64px;font-weight:900;color:var(--gold)}
 .timer.urgent{color:var(--goal)}
-.track-row{display:flex;align-items:center;gap:12px;margin:7px 0}
-.track-name{width:180px;font-size:26px;font-weight:700;flex:none}
-.cells{display:flex;flex:1;gap:3px}
-.cell{flex:1;height:44px;background:#22303F;border-radius:4px;display:flex;align-items:center;
-      justify-content:center;font-size:18px;color:#4A6076;transition:background .6s}
-.cell.done{background:var(--run)}
-.cell.goal{background:#4A2020;color:#C97}
-.cell.here{background:var(--gold);color:#1B2734;font-size:24px}
-.finished .track-name{color:var(--gold)}
+/* ══ 레이스 트랙 ══
+   트랙은 판이 시작될 때 한 번만 만들고, 그 뒤엔 말의 left 값만 바꾼다.
+   ⚠️ innerHTML로 매번 다시 그리면 DOM이 새로 생겨서 transition이 걸릴 대상이 사라진다.
+      (예전 코드가 그래서 말이 순간이동했다) */
+#track{padding:2px 0}
+.lane{display:flex;align-items:center;gap:14px;height:60px}
+.lane + .lane{border-top:1px solid #223240}
+.lane-tag{width:230px;flex:none;display:flex;align-items:center;gap:11px}
+/* 레인 배지 — 색이 안 보여도 번호로 구분된다. 낡은 TV와 색각이상 둘 다를 위해 */
+.silk{width:38px;height:38px;flex:none;border-radius:9px;display:flex;align-items:center;
+      justify-content:center;font-size:22px;font-weight:900;color:#0F1720;background:#8FA3B5}
+.s0{background:#F2B441} .s1{background:#4FC3F7} .s2{background:#8BC34A} .s3{background:#EF5350}
+.s4{background:#BA68C8} .s5{background:#FF8A65} .s6{background:#4DB6AC} .s7{background:#DCE775}
+.lane-name{font-size:26px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.lane-pos{width:78px;flex:none;text-align:right;font-size:20px;font-weight:800;color:#6E8398}
+.lane.finished .lane-name{color:var(--gold)}
+.lane.finished .lane-pos{color:var(--gold)}
+
+.course{position:relative;flex:1;height:50px;border-radius:10px;overflow:hidden;
+        background:
+          repeating-linear-gradient(90deg,transparent 0 calc(10% - 2px),#2A3B4B calc(10% - 2px) 10%),
+          linear-gradient(#1E2C3A,#16212C)}
+.covered{position:absolute;left:32px;top:0;bottom:0;width:0;
+         background:linear-gradient(90deg,rgba(79,195,247,.10),rgba(79,195,247,.30));
+         transition:width 1.15s cubic-bezier(.33,.86,.36,1)}
+.lane.finished .covered{background:linear-gradient(90deg,rgba(242,180,65,.14),rgba(242,180,65,.36))}
+
+/* 결승선 — 체크무늬는 gradient 두 장으로. 외부 이미지를 쓰지 않는다 */
+.finish{position:absolute;right:0;top:0;bottom:0;width:34px;border-left:3px solid var(--goal);
+        background-color:#1B2734;
+        background-image:linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%),
+                         linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%);
+        background-size:14px 14px;background-position:0 0,7px 7px;opacity:.9}
+
+/* 말은 크기 0짜리 기준점에 얹는다 — left(이동)와 transform(질주 동작)이 서로 안 싸우게 */
+.runway{position:absolute;top:0;bottom:0;left:32px;right:24px}
+.runner{position:absolute;left:0;top:50%;width:0;height:0;
+        transition:left 1.15s cubic-bezier(.33,.86,.36,1)}
+.horse{position:absolute;left:0;top:0;font-size:38px;line-height:1;
+       transform:translate(-50%,-50%);filter:drop-shadow(0 3px 5px rgba(0,0,0,.6))}
+.trail{position:absolute;right:16px;top:50%;width:0;height:7px;border-radius:4px;opacity:0;
+       transform:translateY(-50%);background:linear-gradient(90deg,transparent,rgba(79,195,247,.8))}
+.runner.galloping .horse{animation:gallop .32s ease-in-out infinite}
+.runner.galloping .trail{animation:trail .32s linear infinite}
+@keyframes gallop{
+  0%,100%{transform:translate(-50%,-50%) rotate(-4deg)}
+  50%    {transform:translate(-50%,-64%) rotate(4deg)}
+}
+@keyframes trail{0%{opacity:0;width:18px}50%{opacity:.9;width:54px}100%{opacity:0;width:18px}}
+@keyframes goalFlash{
+  0%  {box-shadow:inset 0 0 0 3px var(--gold),0 0 0 0 rgba(242,180,65,.65)}
+  100%{box-shadow:inset 0 0 0 3px var(--gold),0 0 0 24px rgba(242,180,65,0)}
+}
+.lane.justFinished .course{animation:goalFlash 1s ease-out 2}
+
+/* ══ 배당판 (tote board) ══ */
 .two{display:grid;grid-template-columns:1.3fr 1fr;gap:16px}
-.odds{font-size:30px;font-weight:900;color:var(--gold)}
-tr.bump td{animation:bump .4s}
-@keyframes bump{from{background:#2E4257}to{background:transparent}}
+.tote{width:100%;border-collapse:collapse}
+.tote td{padding:9px 6px;border-bottom:1px solid #263745;vertical-align:middle}
+.tote .t-silk{width:46px}
+.tote .t-name{font-size:25px;font-weight:700;white-space:nowrap}
+.pool-wrap{position:relative;height:20px;background:#16212C;border-radius:5px;overflow:hidden;min-width:90px}
+.pool-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:5px;
+           background:linear-gradient(90deg,#7A5C18,#F2B441);transition:width .7s ease}
+/* 코인 수는 막대 밖에 둔다 — 금색 막대 위에 글자를 얹으면 어떤 색을 써도 대비가 무너진다 */
+.t-coins{text-align:right;white-space:nowrap;width:104px;font-size:22px;font-weight:800;color:#C9D6E2}
+.t-coins .u{font-size:15px;color:var(--muted);margin-left:3px;font-weight:600}
+.t-odds{text-align:right;white-space:nowrap}
+.odds{font-size:33px;font-weight:900;color:var(--gold);display:inline-block}
+.delta{font-size:19px;font-weight:800;margin-left:7px;display:inline-block;width:52px;text-align:left}
+.delta.up{color:#8ADB96} .delta.down{color:#FF9E93}
+@keyframes oddsPop{0%{transform:scale(1)}35%{transform:scale(1.18)}100%{transform:scale(1)}}
+.odds.pop{animation:oddsPop .5s ease-out}
 .ok{color:var(--ok)} .wait{color:var(--wait)}
 .controls{display:flex;gap:12px;align-items:center;flex-wrap:wrap}
 .btn-red{background:var(--goal);color:#fff;padding:18px 32px;font-size:26px;font-weight:700}
@@ -106,6 +166,11 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
 
   <div id="pane-resume" class="card hidden">
     <label>판 코드 4자리</label><input id="rcode" maxlength="4" style="text-transform:uppercase">
+    <div id="key-row" class="hidden">
+      <label>교사 열쇠</label><input id="rkey" style="text-transform:uppercase" placeholder="스프레드시트 메뉴 → 교사 열쇠 확인">
+      <div class="qrhint">이 기기에 저장된 열쇠가 없습니다.<br>
+        스프레드시트 상단 메뉴 <b>와일드 더비 → 교사 열쇠 확인</b> 에서 받아 넣어주세요.</div>
+    </div>
     <button class="primary" onclick="resume()">이어하기</button>
     <h2 style="margin-top:26px">최근 판</h2>
     <table><tbody id="recent"></tbody></table>
@@ -148,7 +213,7 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
   </div>
   <div class="card"><div id="track"></div></div>
   <div class="two">
-    <div class="card"><h2>💰 배당률</h2><table><tbody id="odds"></tbody></table></div>
+    <div class="card"><h2>💰 배당률</h2><table class="tote"><tbody id="odds"></tbody></table></div>
     <div class="card"><h2>모둠 현황</h2><table><tbody id="prog"></tbody></table></div>
   </div>
   <div class="card controls">
@@ -175,7 +240,19 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
 </div>
 
 <script>
-var CODE = null, LAST = null, prevOdds = {};
+var CODE = null, HOSTKEY = null, LAST = null, prevOdds = {};
+
+/* ── 교사 열쇠 ──
+   판 코드는 칠판에 적혀 있어서 비밀이 아니다. 교사 화면임을 증명하는 건 이 열쇠뿐이다.
+   판을 만든 기기에 저장해두고, 없으면 스프레드시트 메뉴에서 받아 넣는다.
+   (localStorage 가 막힌 브라우저에서도 판 만들기 → 진행은 그대로 된다 — 그 세션 동안은 변수에 있으니까) */
+function keyStore(code, val){
+  try {
+    if(val === undefined) return localStorage.getItem('wd_host_' + code);
+    localStorage.setItem('wd_host_' + code, val);
+  } catch(e){}
+  return val;
+}
 
 /* ── S1 ── */
 function tab(k){
@@ -242,6 +319,8 @@ function create(){
   if(!cfg.unit){ toast('단원을 골라주세요'); return; }
   call('gwCreateGame', [cfg], function(d){
     CODE = d.code;
+    HOSTKEY = d.hostKey;
+    keyStore(CODE, HOSTKEY);
     drawHandout(d);
     document.getElementById('s1').classList.add('hidden');
     document.getElementById('handout').classList.remove('hidden');
@@ -269,7 +348,7 @@ function revealAllPins(){
 }
 /* 2차시에 학생들이 다시 접속할 때 */
 function showHandout(){
-  call('gwHandout', [CODE], function(d){
+  call('gwHandout', [CODE, HOSTKEY], function(d){
     drawHandout(d);
     document.getElementById('s2').classList.add('hidden');
     document.getElementById('handout').classList.remove('hidden');
@@ -302,7 +381,26 @@ function diagnose(){
 function resume(){
   var c = (document.getElementById('rcode').value||'').toUpperCase().trim();
   if(c.length!==4){ toast('판 코드 4자리를 입력해주세요'); return; }
-  CODE = c; goPlay();
+
+  var typed = (document.getElementById('rkey').value||'').toUpperCase().trim();
+  var key = typed || keyStore(c);
+  if(!key){
+    // 이 기기에 없다 — 열쇠 칸을 열어 안내한다
+    document.getElementById('key-row').classList.remove('hidden');
+    document.getElementById('rkey').focus();
+    toast('교사 열쇠가 필요합니다');
+    return;
+  }
+  // 진행 화면으로 넘어가기 전에 열쇠부터 확인한다.
+  // 넘어간 뒤에 막히면 다시 입력할 자리가 없어서 새로고침밖에 방법이 없다
+  call('gwGetState', [c, 'teacher', key], function(){
+    CODE = c; HOSTKEY = key; keyStore(c, key);
+    goPlay();
+  }, function(){
+    document.getElementById('key-row').classList.remove('hidden');
+    document.getElementById('rkey').value = '';
+    document.getElementById('rkey').focus();
+  });
 }
 var polling = false;
 function goPlay(){
@@ -311,7 +409,7 @@ function goPlay(){
   document.getElementById('s2').classList.remove('hidden');
   if (polling) { forceRefresh(); return; }   // '다시 보기'에서 돌아온 경우 — 두 번 돌리지 않는다
   polling = true;
-  startPolling('gwGetState', function(){ return [CODE, 'teacher']; }, render, tick);
+  startPolling('gwGetState', function(){ return [CODE, 'teacher', HOSTKEY]; }, render, tick);
 }
 
 /* ── S2 ── */
@@ -323,25 +421,11 @@ function render(d){
   document.getElementById('ver').textContent = '배포 ' + d.deployVersion;
 
   var codes = Object.keys(d.animals);
-  document.getElementById('track').innerHTML = codes.map(function(c){
-    var pos = d.positions[c], fin = pos >= 10;
-    var cells = '';
-    for(var i=1;i<=10;i++){
-      var cls = 'cell' + (i===10?' goal':'') + (i<pos?' done':'') + (i===pos||(fin&&i===10)?' here':'');
-      cells += '<div class="'+cls+'">'+(i===pos||(fin&&i===10)?(d.emojis[c]||'🐎'):(i===10?'🏁':''))+'</div>';
-    }
-    return '<div class="track-row'+(fin?' finished':'')+'"><div class="track-name">'+esc(d.animals[c])+'</div><div class="cells">'+cells+'</div></div>';
-  }).join('');
-
-  document.getElementById('odds').innerHTML = codes.map(function(c){
-    var bumped = prevOdds[c] !== undefined && prevOdds[c] !== d.odds[c];
-    return '<tr class="'+(bumped?'bump':'')+'"><td>'+(d.emojis[c]||'')+' <b>'+esc(d.animals[c])+'</b></td>'+
-           '<td class="num">'+(d.pool[c]-d.seedCoins)+'코인</td><td class="odds num">'+d.odds[c].toFixed(2)+'배</td></tr>';
-  }).join('');
-  prevOdds = {}; codes.forEach(function(c){ prevOdds[c]=d.odds[c]; });
+  drawTrack(d, codes);
+  drawTote(d, codes);
 
   document.getElementById('prog').innerHTML = d.teams.map(function(t){
-    return '<tr><td>'+t.no+'모둠 '+esc(t.name)+'</td>'+
+    return '<tr><td>'+esc(teamLabel(t.no, t.name))+'</td>'+
            '<td class="'+(t.answered?'ok':'wait')+'">'+(t.answered?'✅ 제출':'⏳ 푸는중')+'</td>'+
            '<td class="'+(t.betLocked?'ok':'wait')+'">'+(t.betLocked?'💰 확정':'⏳')+'</td></tr>';
   }).join('');
@@ -352,26 +436,121 @@ function render(d){
   document.getElementById('btn-pause').textContent = d.phase==='paused' ? '▶ 이어하기' : '⏸ 일시정지';
   document.getElementById('btn-pause').classList.toggle('hidden', waiting);
 }
+
+/* ── 트랙 그리기 ──
+   ⚠️ 되돌리면 안 되는 곳: 레인 DOM은 판이 바뀔 때만 짓고, 그 뒤엔 left 값만 만진다.
+      매번 innerHTML로 갈아끼우면 요소가 새로 생겨서 말이 순간이동한다. */
+var SILK = 8, trackKey = null, wasFinished = {};
+
+function drawTrack(d, codes){
+  var key = codes.join(',');
+  if(trackKey !== key){
+    document.getElementById('track').innerHTML = codes.map(function(c, i){
+      var pct = pctOf(d.positions[c]);
+      return '<div class="lane" id="ln-'+c+'">' +
+        '<div class="lane-tag"><span class="silk s'+(i%SILK)+'">'+(i+1)+'</span>' +
+          '<span class="lane-name">'+esc(d.animals[c])+'</span></div>' +
+        '<div class="course">' +
+          '<div class="covered" id="cv-'+c+'" style="width:'+coveredW(pct)+'"></div>' +
+          '<div class="runway"><div class="runner" id="rn-'+c+'" style="left:'+pct+'%">' +
+            '<div class="trail"></div><div class="horse">'+(d.emojis[c]||'🐎')+'</div>' +
+          '</div></div>' +
+          '<div class="finish"></div>' +
+        '</div>' +
+        '<div class="lane-pos num" id="lp-'+c+'"></div></div>';
+    }).join('');
+    trackKey = key; wasFinished = {};   // 이어하기로 들어온 판은 처음 위치에서 시작 — 질주 연출 없음
+  }
+  codes.forEach(function(c){
+    var raw = d.positions[c], fin = raw >= 10, pct = pctOf(raw);
+    var runner = document.getElementById('rn-'+c), lane = document.getElementById('ln-'+c);
+    if(!runner || !lane) return;
+
+    var moved = runner._pct !== undefined && pct > runner._pct;
+    runner.style.left = pct + '%';
+    document.getElementById('cv-'+c).style.width = coveredW(pct);
+    document.getElementById('lp-'+c).textContent = fin ? '골인' : Math.max(0, raw) + '/10';
+    lane.classList.toggle('finished', fin);
+
+    if(moved){                       // 달리는 동안만 다리를 움직인다
+      runner.classList.add('galloping');
+      clearTimeout(runner._t);
+      runner._t = setTimeout(function(){ runner.classList.remove('galloping'); }, 1200);
+    }
+    if(fin && !wasFinished[c]){      // 골인은 딱 한 번만 번쩍인다
+      wasFinished[c] = true;
+      lane.classList.add('justFinished');
+      setTimeout(function(){ lane.classList.remove('justFinished'); }, 2100);
+    }
+    runner._pct = pct;
+  });
+}
+function pctOf(pos){ return Math.max(0, Math.min(10, pos || 0)) * 10; }
+/* 지나온 거리 막대는 말과 끝이 맞아야 한다.
+   말은 runway(양옆 32px·24px 들여쓴 칸) 기준이고 막대는 course 전체 기준이라, 그 차이를 여기서 맞춘다 */
+function coveredW(pct){ return 'calc((100% - 56px) * ' + (pct/100) + ')'; }
+
+/* 이름을 비우면 서버가 '1모둠'으로 채운다(Code.gs). 거기에 번호를 또 붙이면 '1모둠 1모둠'이 된다 */
+function teamLabel(no, name){
+  name = String(name || '');
+  return name === no + '모둠' ? name : no + '모둠 ' + name;
+}
+
+/* ── 배당판 ──
+   판돈 막대로 "어디에 돈이 몰렸는지"를 보이고, 배당이 움직이면 숫자가 튀며 ▲▼를 단다.
+   화살표를 같이 쓰는 건 색만으로 뜻을 전하지 않기 위해서다 (05-design-system §2) */
+function drawTote(d, codes){
+  var total = 0, bets = {};
+  codes.forEach(function(c){ bets[c] = Math.max(0, d.pool[c] - d.seedCoins); total += bets[c]; });
+
+  document.getElementById('odds').innerHTML = codes.map(function(c, i){
+    var now = d.odds[c], prev = prevOdds[c];
+    var moved = prev !== undefined && Math.abs(prev - now) > 0.005;
+    var up = moved && now > prev;
+    var share = total ? (bets[c] / total * 100) : 0;
+    return '<tr>' +
+      '<td class="t-silk"><span class="silk s'+(i%SILK)+'">'+(i+1)+'</span></td>' +
+      '<td class="t-name">'+(d.emojis[c]||'')+' '+esc(d.animals[c])+'</td>' +
+      '<td><div class="pool-wrap">' +
+        '<div class="pool-fill" id="pf-'+c+'" data-w="'+share.toFixed(1)+'"></div></div></td>' +
+      '<td class="t-coins num">'+bets[c]+'<span class="u">코인</span></td>' +
+      '<td class="t-odds"><span class="odds num'+(moved?' pop':'')+'">'+now.toFixed(2)+'배</span>' +
+        '<span class="delta '+(moved?(up?'up':'down'):'')+'">'+(moved?(up?'▲':'▼'):'')+'</span></td></tr>';
+  }).join('');
+
+  // 0에서 한 프레임 뒤에 늘려야 막대가 자라는 게 보인다
+  requestAnimationFrame(function(){
+    codes.forEach(function(c){
+      var el = document.getElementById('pf-'+c);
+      if(el) el.style.width = el.getAttribute('data-w') + '%';
+    });
+  });
+  prevOdds = {}; codes.forEach(function(c){ prevOdds[c] = d.odds[c]; });
+}
+
 var PHASE_KO = { waiting:'준비', moving:'이동 중', quiz:'문제 푸는 중', discuss:'모둠 토론 중', betting:'베팅 중', paused:'일시정지', done:'종료' };
 function tick(d){
   var t = document.getElementById('p-timer');
   t.textContent = (PHASE_KO[d.phase]||'') + (d.secondsLeft!=null ? '  ⏱ '+d.secondsLeft : '');
   t.className = 'timer num' + (d.secondsLeft!=null && d.secondsLeft<=10 ? ' urgent':'');
 }
-function nextRound(){ call('gwAdvanceRound', [CODE], function(){ forceRefresh(); }); }
-function togglePause(){ call('gwTogglePause', [CODE], function(){ forceRefresh(); }); }
+function nextRound(){ call('gwAdvanceRound', [CODE, HOSTKEY], function(){ forceRefresh(); }); }
+function togglePause(){ call('gwTogglePause', [CODE, HOSTKEY], function(){ forceRefresh(); }); }
+/* 정답은 2초마다 오는 응답에 담지 않는다. 누른 그 순간에만 따로 받아온다 (Code.gs gwReveal) */
 function askReveal(){
   confirmBox('정답 순위를 화면에 띄웁니다.\nTV에 보여도 괜찮나요?', function(){
-    var el = document.getElementById('reveal');
-    el.innerHTML = '<b>정답 순위</b><br>' + LAST.truth.map(function(c,i){ return (i+1)+'등 '+esc(LAST.animals[c]); }).join(' · ');
-    el.classList.remove('hidden');
-    setTimeout(function(){ el.classList.add('hidden'); }, 12000);
+    call('gwReveal', [CODE, HOSTKEY], function(d){
+      var el = document.getElementById('reveal');
+      el.innerHTML = '<b>정답 순위</b><br>' + d.truth.map(function(c,i){ return (i+1)+'등 '+esc(d.animals[c]); }).join(' · ');
+      el.classList.remove('hidden');
+      setTimeout(function(){ el.classList.add('hidden'); }, 12000);
+    });
   });
 }
 function askFinalize(){
   var msg = (LAST && LAST.round < LAST.lastRound)
     ? '아직 3등이 안 들어왔어요.\n그래도 정산할까요?' : '정산을 시작할까요?\n모둠 화면도 결과로 바뀝니다.';
-  confirmBox(msg, function(){ call('gwFinalize', [CODE], function(){ forceRefresh(); }); });
+  confirmBox(msg, function(){ call('gwFinalize', [CODE, HOSTKEY], function(){ forceRefresh(); }); });
 }
 
 /* ── S3 ── */

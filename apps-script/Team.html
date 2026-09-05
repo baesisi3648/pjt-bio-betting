@@ -17,10 +17,17 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 /* 게임 화면 */
 .bar{height:8px;background:#DCE4EC;border-radius:4px;overflow:hidden;margin-bottom:8px}
 .bar > div{height:100%;background:var(--run);transition:width 1s linear}
+.bar.urgent > div{background:var(--goal)}
+.bar.urgent{animation:barPulse .7s ease-in-out infinite}
+@keyframes barPulse{0%,100%{opacity:1}50%{opacity:.4}}
 .now{font-size:16px;font-weight:800;padding:10px 0}
 .now.paused{color:var(--wait)}
 .me{display:flex;justify-content:space-between;font-size:15px;color:#4B5D6E;padding-bottom:10px;
     border-bottom:1px solid #E4EAF0}
+#mcoins{font-weight:900;font-size:17px;color:#B8860B;display:inline-block;
+        font-variant-numeric:tabular-nums}
+#mcoins.changed{animation:coinPop .55s ease-out}
+@keyframes coinPop{0%{transform:scale(1)}35%{transform:scale(1.25);color:#F2B441}100%{transform:scale(1)}}
 .tabs{display:flex;gap:6px;margin:12px 0}
 .tabs button{flex:1;padding:14px 4px;font-size:15px;font-weight:700;background:#E7EDF3;color:#5A6B7C}
 .tabs button.on{background:var(--text-dark);color:#fff}
@@ -47,13 +54,41 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 .hint .txt{font-size:20px;line-height:1.8;font-weight:600}
 .empty{color:#8494A4;text-align:center;padding:34px;font-size:15px}
 
-/* 베팅 */
-.brow{display:flex;align-items:center;gap:10px;padding:12px 0;border-bottom:1px solid #EDF1F5}
-.bname{flex:1;font-size:16px;font-weight:700}
-.bodds{color:#B8860B;font-weight:800;font-size:15px;width:64px;text-align:right}
-.step{width:52px;height:52px;font-size:24px;background:#EDF2F7;color:var(--text-dark);font-weight:800}
-.cnt{width:34px;text-align:center;font-size:20px;font-weight:800}
+/* 베팅 — 코인을 "거는" 감각이 있어야 한다. 숫자만 오르내리면 아무것도 안 건 것 같다 */
+.bet-head{display:flex;justify-content:space-between;align-items:baseline;
+          padding-bottom:10px;margin-bottom:4px;border-bottom:2px solid #E7EDF3}
+.bet-head span{font-size:14px;color:#5A6B7C}
+.bet-head b{font-size:24px;color:#B8860B;font-variant-numeric:tabular-nums}
+
+.brow{display:flex;align-items:center;gap:8px;padding:10px 8px;margin:0 -8px;border-radius:12px;
+      border:2px solid transparent;transition:border-color .18s,background .18s}
+.brow + .brow{border-top:1px solid #EDF1F5}
+.brow.has{border-color:#F0C160;background:#FFFBF0;border-top-color:transparent}
+.b-emoji{font-size:26px;width:30px;text-align:center;flex:none}
+.b-main{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.bname{font-size:16px;font-weight:800;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.b-sub{display:flex;align-items:center;gap:8px;flex-wrap:wrap;min-height:15px}
+.bodds{color:#B8860B;font-weight:800;font-size:14px;flex:none}
+
+/* 건 코인만큼 칩이 쌓인다 — 이게 무게감의 핵심 */
+.chips{display:flex;gap:3px;flex-wrap:wrap}
+.chip{width:13px;height:13px;border-radius:50%;
+      background:radial-gradient(circle at 35% 30%,#FFD97A,#DFA01E);
+      box-shadow:0 1px 2px rgba(0,0,0,.3),inset 0 -2px 0 rgba(0,0,0,.18)}
+.chip.new{animation:chipIn .24s cubic-bezier(.3,1.5,.5,1)}
+@keyframes chipIn{from{transform:scale(0) translateY(-10px);opacity:0}to{transform:none;opacity:1}}
+
+.step{width:54px;height:54px;font-size:26px;font-weight:900;flex:none;
+      background:#E9EFF5;color:var(--text-dark);transition:transform .08s,background .12s}
+.step.plus{background:var(--gold);color:#1B2734}
+.step:active:not(:disabled){transform:scale(.88)}
+.cnt{width:30px;text-align:center;font-size:22px;font-weight:900;font-variant-numeric:tabular-nums}
 .used{text-align:center;padding:12px;color:#5A6B7C;font-size:15px}
+
+/* 확정 버튼은 눌리는 맛이 있어야 한다 — 되돌릴 수 없는 행동이라 */
+.big.commit{background:linear-gradient(#F5C155,#DFA02B);box-shadow:0 4px 0 #B07F19;font-size:19px}
+.big.commit:active:not(:disabled){transform:translateY(3px);box-shadow:0 1px 0 #B07F19}
+.big:disabled{box-shadow:none}
 #toast{position:fixed;bottom:16px;left:16px;right:16px;background:#1B2734;color:#fff;
        padding:14px;border-radius:10px;font-size:15px;text-align:center;z-index:98}
 </style></head>
@@ -103,7 +138,7 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 </div>
 
 <script>
-var CODE=null, TEAM=null, PIN=null, D=null, TAB=0, sel=null, draft={}, seenHints=0;
+var CODE=null, TEAM=null, PIN=null, D=null, TAB=0, sel=null, draft={}, seenHints=0, lastBumped=null;
 
 call('gwVersion', [], function(v){ var e=document.getElementById('ver-badge'); if(e) e.textContent='배포 '+v.v; });
 
@@ -136,7 +171,7 @@ function step3(){
     try { localStorage.setItem('wd', JSON.stringify({code:CODE, team:TEAM})); } catch(e){}
     document.getElementById('join').classList.add('hidden');
     document.getElementById('game').classList.remove('hidden');
-    startPolling('gwGetState', function(){ return [CODE, 'team:'+TEAM]; }, render, tick);
+    startPolling('gwGetState', function(){ return [CODE, 'team:'+TEAM, null, PIN]; }, render, tick);
   });
 }
 
@@ -149,8 +184,18 @@ function render(d){
   D = d;
   if(d.isOver){ showResult(d); return; }
   document.getElementById('ver').textContent = '배포 ' + d.deployVersion;
-  document.getElementById('mname').textContent = d.me.no + '모둠 ' + d.me.name;
-  document.getElementById('mcoins').textContent = '💰 ' + d.me.coins + '코인';
+  // 이름을 비우면 서버가 '2모둠'으로 채운다(Code.gs). 번호를 또 붙이면 '2모둠 2모둠'이 된다
+  document.getElementById('mname').textContent =
+    String(d.me.name) === d.me.no + '모둠' ? d.me.name : d.me.no + '모둠 ' + d.me.name;
+
+  // 코인이 늘거나 줄면 눈에 띄게. 정산 순간에 아무 반응이 없으면 딴 건지 잃은 건지 모른다
+  var coinEl = document.getElementById('mcoins'), coinTxt = '💰 ' + d.me.coins + '코인';
+  if(coinEl.textContent && coinEl.textContent !== coinTxt){
+    coinEl.classList.remove('changed');
+    void coinEl.offsetWidth;                 // 애니메이션을 다시 트는 표준 수법
+    coinEl.classList.add('changed');
+  }
+  coinEl.textContent = coinTxt;
   var n = document.getElementById('now');
   n.textContent = '지금은 ▸ ' + (PHASE_KO[d.phase]||'');
   n.className = 'now' + (d.phase==='paused' ? ' paused' : '');
@@ -170,6 +215,10 @@ function render(d){
 function tick(d){
   var pct = d.secondsLeft==null ? 100 : Math.max(0, Math.min(100, d.secondsLeft/totalFor(d.phase)*100));
   document.getElementById('tbar').style.width = pct + '%';
+  // 마감 10초 전엔 막대가 빨개지고 뛴다 — 폰을 안 보고 있어도 곁눈에 걸리게
+  var urgent = d.secondsLeft != null && d.secondsLeft <= 10 &&
+               (d.phase === 'betting' || d.phase === 'quiz');
+  document.getElementById('tbar').parentNode.classList.toggle('urgent', urgent);
   var n = document.getElementById('now');
   if(d.secondsLeft!=null) n.textContent = '지금은 ▸ ' + (PHASE_KO[d.phase]||'') + '  ·  ' + d.secondsLeft + '초';
 }
@@ -212,13 +261,13 @@ function quizHtml(){
 }
 function chooseLevel(lv){
   confirmBox(lv+'로 정할까요?\n이번 라운드에는 못 바꿔요.', function(){
-    call('gwChooseLevel', [CODE, TEAM, lv], function(d){ window._q = d.question; window._lv = lv; drawTab(); });
+    call('gwChooseLevel', [CODE, TEAM, lv, PIN], function(d){ window._q = d.question; window._lv = lv; drawTab(); });
   });
 }
 function pick(i){ sel = i; drawTab(); }
 function submit(){
   if(!sel) return;
-  call('gwSubmitAnswer', [CODE, TEAM, window._lv, sel], function(r){
+  call('gwSubmitAnswer', [CODE, TEAM, window._lv, sel, PIN], function(r){
     window._q = null; sel = null;
     var p = document.getElementById('pane');
     p.innerHTML = r.correct
@@ -247,26 +296,37 @@ function betHtml(){
     return '<div class="empty">베팅 시간이 지났어요</div>';
   }
   var used = 0; for(var k in draft) used += draft[k];
+  var cap = Math.min(d.maxBet, me.coins);
   var rows = Object.keys(d.animals).map(function(c){
-    var v = draft[c]||0;
-    var plus = (used >= d.maxBet || used >= me.coins) ? ' disabled' : '';
-    return '<div class="brow"><span>'+(d.emojis[c]||'')+'</span><span class="bname">'+esc(d.animals[c])+'</span>'+
-      '<span class="bodds num">'+d.odds[c].toFixed(2)+'배</span>'+
-      '<button class="step" onclick="bet(\''+c+'\',-1)"'+(v?'':' disabled')+'>−</button>'+
-      '<span class="cnt num">'+v+'</span>'+
-      '<button class="step" onclick="bet(\''+c+'\',1)"'+plus+'>+</button></div>'; }).join('');
-  return rows + '<div class="used">이번 라운드 '+used+'/'+d.maxBet+' 사용 · 보유 '+me.coins+'코인</div>' +
-    '<button class="big" onclick="confirmBet()"'+(used?'':' disabled')+'>베팅 확정하기</button>';
+    var v = draft[c]||0, chips = '';
+    for(var i=0;i<v;i++) chips += '<span class="chip'+(c===lastBumped && i===v-1 ? ' new':'')+'"></span>';
+    return '<div class="brow'+(v?' has':'')+'">' +
+      '<span class="b-emoji">'+(d.emojis[c]||'')+'</span>' +
+      '<span class="b-main"><span class="bname">'+esc(d.animals[c])+'</span>' +
+        '<span class="b-sub"><span class="bodds num">'+d.odds[c].toFixed(2)+'배</span>' +
+        '<span class="chips">'+chips+'</span></span></span>' +
+      '<button class="step" onclick="bet(\''+c+'\',-1)"'+(v?'':' disabled')+'>−</button>' +
+      '<span class="cnt num">'+v+'</span>' +
+      '<button class="step plus" onclick="bet(\''+c+'\',1)"'+(used>=cap?' disabled':'')+'>+</button></div>'; }).join('');
+  return '<div class="bet-head"><span>이번 라운드에 걸 코인</span>' +
+      '<span><b class="num">'+used+'</b> / '+cap+'</span></div>' +
+    rows + '<div class="used">보유 '+me.coins+'코인</div>' +
+    '<button class="big commit" onclick="confirmBet()"'+(used?'':' disabled')+'>' +
+      (used ? '💰 '+used+'코인 걸기' : '코인을 골라주세요') + '</button>';
 }
 function bet(c, delta){
   draft[c] = Math.max(0, (draft[c]||0) + delta);
   if(!draft[c]) delete draft[c];
+  lastBumped = delta > 0 ? c : null;   // 방금 얹은 칩 하나만 튀어오르게
+  buzz(delta > 0 ? 12 : 8);
   drawTab();
 }
 function confirmBet(){
   var used = 0; for(var k in draft) used += draft[k];
   confirmBox('코인 '+used+'개를 겁니다.\n확정하면 되돌릴 수 없어요.', function(){
-    call('gwPlaceBet', [CODE, TEAM, draft], function(){ draft = {}; forceRefresh(); });
+    call('gwPlaceBet', [CODE, TEAM, draft, PIN], function(){
+      buzz([20,50,20]); draft = {}; lastBumped = null; forceRefresh();
+    });
   });
 }
 

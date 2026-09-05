@@ -86,6 +86,51 @@ function gwDiagnose() {
   return ok(out);
 }
 
+// ── 교사 확인 ────────────────────────────────────────────
+
+/**
+ * ⚠️ 되돌리면 학생이 정답 순위와 모둠 암호를 그대로 본다.
+ *
+ * 판 코드는 칠판에 적혀 있으니 비밀이 아니다. 웹앱은 로그인 없이 누구나 열 수 있고,
+ * 주소 뒤에 ?role=teacher 만 붙이면 교사 화면이 열린다.
+ * 그래서 "교사만 알아야 하는 것"은 코드가 아니라 이 열쇠로 지킨다.
+ *
+ * 지켜야 하는 것: 정답 순위(truth) · 마지막 라운드 · 모든 모둠 암호 · 진행/정산 조작
+ */
+function isHost(state, hostKey) {
+  return !!state.hostKey && String(hostKey || '') === String(state.hostKey);
+}
+
+/**
+ * 열쇠가 없는 판은 이 수정 이전에 만들어진 것이다.
+ * 스프레드시트 메뉴('교사 열쇠 확인')에서 열쇠를 발급받으면 이어서 쓸 수 있다 —
+ * 시트는 교사만 열 수 있으므로 그 경로는 안전하다.
+ */
+function hostGate(state, hostKey) {
+  if (!state.hostKey) {
+    return { ok: false, error: 'NOT_HOST',
+             message: '이 판은 교사 열쇠가 없는 예전 판이에요.\n' +
+                      "스프레드시트 메뉴 '와일드 더비 → 교사 열쇠 확인' 에서 열쇠를 받아주세요." };
+  }
+  if (!isHost(state, hostKey)) return err('NOT_HOST');
+  return null;
+}
+
+/**
+ * ⚠️ 되돌리면 한 학생이 다른 모둠의 답과 베팅을 대신 낸다.
+ *
+ * 모둠 암호는 접속할 때 한 번 맞춰보는 것으로 끝나면 아무것도 지키지 못한다.
+ * 판 코드만 알면 모둠 번호는 1~6 중 하나이므로 그냥 찍으면 되기 때문이다.
+ * 그래서 모둠 이름으로 무언가를 하는 함수는 매번 암호를 다시 본다.
+ * (힌트도 마찬가지다 — 남의 모둠 상태를 읽으면 벌어온 힌트를 그냥 가져간다)
+ */
+function checkTeam(state, teamNo, pin) {
+  var team = findTeam(state, teamNo);
+  if (!team) return { error: err('GAME_NOT_FOUND') };
+  if (String(team.pin) !== String(pin)) return { error: err('WRONG_PIN') };
+  return { team: team };
+}
+
 // ── 응답 봉투 ────────────────────────────────────────────
 /**
  * ⚠️ 앱스 스크립트는 google.script.run 응답에 Date 객체를 담지 못한다.
@@ -164,7 +209,7 @@ function gwCreateGame(config) {
     ANIMAL_CODES.forEach(function (c) { pool[c] = settings.seedCoins; });
 
     var state = {
-      version: 1, code: code, className: config.className, unit: config.unit,
+      version: 1, code: code, hostKey: makeHostKey(), className: config.className, unit: config.unit,
       round: 1, lastRound: race.lastRound, phase: PHASES.WAITING, roundStarted: false,
       phaseEndsAt: null, pausedAt: null, stateVersion: 1, eventSeq: 0,
       truth: race.truth, moves: race.moves, lastRoundHidden: true,
@@ -180,15 +225,18 @@ function gwCreateGame(config) {
     var pins = {};
     teams.forEach(function (t) { pins[t.no] = t.pin; });
     var url = webAppUrl();
-    return ok({ code: code, pins: pins, teams: teams.map(function (t) { return { no: t.no, name: t.name }; }),
+    return ok({ code: code, hostKey: state.hostKey, pins: pins,
+                teams: teams.map(function (t) { return { no: t.no, name: t.name }; }),
                 studentUrl: url, qr: qrSvg(url, 7), warnings: v.warnings });
   });
 }
 
 /** 판 코드·학생 주소·QR·암호를 다시 띄운다 (2차시에 학생들이 재접속할 때) */
-function gwHandout(code) {
+function gwHandout(code, hostKey) {
   var state = loadState(code);
   if (!state) return err('GAME_NOT_FOUND');
+  var gate = hostGate(state, hostKey);   // 모둠 암호가 전부 담긴 응답이다
+  if (gate) return gate;
   var url = webAppUrl();
   var pins = {};
   state.teams.forEach(function (t) { pins[t.no] = t.pin; });
@@ -222,17 +270,52 @@ function gwLobby(code) {
 
 // ── 3. 상태 조회 (2초 폴링) ───────────────────────────────
 
-function gwGetState(code, viewer) {
+function gwGetState(code, viewer, hostKey, pin) {
   var state = loadState(code);
   if (!state) return err('GAME_NOT_FOUND');
 
-  var advanced = autoAdvance(state);
-  if (advanced) saveSnapshot(state);
+  state = advanceIfDue(code, state);
 
   if (viewer && viewer.indexOf('team:') === 0) {
-    return ok(teamView(state, Number(viewer.split(':')[1])));
+    var teamNo = Number(viewer.split(':')[1]);
+    var t = checkTeam(state, teamNo, pin);   // 이 응답에는 그 모둠이 벌어온 힌트가 담긴다
+    if (t.error) return t.error;
+    return ok(teamView(state, teamNo));
   }
+  var gate = hostGate(state, hostKey);   // teacherView 는 마지막 라운드까지 담는다
+  if (gate) return gate;
   return ok(teacherView(state));
+}
+
+/** 단계가 끝났는가. 실제로 넘기지는 않는다 — 잠금을 잡을지 판단만 한다 */
+function needsAdvance(state) {
+  if (state.pausedAt || !state.phaseEndsAt) return false;
+  if (Date.now() < state.phaseEndsAt) return false;
+  return state.phase === PHASES.QUIZ || state.phase === PHASES.DISCUSS || state.phase === PHASES.BETTING;
+}
+
+/**
+ * ⚠️ 되돌리면 단계가 바뀌는 순간 방금 낸 답과 베팅이 사라진다.
+ *
+ * gwGetState 는 2초마다 7대(교사+6모둠)가 동시에 부른다. 예전에는 이 안에서
+ * 잠금 없이 autoAdvance → saveSnapshot 을 했다. 그래서 단계가 끝나는 그 순간,
+ *   ① A가 상태를 읽고
+ *   ② 그 사이 잠금 안에서 어떤 모둠의 답·베팅이 확정되고
+ *   ③ A가 ①의 낡은 상태를 그대로 덮어쓰는
+ * 순서가 나올 수 있었다. 기록 탭에는 남지만 캐시가 살아 있으면 재생되지 않아
+ * 그 모둠은 답도 코인도 잃는다.
+ *
+ * 그래서 넘길 일이 있을 때만 잠금을 잡고, 잠금 안에서 상태를 다시 읽어 넘긴다.
+ * 잠금을 못 잡으면 아무것도 쓰지 않고 읽은 상태를 그대로 보여준다 — 2초 뒤 어차피 다시 온다.
+ */
+function advanceIfDue(code, state) {
+  if (!needsAdvance(state)) return state;
+  var r = withLock(function () {
+    var fresh = loadState(code);
+    if (fresh && autoAdvance(fresh)) saveSnapshot(fresh);
+    return { state: fresh };
+  }, LIMITS.pollLockWaitMs);
+  return (r && r.state) ? r.state : state;   // 잠금 실패 시 r 은 LOCK_TIMEOUT 봉투다
 }
 
 /** 타이머가 끝났으면 다음 단계로. 시간 판단은 전부 서버에서 한다 */
@@ -264,7 +347,7 @@ function setPhase(state, phase, seconds) {
 
 // ── 4. 답 제출 ───────────────────────────────────────────
 
-function gwSubmitAnswer(code, teamNo, level, choice) {
+function gwSubmitAnswer(code, teamNo, level, choice, pin) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
@@ -272,8 +355,9 @@ function gwSubmitAnswer(code, teamNo, level, choice) {
     autoAdvance(state);
     if (state.phase !== PHASES.QUIZ) return err('QUIZ_CLOSED');
 
-    var team = findTeam(state, teamNo);
-    if (!team) return err('GAME_NOT_FOUND');
+    var t = checkTeam(state, teamNo, pin);
+    if (t.error) return t.error;
+    var team = t.team;
     if (team.answered[state.round]) return err('ALREADY_ANSWERED');
 
     var q = questionFor(state, state.round, level);
@@ -318,7 +402,7 @@ function questionFor(state, round, level) {
 
 // ── 5. 베팅 ──────────────────────────────────────────────
 
-function gwPlaceBet(code, teamNo, bets) {
+function gwPlaceBet(code, teamNo, bets, pin) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
@@ -326,8 +410,9 @@ function gwPlaceBet(code, teamNo, bets) {
     autoAdvance(state);
     if (state.phase !== PHASES.BETTING) return err('BET_CLOSED');
 
-    var team = findTeam(state, teamNo);
-    if (!team) return err('GAME_NOT_FOUND');
+    var t = checkTeam(state, teamNo, pin);
+    if (t.error) return t.error;
+    var team = t.team;
 
     var check = validateBet(team, state.round, bets, state.settings);
     if (!check.ok) return err(check.error);
@@ -353,10 +438,12 @@ function gwPlaceBet(code, teamNo, bets) {
  * ⚠️ 화면이 "1라운드인가?"로 판단하면 안 된다. 베팅이 끝나도 round는 그대로 1이라,
  *    화면이 판단하면 1라운드가 무한 반복된다. 어디까지 했는지는 서버만 안다.
  */
-function gwAdvanceRound(code) {
+function gwAdvanceRound(code, hostKey) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
+    var gate = hostGate(state, hostKey);
+    if (gate) return gate;
     if (state.phase !== PHASES.WAITING) return ok(teacherView(state));   // 진행 중이면 무시
 
     if (state.roundStarted) {
@@ -377,10 +464,12 @@ function gwAdvanceRound(code) {
   });
 }
 
-function gwTogglePause(code) {
+function gwTogglePause(code, hostKey) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
+    var gate = hostGate(state, hostKey);
+    if (gate) return gate;
     if (state.pausedAt) {
       if (state.phaseEndsAt) state.phaseEndsAt += Date.now() - state.pausedAt;   // 멈춘 만큼 미룬다
       state.pausedAt = null;
@@ -394,10 +483,12 @@ function gwTogglePause(code) {
   });
 }
 
-function gwFinalize(code) {
+function gwFinalize(code, hostKey) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
+    var gate = hostGate(state, hostKey);
+    if (gate) return gate;
     var finalPos = positionsAtRound(state.moves, state.lastRound);
     var finalOrder = rankByPosition(finalPos, state.truth);
     var odds = computeOdds(state.pool);
@@ -426,6 +517,13 @@ function secondsLeft(state) {
   return Math.max(0, Math.ceil((state.phaseEndsAt - base) / 1000));
 }
 
+/**
+ * ⚠️ 정답 순위(truth)는 여기 담지 않는다.
+ *
+ * 이 응답은 2초마다 나가는 것이라, 한 번이라도 담기면 정산 전 내내 흘러다닌다.
+ * 교사 화면의 '정답 공개' 버튼은 그때 gwReveal 을 따로 부른다.
+ * 열쇠 검사(hostGate)와 이 분리는 겹치는 방어다 — 한쪽이 뚫려도 정답은 안 나간다.
+ */
 function teacherView(state) {
   return {
     code: state.code, className: state.className, unit: state.unit,
@@ -435,14 +533,27 @@ function teacherView(state) {
     positions: positionsAtRound(state.moves, state.round),
     odds: computeOdds(state.pool), pool: state.pool, seedCoins: state.settings.seedCoins,
     animals: state.animals, emojis: state.emojis,
-    truth: state.truth,
     teams: state.teams.map(function (t) {
       return { no: t.no, name: t.name, coins: t.coins,
                answered: !!t.answered[state.round], betLocked: !!t.betLocked[state.round] };
     }),
     isOver: !!state.isOver, settlement: state.settlement || null,
+    truth: state.isOver ? rankByPosition(positionsAtRound(state.moves, state.lastRound), state.truth) : null,
     deployVersion: DEPLOY_VERSION
   };
+}
+
+/**
+ * 정답 순위를 TV에 띄운다. 교사가 버튼을 누른 그 순간에만 서버를 부른다.
+ * 정산 전에 정답이 나가는 유일한 통로이므로, 여기만 지키면 된다.
+ */
+function gwReveal(code, hostKey) {
+  var state = loadState(code);
+  if (!state) return err('GAME_NOT_FOUND');
+  var gate = hostGate(state, hostKey);
+  if (gate) return gate;
+  return ok({ truth: rankByPosition(positionsAtRound(state.moves, state.lastRound), state.truth),
+              animals: state.animals, emojis: state.emojis });
 }
 
 /** ⚠️ 되돌리면 개발자 도구로 정답이 보인다 (00-loop.md) */
@@ -489,7 +600,7 @@ function teamView(state, teamNo) {
 function sumBets(b) { var s = 0; for (var c in (b || {})) s += b[c]; return s; }
 
 /** 모둠 화면에서 문제를 받으려면 난이도를 먼저 골라야 한다 */
-function gwChooseLevel(code, teamNo, level) {
+function gwChooseLevel(code, teamNo, level, pin) {
   return withLock(function () {
     var state = loadState(code);
     if (!state) return err('GAME_NOT_FOUND');
@@ -497,8 +608,9 @@ function gwChooseLevel(code, teamNo, level) {
     autoAdvance(state);
     if (state.phase !== PHASES.QUIZ) return err('QUIZ_CLOSED');
 
-    var team = findTeam(state, teamNo);
-    if (!team || team.answered[state.round]) return err('ALREADY_ANSWERED');
+    var t = checkTeam(state, teamNo, pin);
+    if (t.error) return t.error;
+    if (t.team.answered[state.round]) return err('ALREADY_ANSWERED');
 
     var q = questionFor(state, state.round, level);
     if (!q) return err('SHEET_INVALID');
