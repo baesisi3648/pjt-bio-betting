@@ -19,15 +19,14 @@
   // 판 **사이에서** 공유되는 데이터 — 문제은행·동물·설정·'이어하기' 목록.
   // 판 하나의 상태는 여기 없다. 그건 Durable Object 에 있다 (MIGRATION §6 대응표).
   //
-  // ⚠️ database_id 는 자리표시다. 6단계에서 사용자가 채운다:
-  //      npx wrangler d1 create wilde-derby
-  //      npx wrangler d1 migrations apply wilde-derby --remote
-  //    (로컬은 --local. migrations/ 폴더를 wrangler 가 알아서 읽는다)
+  // database_id 는 2026-09-05 배포 때 scripts/deploy.sh 가 채웠다 (계정 baesisi3648).
+  // 다른 계정으로 새로 배포하면 스크립트가 그 계정의 D1 을 만들어 다시 채운다.
+  //    (로컬은 npx wrangler d1 migrations apply wilde-derby --local)
   "d1_databases": [
     {
       "binding": "DB",
       "database_name": "wilde-derby",
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "f6a609f6-4a53-4382-9773-0a12bb0ddbc5",
       "migrations_dir": "migrations"
     }
   ],
