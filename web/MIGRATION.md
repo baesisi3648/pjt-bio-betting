@@ -354,6 +354,13 @@ Worker `assets`. 4a·4b 모두 헤드리스 Chrome 두 탭으로 한 판을 끝�
 Cloudflare 계정이 필요합니다 (무료 플랜으로 충분). 코드는 전부 준비돼 있고, 아래는
 **계정이 있는 사람만 할 수 있는 일**입니다.
 
+**지금 배포 방식 (2026-09-05 이후): GitHub `main` 에 push 하면 자동 배포.**
+Cloudflare Workers Builds 가 `baesisi3648/pjt-bio-betting` 저장소에 연결돼 있습니다
+(루트 `web`, 빌드 `npm run build`, 배포 `npx wrangler d1 migrations apply wilde-derby --remote && npx wrangler deploy`).
+그래서 `git push` 가 곧 배포이고, 마이그레이션도 함께 적용됩니다. 빌드 상태는 대시보드
+Workers & Pages → wilde-derby → Deployments 에서 봅니다. 아래 수동 절차는 처음 계정을
+만들 때와 GitHub 연동이 끊겼을 때만 필요합니다.
+
 한 번에 하려면 (로그인 뒤):
 
 ```bash

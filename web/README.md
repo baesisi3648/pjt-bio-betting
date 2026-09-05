@@ -61,7 +61,10 @@ npm run build    # 화면을 dist/client 로 (Vite)
 npm run seed     # apps-script/ 를 읽어 migrations/0002_seed.sql 을 다시 만든다
 ```
 
-**실제로 띄워보기** (6단계 전에도 로컬에서는 됩니다)
+**배포** — `main` 에 push 하면 Cloudflare Workers Builds 가 자동으로 빌드·마이그레이션·배포합니다
+(`MIGRATION.md` §7 6단계). 로컬에서 직접 올리려면 `npm run build && npx wrangler deploy`.
+
+**실제로 띄워보기** (로컬)
 
 ```bash
 npx wrangler d1 migrations apply wilde-derby --local
