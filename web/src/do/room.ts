@@ -35,7 +35,8 @@ import type {
   AnswerRecord, Bets, GameState, Hint, Question, Rng, Team
 } from '../game/types.ts';
 import {
-  finalizeView, handoutView, lobbyView, revealView, teacherView, teamView
+  allTeamsDone, canSkipNow, finalizeView, handoutView, lobbyView, revealView,
+  teacherView, teamView
 } from '../game/views.ts';
 import type {
   FinalizeView, HandoutView, LobbyView, RevealView, TeacherView, TeamView
@@ -55,7 +56,7 @@ export function err(code: string, message?: string): Err {
   return { ok: false, error: code, message: message || MESSAGES[code] || '문제가 생겼어요' };
 }
 
-export type EventKind = 'answer' | 'bet' | 'round_start' | 'pause';
+export type EventKind = 'answer' | 'bet' | 'round_start' | 'pause' | 'skip';
 
 /**
  * 이벤트 로그 한 줄 (MIGRATION §8-4).
@@ -401,6 +402,8 @@ export class Room {
     if (hint) team.hints.push(hint);
 
     this.event('answer', teamNo, record as unknown as Record<string, unknown>);
+    // 마지막 모둠이 냈으면 남은 90초를 다 기다리지 않는다 (아래 주석 참조)
+    this.autoShorten();
     state.stateVersion++;
     this.deps.persist(state);
     this.deps.changed();
@@ -459,6 +462,8 @@ export class Room {
     for (const c of Object.keys(bets) as AnimalCode[]) state.pool[c] += bets[c]!;
 
     this.event('bet', teamNo, { bets });
+    // 마지막 모둠이 확정했으면 남은 60초를 다 기다리지 않는다 (아래 주석 참조)
+    this.autoShorten();
     state.stateVersion++;
     this.deps.persist(state);
     this.deps.changed();
@@ -539,6 +544,68 @@ export class Room {
     return ok(teacherView(state, now));
   }
 
+  /**
+   * '지금 넘어가기' — 교사가 이번 단계를 즉시 끝낸다 (문제·토론·베팅만).
+   *
+   * ⚠️ **전환 코드를 여기에 복사하지 마세요.** 마감 시각을 지금으로 당기고
+   *    `onAlarm()` 을 그대로 부른다. 그래야 미제출 timeout 기록(quiz)·betLocked(betting)
+   *    같은 마감 처리가 알람 경로와 **문자 하나까지 같게** 일어난다. 사본을 만드는 순간
+   *    "교사가 넘겼을 때만 timeout 이 안 찍히는" 종류의 버그가 생긴다 (MIGRATION §5).
+   *
+   * ⚠️ 알람을 `now` 로 다시 걸고 돌아가지 않고 **동기로 부르는** 이유:
+   *    DO 알람은 몇백 ms 늦게 올 수 있는데, 그동안 교사·학생 화면의 타이머는 0 에
+   *    멈춘 채 아무 일도 안 일어난다. 선생님은 버튼이 안 먹었다고 다시 누른다.
+   *    동기로 부르면 이 호출의 응답이 이미 다음 단계다.
+   *
+   * ⚠️ 멈춰 있는 동안에는 거절한다. 멈춤 중에는 시간이 흐르지 않는다는 규칙을
+   *    이 버튼 하나가 깨면, 재개할 때 phaseEndsAt 을 미루는 계산이 어긋난다.
+   */
+  skipPhase(hostKey: string): Envelope<TeacherView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    const gate = this.hostGate(state, hostKey);
+    if (gate) return gate;
+
+    if (state.pausedAt) return err('PAUSED');
+    // 버튼 상태(teacherView.canSkip)와 **같은 함수**를 본다 — 두 벌이면 갈라진다
+    if (!canSkipNow(state)) return err('NOT_SKIPPABLE');
+
+    const now = this.deps.now();
+    // 감사용 한 줄. 복구는 phaseEndsAt 만 되돌린다 (restore 참조)
+    this.event('skip', null, { phase: state.phase, phaseEndsAt: now });
+
+    state.phaseEndsAt = now;
+    this.onAlarm();                        // ← 전환은 여전히 여기 한 곳에서만 일어난다
+    return ok(teacherView(state, now));
+  }
+
+  /**
+   * 모든 모둠이 이번 단계 행동을 마쳤으면 마감을 `autoSkipSeconds` 초 뒤로 당긴다.
+   *
+   * 왜 0 초가 아닌가: 마지막으로 제출한 모둠은 자기 정답과 해설을 아직 못 봤다.
+   * 그 자리에서 끊기면 "누른 순간 화면이 넘어갔다"가 되고, 그 모둠만 학습이 빠진다.
+   *
+   * ⚠️ 남은 시간이 이미 그보다 짧으면 **아무것도 하지 않는다.** 안 그러면 마감 1초 전에
+   *    낸 마지막 제출이 단계를 오히려 4초 **늘린다.**
+   * ⚠️ 여기서 단계를 바꾸지 않는다. 시각만 당기고 알람을 다시 건다 —
+   *    전환은 onAlarm() 의 몫이라는 규칙을 이 경로가 깨면 RACE1 이 되살아난다.
+   * ⚠️ 토론(discuss)은 여기 오지 않는다. allTeamsDone 이 토론에서 언제나 false 이기
+   *    때문이다 — 토론 180초가 이 수업의 실체다 (MIGRATION §1).
+   */
+  private autoShorten(): void {
+    const state = this.state!;
+    const seconds = Number(state.settings.autoSkipSeconds);
+    if (!isFinite(seconds) || seconds <= 0) return;   // 0 = 자동 단축 끔
+    if (state.pausedAt || !state.phaseEndsAt) return;
+    if (!allTeamsDone(state)) return;
+
+    const target = this.deps.now() + seconds * 1000;
+    if (target >= state.phaseEndsAt) return;          // 이미 더 급하다 — 그대로 둔다
+    state.phaseEndsAt = target;
+    this.deps.setAlarm(target);
+  }
+
   finalize(hostKey: string): Envelope<FinalizeView> {
     const g = this.live();
     if ('error' in g) return g.error;
@@ -598,6 +665,9 @@ export class Room {
    * ⚠️ 알람은 예정보다 일찍 깨어날 수 있고(다른 이유로 걸린 알람, 재개 직후 등),
    *    늦게 올 수도 있다. 일찍 왔으면 **아무것도 바꾸지 않고 다시 건다.**
    *    이 확인을 빼면 재개 직후 알람 한 번에 단계가 통째로 건너뛴다.
+   *
+   * 조기 종료(`skipPhase`)도 여기로 온다 — phaseEndsAt 을 지금으로 당긴 뒤 이 함수를
+   * 그대로 부른다. 그래서 "교사가 넘겼을 때"와 "시간이 다 됐을 때"의 결과가 같다.
    */
   onAlarm(): void {
     const state = this.state;
@@ -694,6 +764,11 @@ export function restore(snapshot: GameState, events: GameEvent[]): GameState {
       // 앱스 스크립트판은 pause 를 재생하지 않아 복구하면 멈춤이 풀렸다.
       // 결과값을 통째로 기록해 두었으므로 그대로 되돌린다 (누적 오차가 안 생긴다)
       state.pausedAt = (ev.payload.pausedAt as number | null) ?? null;
+      state.phaseEndsAt = (ev.payload.phaseEndsAt as number | null) ?? null;
+    } else if (ev.kind === 'skip') {
+      // ⚠️ 여기서 단계를 바꾸지 않는다. 이 이벤트가 기록하는 것은 "마감을 당겼다" 뿐이고,
+      //    그 뒤 전환은 onAlarm() 이 했다 — 알람 전환에는 이벤트가 없으므로 재생에도 없다.
+      //    단계까지 여기서 옮기면 재생과 알람이 두 벌의 전환 로직이 된다 (MIGRATION §5).
       state.phaseEndsAt = (ev.payload.phaseEndsAt as number | null) ?? null;
     }
     state.eventSeq = ev.seq;

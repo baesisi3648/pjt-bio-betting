@@ -15,7 +15,7 @@ import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import { computeOdds } from '../src/game/rules.ts';
 import type { GameState, Question, Rng } from '../src/game/types.ts';
-import { teacherView, teamView } from '../src/game/views.ts';
+import { allTeamsDone, teacherView, teamView } from '../src/game/views.ts';
 import { Room, restore } from '../src/do/room.ts';
 import type { GameEvent } from '../src/do/room.ts';
 
@@ -719,6 +719,286 @@ gate('DONE', '마지막 라운드 뒤 진행 버튼은 done 으로 간다', () =
 });
 
 function LASTOF(t: Table) { return t.state().lastRound; }
+
+// ── 조기 종료 — 교사 버튼 · 자동 단축 ───────────────────────
+
+gate('SKIP1', 'quiz 중 넘기면 즉시 discuss — 안 낸 모둠은 알람 경로와 똑같이 timeout', () => {
+  const t = new Table();
+  t.open(3, 'SKP1');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  const sub = t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  t.tick(4_000);                                  // 아직 86초 남았다
+  const r = t.room.skipPhase(t.hostKey);
+
+  const st = t.state();
+  const a1 = st.teams[0]!.answered[1]!;
+  const a2 = st.teams[1]!.answered[1];
+  const a3 = st.teams[2]!.answered[1];
+  const skips = t.events.filter((e) => e.kind === 'skip');
+  return {
+    ok: sub.ok && r.ok && st.phase === PHASES.DISCUSS && r.data.phase === PHASES.DISCUSS &&
+        a1.correct === true && !a1.timeout && a2?.timeout === true && a3?.timeout === true &&
+        st.phaseEndsAt === t.now + DEFAULTS.discussSeconds * 1000 && t.alarmAt === st.phaseEndsAt &&
+        skips.length === 1 && skips[0]!.payload.phase === PHASES.QUIZ,
+    detail: `86초 남기고 넘김 → ${st.phase} (${DEFAULTS.discussSeconds}초 새로 시작) · ` +
+            `1모둠 정답 그대로, 안 낸 2·3모둠만 미제출 · skip 이벤트 ${skips.length}건`
+  };
+});
+
+gate('SKIP2', 'discuss 스킵 → betting, betting 스킵 → waiting + 전 모둠 betLocked', () => {
+  const t = new Table();
+  t.open(3, 'SKP2');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase(); t.endPhase();                     // moving → quiz → discuss
+  const a = t.room.skipPhase(t.hostKey);
+  const toBetting = t.state().phase === PHASES.BETTING &&
+                    t.state().phaseEndsAt === t.now + DEFAULTS.betSeconds * 1000;
+
+  t.room.placeBet(1, { A: 1 }, t.pins[1]!);       // 3모둠 중 하나만 걸었다
+  const b = t.room.skipPhase(t.hostKey);
+  const st = t.state();
+  const locked = st.teams.every((x) => x.betLocked[st.round] === true);
+  return {
+    ok: a.ok && b.ok && toBetting && st.phase === PHASES.WAITING &&
+        st.phaseEndsAt === null && t.alarmAt === null && locked,
+    detail: `discuss → ${toBetting ? 'betting(60초)' : '⛔'} → ${st.phase} · ` +
+            `안 건 모둠까지 betLocked ${locked} (알람 경로와 같다) · 알람 해제 ${t.alarmAt === null}`
+  };
+});
+
+gate('SKIP3', 'moving·waiting·done·일시정지 중에는 못 넘기고 상태가 그대로다', () => {
+  const notes: string[] = [];
+  let allOk = true;
+  // ⚠️ phaseEndsAt·stateVersion·알람까지 본다. 코드만 맞고 시각이 당겨지면 화면은 이미 망가진다
+  const snap = (x: Table) =>
+    JSON.stringify([x.state().phase, x.state().phaseEndsAt, x.state().stateVersion, x.alarmAt]);
+
+  const check = (label: string, x: Table, expect: string) => {
+    const before = snap(x);
+    const r = x.room.skipPhase(x.hostKey);
+    const code = r.ok ? 'ok⛔' : r.error;
+    allOk = allOk && code === expect && snap(x) === before;
+    notes.push(`${label} ${code}`);
+  };
+
+  const w = new Table(); w.open(2, 'SKP3A');
+  check('waiting', w, 'NOT_SKIPPABLE');
+
+  const m = new Table(); m.open(2, 'SKP3B');
+  m.room.advanceRound(m.hostKey);                 // → moving
+  check('moving', m, 'NOT_SKIPPABLE');
+
+  const d = new Table(); d.open(2, 'SKP3C');
+  playFullGame(d, 2);
+  d.room.advanceRound(d.hostKey);                 // → done
+  check('done', d, 'NOT_SKIPPABLE');
+
+  const p = new Table(); p.open(2, 'SKP3D');
+  p.room.advanceRound(p.hostKey); p.endPhase();   // → quiz
+  p.room.togglePause(p.hostKey);
+  check('멈춤(quiz)', p, 'PAUSED');
+  // 재개하면 다시 넘길 수 있어야 한다 — 멈춤이 버튼을 영영 죽이면 안 된다
+  p.room.togglePause(p.hostKey);
+  const resumed = p.room.skipPhase(p.hostKey);
+  allOk = allOk && resumed.ok && p.state().phase === PHASES.DISCUSS;
+
+  return {
+    ok: allOk,
+    detail: `${notes.join(' · ')} — 네 경우 모두 단계·마감시각·stateVersion·알람 불변 · ` +
+            `재개 후에는 ${p.state().phase} 로 넘어감`
+  };
+});
+
+gate('SKIP4', '틀린 열쇠로는 못 넘긴다', () => {
+  const t = new Table();
+  t.open(2, 'SKP4');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  const before = JSON.stringify([t.state().phase, t.state().phaseEndsAt, t.state().stateVersion]);
+  const wrong = t.room.skipPhase('AAAAAAAAAAAA');
+  const empty = t.room.skipPhase('');
+  const after = JSON.stringify([t.state().phase, t.state().phaseEndsAt, t.state().stateVersion]);
+  const real = t.room.skipPhase(t.hostKey);
+  return {
+    ok: !wrong.ok && wrong.error === 'NOT_HOST' && !empty.ok && empty.error === 'NOT_HOST' &&
+        before === after && real.ok && t.state().phase === PHASES.DISCUSS,
+    detail: `틀린 열쇠 ${wrong.ok ? 'ok⛔' : wrong.error} · 빈 열쇠 ${empty.ok ? 'ok⛔' : empty.error} · ` +
+            `거부 뒤에도 quiz 그대로 · 진짜 열쇠로는 ${t.state().phase}`
+  };
+});
+
+gate('AUTO1', 'quiz — 마지막 모둠이 답을 내면 마감이 5초 뒤로 당겨진다 (일부만 냈을 땐 그대로)', () => {
+  const t = new Table();
+  t.open(3, 'AUT1');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  const full = t.state().phaseEndsAt!;
+
+  t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  t.room.submitAnswer(2, '쉬움', 99, t.pins[2]!);
+  const partialKept = t.state().phaseEndsAt === full && t.alarmAt === full;
+
+  t.tick(3_000);
+  t.room.submitAnswer(3, '중간', answerOf(t, 1, '중간'), t.pins[3]!);
+  const st = t.state();
+  const target = t.now + DEFAULTS.autoSkipSeconds * 1000;
+  const shortened = st.phaseEndsAt === target && t.alarmAt === target;
+  // ⚠️ 당기기만 한다. 여기서 단계를 바꾸면 전환 로직이 두 벌이 된다
+  const stillQuiz = st.phase === PHASES.QUIZ;
+  t.endPhase();
+  const moved = t.state().phase === PHASES.DISCUSS;
+
+  // 남은 시간이 이미 5초보다 짧으면 그대로 둔다 — 마지막 제출이 단계를 **늘리면** 안 된다
+  const t2 = new Table();
+  t2.open(2, 'AUT1B');
+  t2.room.advanceRound(t2.hostKey); t2.endPhase();
+  const end2 = t2.state().phaseEndsAt!;
+  t2.advanceTo(end2 - 2_000);
+  t2.room.submitAnswer(1, '쉬움', answerOf(t2, 1, '쉬움'), t2.pins[1]!);
+  t2.room.submitAnswer(2, '쉬움', answerOf(t2, 1, '쉬움'), t2.pins[2]!);
+  const notExtended = t2.state().phaseEndsAt === end2 && t2.alarmAt === end2;
+
+  return {
+    ok: partialKept && shortened && stillQuiz && moved && notExtended,
+    detail: `2/3모둠 제출: 마감 그대로(${partialKept}) → 3/3모둠: ${(full - target) / 1000}초 당겨져 ` +
+            `${DEFAULTS.autoSkipSeconds}초 뒤 · 단계는 아직 quiz(${stillQuiz}), 알람이 discuss 로(${moved}) · ` +
+            `2초 남았을 때 전원 제출해도 안 늘어남(${notExtended})`
+  };
+});
+
+gate('AUTO2', 'betting — 마지막 모둠이 확정하면 같은 방식으로 당겨진다', () => {
+  const t = new Table();
+  t.open(3, 'AUT2');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase(); t.endPhase(); t.endPhase();       // → betting
+  const full = t.state().phaseEndsAt!;
+
+  t.room.placeBet(1, { A: 1 }, t.pins[1]!);
+  t.room.placeBet(2, { B: 2 }, t.pins[2]!);
+  const partialKept = t.state().phaseEndsAt === full && t.alarmAt === full;
+
+  t.tick(2_000);
+  t.room.placeBet(3, { C: 3 }, t.pins[3]!);
+  const st = t.state();
+  const target = t.now + DEFAULTS.autoSkipSeconds * 1000;
+  const shortened = st.phaseEndsAt === target && t.alarmAt === target && st.phase === PHASES.BETTING;
+  t.endPhase();
+  const moved = t.state().phase === PHASES.WAITING;
+
+  const t2 = new Table();
+  t2.open(2, 'AUT2B');
+  t2.room.advanceRound(t2.hostKey);
+  t2.endPhase(); t2.endPhase(); t2.endPhase();
+  const end2 = t2.state().phaseEndsAt!;
+  t2.advanceTo(end2 - 1_000);
+  t2.room.placeBet(1, { A: 1 }, t2.pins[1]!);
+  t2.room.placeBet(2, { A: 1 }, t2.pins[2]!);
+  const notExtended = t2.state().phaseEndsAt === end2;
+
+  return {
+    ok: partialKept && shortened && moved && notExtended,
+    detail: `2/3모둠 확정: 마감 그대로(${partialKept}) → 3/3모둠: ${DEFAULTS.autoSkipSeconds}초 뒤로 당겨짐 · ` +
+            `알람이 ${t.state().phase} 로(${moved}) · 1초 남았을 땐 안 늘어남(${notExtended})`
+  };
+});
+
+gate('AUTO3', 'discuss 는 어떤 조건에도 당겨지지 않는다 (토론 180초가 이 수업의 실체)', () => {
+  const t = new Table();
+  t.open(2, 'AUT3');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  // '모둠이 다 했다'가 참인 가장 강한 조건으로 토론에 들어간다
+  t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  t.room.submitAnswer(2, '중간', answerOf(t, 1, '중간'), t.pins[2]!);
+  t.endPhase();                                   // → discuss
+
+  const full = t.state().phaseEndsAt!;
+  const okFull = full === t.now + DEFAULTS.discussSeconds * 1000;
+
+  // 토론 중에 학생이 무엇을 눌러도 마감이 움직이지 않는다
+  const sub = t.room.submitAnswer(1, '쉬움', 1, t.pins[1]!);
+  const bet = t.room.placeBet(1, { A: 1 }, t.pins[1]!);
+  t.tick(30_000);
+  const bet2 = t.room.placeBet(2, { A: 1 }, t.pins[2]!);
+  const untouched = t.state().phaseEndsAt === full && t.alarmAt === full;
+  const neverDone = allTeamsDone(t.state()) === false && t.tv().allDone === false;
+
+  t.endPhase();
+  const rode = t.state().phase === PHASES.BETTING;
+
+  return {
+    ok: okFull && !sub.ok && !bet.ok && !bet2.ok && untouched && neverDone && rode,
+    detail: `전원 제출한 채 토론 시작 → ${DEFAULTS.discussSeconds}초 그대로(${okFull}) · ` +
+            `30초 뒤에도 마감 불변(${untouched}) · allDone 은 토론에서 언제나 false(${neverDone}) · ` +
+            `제 시각에 ${t.state().phase}`
+  };
+});
+
+gate('AUTO4', '자동단축초가 0 이면 자동 단축이 없다', () => {
+  const t = new Table();
+  const r = t.room.create(
+    { code: 'AUT4', className: 'X', unit: '유전', teamCount: 2 }, QUESTIONS, ANIMALS,
+    { autoSkipSeconds: 0 }
+  );
+  if (!r.ok) return { ok: false, detail: '판 생성 실패' };
+  t.hostKey = r.data.hostKey; t.pins = r.data.pins;
+
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  const qFull = t.state().phaseEndsAt!;
+  t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  t.room.submitAnswer(2, '쉬움', answerOf(t, 1, '쉬움'), t.pins[2]!);
+  const quizKept = t.state().phaseEndsAt === qFull && t.alarmAt === qFull;
+
+  t.endPhase(); t.endPhase();                     // → discuss → betting
+  const bFull = t.state().phaseEndsAt!;
+  t.room.placeBet(1, { A: 1 }, t.pins[1]!);
+  t.room.placeBet(2, { A: 1 }, t.pins[2]!);
+  const betKept = t.state().phaseEndsAt === bFull && t.alarmAt === bFull;
+
+  return {
+    ok: quizKept && betKept && t.state().settings.autoSkipSeconds === 0 && r.data.warnings.length === 0,
+    detail: `문제 ${DEFAULTS.quizSeconds}초·베팅 ${DEFAULTS.betSeconds}초 전부 그대로 흐름 · ` +
+            `0 은 범위 안이라 경고 ${r.data.warnings.length}건`
+  };
+});
+
+gate('VIEW-SKIP', '교사 뷰에만 canSkip·allDone 이 있고, 값이 단계·진행과 맞는다', () => {
+  const t = new Table();
+  t.open(2, 'VSKP');
+  const seen: string[] = [];
+  const bad: string[] = [];
+  const check = (label: string, canSkip: boolean, allDone: boolean) => {
+    const tv = t.tv();
+    seen.push(`${label}${tv.canSkip ? '↦' : '·'}${tv.allDone ? '✓' : '·'}`);
+    if (tv.canSkip !== canSkip) bad.push(`${label}.canSkip=${tv.canSkip}`);
+    if (tv.allDone !== allDone) bad.push(`${label}.allDone=${tv.allDone}`);
+  };
+
+  check('waiting', false, false);
+  t.room.advanceRound(t.hostKey);            check('moving', false, false);
+  t.endPhase();                              check('quiz', true, false);
+  t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  check('quiz-1모둠', true, false);
+  t.room.togglePause(t.hostKey);             check('quiz-멈춤', false, false);
+  t.room.togglePause(t.hostKey);
+  t.room.submitAnswer(2, '쉬움', 99, t.pins[2]!);
+  check('quiz-전원', true, true);
+  t.endPhase();                              check('discuss', true, false);
+  t.endPhase();                              check('betting', true, false);
+  t.room.placeBet(1, { A: 1 }, t.pins[1]!);
+  t.room.placeBet(2, { A: 1 }, t.pins[2]!);
+  check('betting-전원', true, true);
+  t.endPhase();                              check('waiting2', false, false);
+
+  // ⚠️ 모둠 뷰에는 없어야 한다 — 학생 폰이 '곧 넘어간다'를 먼저 알면 안 낸 모둠이 재촉당한다
+  const keys = allKeys(JSON.parse(JSON.stringify(t.view(1))));
+  for (const k of ['canSkip', 'allDone']) if (keys.has(k)) bad.push(`모둠뷰.${k}`);
+
+  return { ok: bad.length === 0,
+           detail: bad.length ? '⛔ ' + bad.join(', ') : `${seen.join(' ')} (↦=canSkip, ✓=allDone) · 모둠 뷰에는 두 열쇠 모두 없음` };
+});
 
 console.log('\n====================================================');
 console.log(`방 코어 게이트 — 통과 ${pass} / 실패 ${fail}`);

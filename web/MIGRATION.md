@@ -80,14 +80,14 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 - `web/src/server/admin.ts` + `src/client/admin.html`·`admin/` — 문제은행 관리 화면과 그 API.
   시트의 '문제'·'동물'·'설정' 탭과 `validateSheets` 메뉴를 대신합니다 (5단계)
 - `web/test/harness.ts` — 게이트가 쓰는 인메모리 포트 한 벌 (`gateway.ts`·`admin.ts` 가 같이 씀)
-- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `admin.ts` 8 · `qr.ts` 10 · `race.ts` 9
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 41 · `gateway.ts` 24 · `admin.ts` 8 · `qr.ts` 10 · `race.ts` 9
 
 **남은 것** — §7에 단계별로 있습니다. 배포(6단계)
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + 관리 8 + QR 10 + 경주 9
+npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 41 + 게이트웨이 24 + 관리 8 + QR 10 + 경주 9
 npm run dev           # web/ — vite build 후 wrangler dev (먼저 d1 migrations apply --local)
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
@@ -253,7 +253,7 @@ web/
 
 ### 2단계 — 저장·동시성 (Durable Object) ✅ 완료
 
-`src/do/room.ts`(코어) + `src/do/GameRoom.ts`(어댑터) + `test/room.ts` 32개.
+`src/do/room.ts`(코어) + `src/do/GameRoom.ts`(어댑터) + `test/room.ts` 41개.
 아래는 당시의 요구였고 전부 반영됐습니다. 원본과 다르게 한 점은 `room.ts` 머리 주석에 있습니다.
 
 - `GameRoom` DO: 판 코드 하나 = 인스턴스 하나
@@ -458,6 +458,7 @@ gwVersion() / gwDiagnose()
 | `POST /api/game/:code/handout` | 열쇠 | — | `handoutView` + `studentUrl` |
 | `POST /api/game/:code/advance` | 열쇠 | — | `teacherView` |
 | `POST /api/game/:code/pause` | 열쇠 | — | `teacherView` |
+| `POST /api/game/:code/skip` | 열쇠 | — | `teacherView` (다음 단계) · 넘길 수 없는 단계면 `NOT_SKIPPABLE` |
 | `POST /api/game/:code/finalize` | 열쇠 | — | `finalizeView` (+ D1 `games.is_over=1`) |
 | `POST /api/game/:code/reveal` | 열쇠 | — | `revealView` |
 | `GET /api/game/:code/state?viewer=teacher` | 열쇠 | — | `teacherView` |
@@ -532,6 +533,12 @@ gwVersion() / gwDiagnose()
 - `phaseEndsAt`·`serverNow`·`phaseSeconds` — 화면이 타이머와 경주 진행률을 **서버 시각**으로
   계산하기 위한 것 (§11-2). `secondsLeft` 만으로는 늦게 들어온 폰이 다른 지점부터 봅니다
 - `raceMoves` — `moving` 단계에서만. 이번 라운드 이동량 8개 (§8-3)
+- `canSkip`·`allDone` — **교사 뷰에만.** `canSkip` 은 '지금 넘어가기' 버튼을 지금 누를 수
+  있는가(문제·토론·베팅이고 멈춤이 아님), `allDone` 은 모든 모둠이 이번 단계 행동을 마쳤는가.
+  둘 다 `views.ts` 의 `canSkipNow`·`allTeamsDone` 이 계산하고, **서버의 거절과 자동 단축이 같은
+  함수를 본다** — 화면이 단계 이름으로 다시 판단하면 규칙이 두 벌이 된다 (§5).
+  ⚠️ 모둠 뷰에는 넣지 않습니다. 학생 폰이 '곧 넘어간다'를 먼저 알면 아직 안 낸 모둠이 재촉당합니다
+  (게이트 `VIEW-SKIP`)
 - `trackCells` — 두 뷰 모두. 화면이 10 으로 박아 두던 것을 막기 위해 (§5 함정). `roundStarted` 는
   교사 뷰에만 — 원본 `Code.gs` 에도 있었는데 2단계 이식에서 빠졌던 것
 - 위치는 `roundStarted ? round : round-1` 라운드까지 반영 — 원본은 판 생성 직후부터
@@ -571,11 +578,41 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
   (`roundStarted` 플래그. 게이트 `BUG1`)
 - 마지막 라운드(5 또는 6)는 판 생성 시 몰래 정해지고 학생에게 비공개
 
+**조기 종료 — 단계를 일찍 끝내는 두 가지** (2026-09-05, 사용자 결정)
+
+수업에서 제일 자주 나오는 낭비는 "6모둠이 다 냈는데 60초를 다 기다리는" 시간입니다.
+그걸 두 가지로 줄입니다. **둘 다 전환을 새로 만들지 않고 `phaseEndsAt`을 앞당길 뿐입니다.**
+
+| | 누가 | 언제 | 어떻게 |
+|---|---|---|---|
+| **교사 버튼** `skipPhase` | 선생님 | 아무 때나 | `phaseEndsAt = now` 로 두고 `onAlarm()` 을 **동기로** 부른다 |
+| **자동 단축** | 서버 | 모든 모둠이 이번 단계 행동을 마친 순간 | `phaseEndsAt = now + autoSkipSeconds*1000`, 알람 재설정 |
+
+- ⚠️ **전환 로직은 여전히 `onAlarm()` 한 곳입니다.** 조기 종료가 마감 처리를 따로 하면
+  "교사가 넘겼을 때만 미제출 timeout 이 안 찍히는" 종류의 버그가 생깁니다. 사본을 만들지 마세요 (§5)
+- ⚠️ 교사 버튼이 알람을 다시 걸고 돌아가지 않고 **동기로 부르는** 이유: DO 알람은 몇백 ms
+  늦게 올 수 있고, 그동안 화면 타이머는 0 에 멈춘 채 아무 일도 안 일어납니다. 선생님은
+  버튼이 안 먹었다고 다시 누릅니다. 동기 호출이면 그 호출의 응답이 이미 다음 단계입니다
+- `skipPhase` 가 되는 단계는 **문제·토론·베팅**뿐입니다 (`SKIPPABLE_PHASES`).
+  `moving`·`waiting`·`done` 은 `NOT_SKIPPABLE`, 일시정지 중이면 `PAUSED` 로 거절합니다.
+  경주 20초는 학생이 결과를 보는 시간이라 건너뛰면 말이 순간이동한 것처럼 보입니다
+- **자동 단축은 문제(전원 제출)와 베팅(전원 확정)에만 적용합니다.**
+  ⚠️ **토론은 절대 단축하지 않습니다** — 토론 180초가 이 수업의 실체입니다 (§1).
+  `views.allTeamsDone()` 이 토론에서 언제나 `false` 인 것이 그 방어입니다 (게이트 `AUTO3`)
+- ⚠️ 남은 시간이 이미 `autoSkipSeconds` 보다 짧으면 **아무것도 하지 않습니다.**
+  안 그러면 마감 1초 전에 낸 마지막 제출이 단계를 오히려 늘립니다 (게이트 `AUTO1`·`AUTO2`)
+- 5초는 상수가 아니라 설정입니다 — `autoSkipSeconds`(기본 5, 범위 0~30, **0 이면 끔**).
+  `moveSeconds` 와 같은 방식이고 `migrations/0004_auto_skip.sql` 이 D1 에 시드를 넣습니다.
+  0 초로 만들지 마세요: 마지막으로 제출한 모둠이 정답·해설을 한 글자도 못 보고 끌려갑니다
+- 교사 버튼은 이벤트 로그에 `kind: 'skip'` 한 줄을 남깁니다 (감사용). `restore` 는 그 줄에서
+  `phaseEndsAt` 만 되돌립니다 — 단계까지 옮기면 재생과 알람이 두 벌의 전환 로직이 됩니다
+- 게이트: `SKIP1`~`SKIP4`, `AUTO1`~`AUTO4`, `VIEW-SKIP`, `GW-SKIP`
+
 ### 8-4. 이벤트 로그 형식
 
 ```
 [번호, 판코드, 라운드, 모둠번호, 종류, JSON내용, 시각]
-종류: 'answer' | 'bet' | 'round_start' | 'pause'
+종류: 'answer' | 'bet' | 'round_start' | 'pause' | 'skip'
 ```
 
 복구는 "스냅샷 + 그 뒤 이벤트 재생". 재생할 때 `hintGiven`도 복구해야 합니다 (§4-5).
@@ -604,7 +641,16 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
 QR     QR-1~QR-9   ← 새 구현에선 라이브러리를 써도 됩니다
 ```
 
-`web/` 113개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 32 + `gateway.ts` 23 + `admin.ts` 8 + `qr.ts` 10 + `race.ts` 9.
+`web/` 123개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 41 + `gateway.ts` 24 + `admin.ts` 8 + `qr.ts` 10 + `race.ts` 9.
+
+조기 종료 게이트 10개 (`test/room.ts` 9 + `test/gateway.ts` 1):
+
+```
+SKIP1 SKIP2 SKIP3 SKIP4      교사 '지금 넘어가기' — 세 단계 · 거절 · 열쇠
+AUTO1 AUTO2 AUTO3 AUTO4      자동 단축 — 문제 · 베팅 · 토론 제외 · 끄기
+VIEW-SKIP                    canSkip·allDone 은 교사 뷰에만
+GW-SKIP                      POST /skip 라우트와 열쇠
+```
 
 관리 게이트 8개 (`test/admin.ts`):
 

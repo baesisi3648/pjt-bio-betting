@@ -301,6 +301,37 @@ await gate('HOST-NOLOCK', '교사 열쇠는 아무리 틀려도 잠기지 않는
   };
 });
 
+await gate('GW-SKIP', "'지금 넘어가기'는 교사 열쇠로만 — 넘길 수 없는 단계면 열쇠가 맞아도 거절", async () => {
+  const net = new Net();
+  const g = await open(net, '유전', 2);
+  const url = `/api/game/${g.code}/skip`;
+  await net.call('POST', `/api/game/${g.code}/advance`, { headers: host(g.hostKey), body: {} });
+  net.endPhase(g.code);                                    // moving → quiz
+
+  const none = await net.call('POST', url, { body: {} });
+  const wrong = await net.call('POST', url, { headers: host('AAAAAAAAAAAA'), body: {} });
+  const stillQuiz = net.state(g.code).phase === PHASES.QUIZ;
+
+  const real = await net.call('POST', url, { headers: host(g.hostKey), body: {} });
+  const moved = net.state(g.code).phase === PHASES.DISCUSS;
+  // 안 낸 모둠은 알람 경로와 똑같이 미제출로 남는다
+  const timedOut = net.state(g.code).teams.every((t) => t.answered[1]?.timeout === true);
+
+  // waiting 에서는 열쇠가 맞아도 넘길 게 없다
+  net.endPhase(g.code); net.endPhase(g.code);              // discuss → betting → waiting
+  const atWaiting = await net.call('POST', url, { headers: host(g.hostKey), body: {} });
+
+  return {
+    ok: errOf(none) === 'NOT_HOST' && none.status === 403 && errOf(wrong) === 'NOT_HOST' &&
+        stillQuiz && real.body.ok && dataOf(real).phase === PHASES.DISCUSS && moved && timedOut &&
+        errOf(atWaiting) === 'NOT_SKIPPABLE' && atWaiting.status === 400 &&
+        !!atWaiting.body.ok === false && typeof (atWaiting.body as { message?: string }).message === 'string',
+    detail: `열쇠 없음 ${errOf(none)}(${none.status}) · 틀린 열쇠 ${errOf(wrong)} (판은 quiz 그대로 ${stillQuiz}) · ` +
+            `진짜 열쇠로 ${String(dataOf(real).phase)} (미제출 기록 ${timedOut}) · ` +
+            `waiting 에서는 ${errOf(atWaiting)}(${atWaiting.status})`
+  };
+});
+
 // ════════════════════════════════════════════════════════════
 // 게이트웨이 자체
 // ════════════════════════════════════════════════════════════

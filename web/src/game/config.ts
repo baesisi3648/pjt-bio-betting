@@ -23,6 +23,15 @@ export const PHASES = {
 
 export type Phase = (typeof PHASES)[keyof typeof PHASES];
 
+/**
+ * 교사가 '지금 넘어가기'로 끝낼 수 있는 단계 (MIGRATION §8-3).
+ *
+ * ⚠️ 여기에 `moving` 을 넣지 마세요. 경주 20초는 학생이 **결과를 보는** 시간이라
+ *    건너뛰면 말이 순간이동한 것처럼 보입니다. `waiting`·`done` 은 애초에 시간이
+ *    흐르지 않아 끝낼 것이 없습니다 (`phaseEndsAt` 이 null 이다).
+ */
+export const SKIPPABLE_PHASES = [PHASES.QUIZ, PHASES.DISCUSS, PHASES.BETTING] as readonly Phase[];
+
 export const DEFAULTS = {
   initialCoins:    20,
   maxBetPerRound:  3,
@@ -32,6 +41,15 @@ export const DEFAULTS = {
   discussSeconds: 180,   // 감독 G-02 — 힌트를 놓고 이야기하는 시간. 이 수업의 실체
   betSeconds:      60,
   trackCells:      10,
+  /**
+   * 모든 모둠이 이번 단계 행동을 마친 뒤 몇 초 더 두는가 (문제·베팅 단계만).
+   * 0 이면 자동 단축을 끈다.
+   *
+   * ⚠️ 0 으로 만들지 마세요 — 마지막으로 제출한 모둠이 정답·해설을 **한 글자도 못 보고**
+   *    다음 단계로 끌려갑니다. 그 5초가 자동 단축의 값입니다.
+   * ⚠️ 토론 단계에는 적용하지 않습니다. 토론 180초가 이 수업의 실체입니다 (MIGRATION §1).
+   */
+  autoSkipSeconds:  5,
   payout: { 1: 1.0, 2: 0.7, 3: 0.5 } as Record<number, number>
 };
 
@@ -46,7 +64,9 @@ export const SETTING_RANGE: Record<string, { min: number; max: number; label: st
   quizSeconds:    { min: 10, max: 900, label: '문제시간초' },
   discussSeconds: { min: 10, max: 900, label: '토론시간초' },
   betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
-  trackCells:     { min: 4,  max: 30,  label: '트랙칸수' }
+  trackCells:     { min: 4,  max: 30,  label: '트랙칸수' },
+  // 0 은 '끔' 이라 min 이 0 이다. 다른 시간 설정과 달리 하한이 없다
+  autoSkipSeconds: { min: 0, max: 30,  label: '자동단축초' }
 };
 
 /** 판 코드에서 뺀다 — 칠판에 적힌 걸 30명이 폰에 입력한다 */
@@ -88,6 +108,8 @@ export const MESSAGES: Record<string, string> = {
   BAD_AMOUNT:       '코인 수가 이상해요',
   BAD_ANIMAL:       '그런 동물이 없어요',
   PAUSED:           '선생님이 잠시 멈췄어요',
+  // '지금 넘어가기' 는 문제·토론·베팅에서만 쓴다. 경주 중이거나 대기·종료 상태면 끝낼 게 없다
+  NOT_SKIPPABLE:    '지금은 넘어갈 수 있는 단계가 아니에요',
   LOCK_TIMEOUT:     '잠시 후 다시 눌러주세요',
   SHEET_INVALID:    '문제 구성을 확인해주세요',
   NOT_HOST:         '이 판의 교사 화면이 아니에요. 교사 열쇠를 확인해주세요',

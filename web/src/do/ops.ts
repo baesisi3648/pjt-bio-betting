@@ -39,6 +39,7 @@ export function dispatch(room: Room, op: string, a: unknown[]): Envelope<unknown
     case 'placeBet':     return room.placeBet(Number(a[0]), a[1] as Bets, String(a[2]));
     case 'advanceRound': return room.advanceRound(String(a[0]));
     case 'togglePause':  return room.togglePause(String(a[0]));
+    case 'skipPhase':    return room.skipPhase(String(a[0]));
     case 'finalize':     return room.finalize(String(a[0]));
     case 'reveal':       return room.reveal(String(a[0]));
     case 'handout':      return room.handout(String(a[0]));
@@ -85,7 +86,9 @@ export function credentialKey(op: string, a: unknown[]): string | null {
       return viewer.indexOf('team:') === 0 ? 'team:' + Number(viewer.split(':')[1]) : null;
     }
     default:
-      return null;                       // 교사 열쇠 경로 · create · lobby
+      // 교사 열쇠 경로(advanceRound · togglePause · skipPhase · finalize · reveal · handout) ·
+      // create · lobby. ⚠️ skipPhase 를 여기 넣지 마세요 — 교사 열쇠는 잠그지 않는다 (HOST-NOLOCK)
+      return null;
   }
 }
 

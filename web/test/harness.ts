@@ -66,7 +66,9 @@ export const SETTINGS: SettingRow[] = [
   { key: 'initialCoins', value: '20' }, { key: 'maxBetPerRound', value: '3' },
   { key: 'seedCoins', value: '15' }, { key: 'moveSeconds', value: '20' },
   { key: 'quizSeconds', value: '90' }, { key: 'discussSeconds', value: '180' },
-  { key: 'betSeconds', value: '60' }, { key: 'trackCells', value: '10' }
+  { key: 'betSeconds', value: '60' }, { key: 'trackCells', value: '10' },
+  // migrations/0004_auto_skip.sql 과 같은 값. 시드와 가짜가 갈라지면 게이트가 딴 판을 검사한다
+  { key: 'autoSkipSeconds', value: '5' }
 ];
 
 interface GameRow { code: string; className: string; unit: string; createdAt: number; isOver: boolean }

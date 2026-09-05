@@ -12,7 +12,7 @@
  * ⚠️ 응답에 Date 객체를 넣지 않는다. 전부 숫자(ms) 다 (MIGRATION §5).
  */
 
-import { ANIMAL_CODES, DEPLOY_VERSION, PHASES } from './config.ts';
+import { ANIMAL_CODES, DEPLOY_VERSION, PHASES, SKIPPABLE_PHASES } from './config.ts';
 import type { AnimalCode, Level, Phase } from './config.ts';
 import { computeOdds, positionsAtRound, rankByPosition } from './rules.ts';
 import type {
@@ -102,6 +102,14 @@ export interface TeacherView extends Clock {
   truth: AnimalCode[] | null;
   deployVersion: string;
   raceMoves?: RaceMoves;
+  /**
+   * '지금 넘어가기' 버튼을 누를 수 있는가 (문제·토론·베팅이고 멈춰 있지 않을 때).
+   * ⚠️ 화면이 단계 이름으로 직접 판단하면 서버가 거절하는 상태에서도 버튼이 살아 있게 된다 —
+   *    거절 규칙을 두 벌 두는 셈이다 (MIGRATION §5). 서버가 계산한 이 값만 보세요.
+   */
+  canSkip: boolean;
+  /** 이번 단계에서 모든 모둠이 할 일을 마쳤는가. 교사 화면의 '5초 뒤 넘어갑니다' 문구용 */
+  allDone: boolean;
 }
 
 export interface LobbyView { className: string; teams: TeamBrief[] }
@@ -180,6 +188,35 @@ export function phaseSecondsOf(state: GameState): number | null {
     case PHASES.BETTING: return s.betSeconds;
     default:             return null;
   }
+}
+
+/**
+ * 이번 단계에서 **모든 모둠이 할 일을 마쳤는가.**
+ *
+ * ⚠️ 이 판단이 두 벌이 되면 안 된다. 교사 화면의 문구(`teacherView.allDone`)와
+ *    자동 단축(`Room.submitAnswer`·`placeBet`)이 **이 함수 하나**를 본다 —
+ *    갈라지는 순간 화면은 "다 끝났어요"라고 쓰는데 시계는 안 줄어드는 상태가 생긴다
+ *    (게이트가 사본을 검사하던 그 함정, MIGRATION §5).
+ *
+ * ⚠️ 토론 단계는 언제나 false 다. 토론 180초가 이 수업의 실체이므로 줄이지 않는다 (§1).
+ *    그래서 '모둠이 뭘 다 했나'를 단계별로 따지는 이 모양이 필요하다.
+ */
+export function allTeamsDone(state: GameState): boolean {
+  if (state.phase === PHASES.QUIZ) return state.teams.every((t) => !!t.answered[state.round]);
+  if (state.phase === PHASES.BETTING) return state.teams.every((t) => !!t.betLocked[state.round]);
+  return false;
+}
+
+/**
+ * 지금 교사가 '지금 넘어가기'를 누를 수 있는가.
+ *
+ * ⚠️ 교사 화면의 버튼 상태(`teacherView.canSkip`)와 서버의 거절(`Room.skipPhase`)이
+ *    **이 함수 하나**를 본다. 화면 쪽에 조건을 다시 쓰면, 눌리는데 거절당하거나
+ *    눌러야 하는데 죽어 있는 버튼이 생긴다.
+ */
+export function canSkipNow(state: GameState): boolean {
+  if (state.pausedAt) return false;
+  return SKIPPABLE_PHASES.indexOf(state.phase) >= 0;
 }
 
 function clockOf(state: GameState, now: number): Clock {
@@ -311,7 +348,11 @@ export function teacherView(state: GameState, now: number): TeacherView {
     isOver: !!state.isOver,
     settlement: state.settlement || null,
     truth: state.isOver ? finalOrderOf(state) : null,
-    deployVersion: DEPLOY_VERSION
+    deployVersion: DEPLOY_VERSION,
+    // ⚠️ 이 둘은 교사 뷰에만 있다. 모둠 뷰에 넣으면 학생 폰이 '곧 넘어간다'를 먼저 알고,
+    //    아직 안 낸 모둠이 재촉당한다 — 조용해야 할 시간을 시끄럽게 만든다
+    canSkip: canSkipNow(state),
+    allDone: allTeamsDone(state)
   };
   if (state.phase === PHASES.MOVING) v.raceMoves = raceMovesOf(state);
   return v;

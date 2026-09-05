@@ -145,6 +145,8 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
     // 교사 열쇠 필요
     if (what === 'advance' && method === 'POST') return reply(await room.op('advanceRound', [hostKeyOf(req, body)]));
     if (what === 'pause' && method === 'POST') return reply(await room.op('togglePause', [hostKeyOf(req, body)]));
+    // '지금 넘어가기'. 문제·토론·베팅만 — 다른 단계면 Room 이 NOT_SKIPPABLE 로 거절한다
+    if (what === 'skip' && method === 'POST') return reply(await room.op('skipPhase', [hostKeyOf(req, body)]));
     if (what === 'reveal' && method === 'POST') return reply(await room.op('reveal', [hostKeyOf(req, body)]));
     if (what === 'finalize' && method === 'POST') {
       const res = await room.op('finalize', [hostKeyOf(req, body)]);
