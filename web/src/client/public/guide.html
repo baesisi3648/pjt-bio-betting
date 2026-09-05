@@ -1,0 +1,378 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<!-- 이 파일은 동생·다른 선생님이 로그인 없이 볼 수 있게 사이트에 같이 올린 안내서다. 외부 자원 없음 (학교망). -->
+<title>와일드 더비 첫 판 가이드</title>
+<style>
+:root{
+  --bg:#EEF2F6; --card:#FFFFFF; --ink:#1B2734; --muted:#5D6E7F; --line:#D5DEE7;
+  --gold:#C98A15; --gold-soft:#FBEFD2; --run:#1E7FBF; --run-soft:#DCEBF7;
+  --goal:#D6453F; --goal-soft:#FBE3E1; --ok:#2E8B57; --ok-soft:#DDF1E4;
+  --navy:#0F1720; --navy-2:#1B2734; --navy-text:#E8EDF2;
+  --code-bg:#1B2734; --code-fg:#F2B441;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#0F1720; --card:#1B2734; --ink:#E8EDF2; --muted:#9AAABB; --line:#2C3D4E;
+    --gold:#F2B441; --gold-soft:#3A2E12; --run:#4FC3F7; --run-soft:#15303F;
+    --goal:#EF5350; --goal-soft:#3A1A1A; --ok:#66BB6A; --ok-soft:#173023;
+    --code-bg:#0B131B; --code-fg:#F2B441;
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#0F1720; --card:#1B2734; --ink:#E8EDF2; --muted:#9AAABB; --line:#2C3D4E;
+  --gold:#F2B441; --gold-soft:#3A2E12; --run:#4FC3F7; --run-soft:#15303F;
+  --goal:#EF5350; --goal-soft:#3A1A1A; --ok:#66BB6A; --ok-soft:#173023;
+  --code-bg:#0B131B; --code-fg:#F2B441;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:16px;line-height:1.75;-webkit-text-size-adjust:100%}
+.wrap{max-width:760px;margin:0 auto;padding:28px 20px 80px}
+h1,h2,h3{text-wrap:balance;margin:0}
+.display{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-weight:900;letter-spacing:-.02em}
+
+/* 머리 */
+.hero{background:var(--navy);color:var(--navy-text);border-radius:18px;padding:30px 28px 26px;position:relative;overflow:hidden}
+.hero .eyebrow{font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#F2B441;font-weight:700}
+.hero h1{font-size:44px;line-height:1.1;margin:8px 0 12px;color:#fff}
+.hero p{margin:0;color:#C9D6E2;max-width:56ch}
+.hero .flag{position:absolute;right:-6px;top:-6px;width:110px;height:110px;opacity:.9;
+  background-image:linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%),linear-gradient(45deg,#EAF0F5 25%,transparent 25%,transparent 75%,#EAF0F5 75%);
+  background-size:22px 22px;background-position:0 0,11px 11px;border-radius:0 0 0 60px;
+  mask-image:radial-gradient(circle at 100% 0,#000 55%,transparent 80%);-webkit-mask-image:radial-gradient(circle at 100% 0,#000 55%,transparent 80%)}
+.url{display:inline-block;margin-top:16px;background:var(--code-bg);color:var(--code-fg);padding:10px 14px;border-radius:10px;font-weight:700;font-size:17px;word-break:break-all;border:1px solid #33475A}
+
+/* 라운드 흐름 띠 — 시간 비율 그대로 (20 : 90 : 180 : 60) */
+.flow{margin:26px 0 8px}
+.flow .bar{display:grid;grid-template-columns:20fr 90fr 180fr 60fr;gap:3px;height:54px}
+.flow .seg{border-radius:8px;display:flex;flex-direction:column;justify-content:center;padding:0 10px;color:#fff;font-weight:700;font-size:14px;line-height:1.2;min-width:0}
+.flow .seg small{font-weight:500;opacity:.9;font-size:12px}
+.flow .seg.move{background:#5B6F84}
+.flow .seg.quiz{background:var(--run)}
+.flow .seg.talk{background:#7A4FB5}
+.flow .seg.bet{background:var(--gold);color:#1B2734}
+.flow .seg span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.flow .cap{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-top:6px}
+.flow .cap b{color:var(--ink)}
+
+/* 본문 */
+section{margin-top:44px}
+h2{font-size:26px;line-height:1.25}
+h2 .display{font-size:30px;color:var(--gold);margin-right:8px}
+.lead{color:var(--muted);margin:6px 0 18px}
+p{margin:0 0 12px}
+ul,ol{margin:0 0 12px;padding-left:22px}
+li{margin:4px 0}
+strong{font-weight:700}
+kbd{font:inherit;font-weight:700;background:var(--card);border:1px solid var(--line);border-bottom-width:2px;border-radius:6px;padding:0 7px;white-space:nowrap}
+code{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:.92em;background:var(--code-bg);color:var(--code-fg);padding:2px 7px;border-radius:6px}
+
+/* 단계 */
+.steps{display:grid;gap:16px;margin-top:18px}
+.step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px 20px 16px;display:grid;grid-template-columns:52px 1fr;gap:14px}
+.step .no{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:36px;line-height:1;color:var(--gold);padding-top:2px}
+.step h3{font-size:19px;margin-bottom:6px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.dev{font-size:12px;font-weight:700;letter-spacing:.04em;padding:2px 9px;border-radius:999px;white-space:nowrap}
+.dev.pc{background:var(--run-soft);color:var(--run)}
+.dev.ph{background:var(--ok-soft);color:var(--ok)}
+.dev.both{background:var(--gold-soft);color:var(--gold)}
+.step p:last-child,.step ul:last-child,.step ol:last-child{margin-bottom:0}
+
+/* 화면 흉내 */
+.screen{background:var(--navy);color:var(--navy-text);border-radius:12px;padding:14px 16px;margin:10px 0 4px;font-size:14px;border:1px solid #2C3D4E}
+.screen .big{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:40px;letter-spacing:.14em;color:#F2B441;text-align:center;margin:4px 0}
+.screen .row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid #2C3D4E}
+.screen .row:last-child{border-bottom:0}
+.screen .pin{filter:blur(5px);color:#F2B441;font-weight:700;letter-spacing:.1em}
+.screen .btn{display:inline-block;background:#EF5350;color:#fff;padding:6px 14px;border-radius:8px;font-weight:700;font-size:14px;margin-right:6px}
+.screen .btn.grey{background:#3E5468}
+.screen .btn.blue{background:#4FC3F7;color:#0F1720}
+.screen .lane{display:grid;grid-template-columns:34px 1fr 70px;gap:8px;align-items:center;padding:4px 0}
+.screen .track{height:12px;background:#16212C;border-radius:4px;position:relative;overflow:hidden}
+.screen .track i{position:absolute;right:0;top:0;bottom:0;background:rgba(79,195,247,.35);border-radius:4px}
+.screen .track b{position:absolute;left:0;top:0;bottom:0;width:8px;background:repeating-linear-gradient(45deg,#EAF0F5 0 3px,#1B2734 3px 6px)}
+.screen .name{text-align:right;color:#C9D6E2}
+
+/* 콜아웃 */
+.note{border-radius:12px;padding:14px 16px;margin:14px 0;border-left:5px solid}
+.note.tip{background:var(--ok-soft);border-color:var(--ok)}
+.note.warn{background:var(--gold-soft);border-color:var(--gold)}
+.note.stop{background:var(--goal-soft);border-color:var(--goal)}
+.note p:last-child{margin-bottom:0}
+.note .t{font-weight:700;display:block;margin-bottom:4px}
+
+/* 표 */
+.tbl{width:100%;border-collapse:collapse;margin:10px 0;font-size:15px}
+.tbl th,.tbl td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+.tbl th{color:var(--muted);font-weight:700;font-size:13px;letter-spacing:.04em}
+.tbl td.num{font-variant-numeric:tabular-nums;white-space:nowrap}
+.scroll{overflow-x:auto}
+
+/* 배당 예시 */
+.odds{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin:12px 0}
+.odds .box{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 14px}
+.odds .box h4{margin:0 0 6px;font-size:14px;color:var(--muted)}
+.odds .n{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic",sans-serif;font-size:30px;color:var(--gold);line-height:1}
+.odds .n small{font-family:inherit;font-size:14px;color:var(--muted);margin-left:4px}
+
+/* 문제 해결 */
+.qa{display:grid;gap:10px}
+.qa details{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:0}
+.qa summary{cursor:pointer;padding:13px 16px;font-weight:700;list-style:none;display:flex;gap:10px;align-items:center}
+.qa summary::before{content:"?";flex:none;width:24px;height:24px;border-radius:50%;background:var(--gold-soft);color:var(--gold);font-weight:700;display:inline-flex;align-items:center;justify-content:center;font-size:14px}
+.qa summary:focus-visible{outline:2px solid var(--run);outline-offset:2px;border-radius:12px}
+.qa details[open] summary{border-bottom:1px solid var(--line)}
+.qa .a{padding:12px 16px 14px}
+.qa .a p:last-child{margin-bottom:0}
+
+/* 용어 */
+.terms{display:grid;grid-template-columns:120px 1fr;gap:8px 16px;margin-top:10px}
+.terms dt{font-weight:700}
+.terms dd{margin:0;color:var(--ink)}
+@media (max-width:560px){
+  .hero h1{font-size:36px}
+  .step{grid-template-columns:40px 1fr;padding:16px}
+  .step .no{font-size:28px}
+  .terms{grid-template-columns:1fr}
+  .terms dd{color:var(--muted);margin-bottom:6px}
+  .odds{grid-template-columns:1fr}
+  .flow .seg small{display:none}
+}
+@media (prefers-reduced-motion: reduce){*{transition:none!important;animation:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+
+<header class="hero">
+  <div class="flag" aria-hidden="true"></div>
+  <div class="eyebrow">Wild Derby · 첫 판 가이드</div>
+  <h1 class="display">혼자서도 한 판 끝까지 돌려 보기</h1>
+  <p>생명과학 수업용 <strong>베팅 보드게임</strong>입니다. 선생님 역할(노트북)과 모둠 역할(폰)을 둘 다 해 보면 40분 안에 한 판을 끝낼 수 있어요. 순서대로만 따라오면 됩니다.</p>
+  <div class="url">https://wilde-derby.baesisi3648.workers.dev</div>
+</header>
+
+<div class="flow" aria-label="한 라운드의 흐름">
+  <div class="bar">
+    <div class="seg move"><span>경주</span><small>20초</small></div>
+    <div class="seg quiz"><span>문제 풀기</span><small>90초</small></div>
+    <div class="seg talk"><span>모둠 토론</span><small>180초</small></div>
+    <div class="seg bet"><span>베팅</span><small>60초</small></div>
+  </div>
+  <div class="cap"><span>한 라운드 ≈ <b>6분</b></span><span>라운드는 <b>5번 또는 6번</b> — 몇 번인지는 끝까지 비밀</span></div>
+</div>
+
+<section>
+  <h2><span class="display">0</span>이게 무슨 게임인가</h2>
+  <p class="lead">규칙은 30초면 이해됩니다.</p>
+  <ul>
+    <li>동물 <strong>8마리</strong>가 트랙을 달립니다. 최종 1·2·3등이 누구인지는 게임이 끝날 때 공개됩니다.</li>
+    <li>모둠은 라운드마다 <strong>생명과학 문제</strong>를 하나 풉니다. 맞히면 <strong>순위 힌트</strong>를 받습니다. 예: "치타는 1·2·3등 안에 반드시 듭니다."</li>
+    <li>힌트를 모아 추리한 뒤 동물에 <strong>코인</strong>을 겁니다. 라운드당 최대 3개.</li>
+    <li>마지막에 정산합니다. 1등에 건 코인은 배당률의 <strong>100%</strong>, 2등은 <strong>70%</strong>, 3등은 <strong>50%</strong>를 받습니다. 나머지는 잃습니다.</li>
+    <li>가장 코인이 많은 모둠이 우승.</li>
+  </ul>
+  <div class="note tip"><span class="t">이 게임의 핵심은 토론 3분입니다</span><p>토론 시간에는 폰에 누를 것이 없습니다. 힌트를 놓고 모둠끼리 "그럼 사자는 4등 밑이네?" 하고 이야기하는 시간이라서 그래요. 혼자 해 볼 때는 이 구간이 길게 느껴질 텐데, 선생님 화면의 <kbd>지금 넘어가기 ▶</kbd> 버튼으로 바로 넘길 수 있습니다.</p></div>
+</section>
+
+<section>
+  <h2><span class="display">1</span>준비물</h2>
+  <div class="scroll"><table class="tbl">
+    <tr><th>무엇</th><th>왜</th></tr>
+    <tr><td><strong>노트북 (또는 큰 화면)</strong></td><td>선생님 화면. 원래는 교실 TV에 연결해 다 같이 보는 화면입니다.</td></tr>
+    <tr><td><strong>폰 1~2대</strong></td><td>모둠 화면. 폰이 하나면 모둠 2개 중 하나만 조작하면 됩니다. 폰이 없으면 노트북의 <strong>시크릿 창</strong>을 열어 모둠 화면으로 써도 됩니다.</td></tr>
+    <tr><td><strong>관리자 비밀번호</strong></td><td>판을 만들 때 한 번 필요합니다. <strong>이 페이지에는 적혀 있지 않아요.</strong> 형/누나(이 게임을 만든 사람)에게 따로 받으세요.</td></tr>
+    <tr><td>인터넷</td><td>와이파이나 LTE 아무거나. 중간에 끊겨도 스스로 다시 붙습니다.</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="display">2</span>판 만들기</h2>
+  <p class="lead">노트북에서 합니다. 3분.</p>
+  <div class="steps">
+
+    <div class="step"><div class="no">1</div><div>
+      <h3>선생님 화면 열기 <span class="dev pc">노트북</span></h3>
+      <p>브라우저 주소창에 아래를 넣습니다. 끝에 <code>/teacher</code>가 붙는 것을 잊지 마세요.</p>
+      <p><code>https://wilde-derby.baesisi3648.workers.dev/teacher</code></p>
+    </div></div>
+
+    <div class="step"><div class="no">2</div><div>
+      <h3>관리자 비밀번호 넣기 <span class="dev pc">노트북</span></h3>
+      <p>'새 판 만들기' 맨 위 칸에 받은 비밀번호를 넣습니다. 한 번 맞게 넣으면 그 탭을 닫기 전까지는 다시 묻지 않아요.</p>
+      <p>틀리면 칸 아래에 <strong>"관리자 비밀번호가 달라요"</strong>가 뜹니다. 대소문자를 확인하세요.</p>
+    </div></div>
+
+    <div class="step"><div class="no">3</div><div>
+      <h3>반 이름 · 단원 · 모둠 수 정하기 <span class="dev pc">노트북</span></h3>
+      <ul>
+        <li><strong>반 이름</strong>: 아무거나. 예: <code>연습</code></li>
+        <li><strong>단원</strong>: 세 개 중 고르기. 처음이면 <strong>유전</strong>을 추천해요.</li>
+        <li><strong>모둠 수</strong>: 혼자 해 볼 거면 <strong>2</strong>로 줄이세요. 폰마다 모둠 하나씩 조작해야 하니까요.</li>
+        <li>모둠 이름은 비워 두면 '1모둠, 2모둠'이 됩니다.</li>
+      </ul>
+      <p><kbd>판 만들기</kbd>를 누릅니다.</p>
+    </div></div>
+
+    <div class="step"><div class="no">4</div><div>
+      <h3>"칠판에 적어주세요" 화면 읽기 <span class="dev pc">노트북</span></h3>
+      <p>판이 만들어지면 이 화면이 뜹니다. 세 가지가 있어요.</p>
+      <div class="screen">
+        <div style="color:#C9D6E2;font-size:13px">판 코드</div>
+        <div class="big">K7PX</div>
+        <div class="row"><span>학생 주소 + QR</span><span style="color:#4FC3F7">…workers.dev/</span></div>
+        <div class="row"><span>1모둠 암호</span><span class="pin">4821</span></div>
+        <div class="row"><span>2모둠 암호</span><span class="pin">1937</span></div>
+        <div style="margin-top:10px"><span class="btn grey">전부 보기</span><span class="btn grey">인쇄하기</span><span class="btn">진행 화면으로</span></div>
+      </div>
+      <ul>
+        <li><strong>판 코드 4자리</strong>: 학생이 폰에 넣는 코드. 실제 수업에서는 칠판에 크게 적습니다. 헷갈리는 글자 0·O·1·I 는 아예 안 나와요.</li>
+        <li><strong>QR</strong>: 폰 카메라로 비추면 학생 주소가 바로 열립니다.</li>
+        <li><strong>모둠 암호 4자리</strong>: 가려져 있습니다. <strong>암호를 누르면 그것만</strong> 보여요. 혼자 해 볼 때는 두 개 다 눌러서 메모해 두세요.</li>
+      </ul>
+      <div class="note warn"><span class="t">왜 암호가 가려져 있나요?</span><p>실제 교실에서는 이 화면이 TV에 떠 있습니다. 판 코드만 알면 아무 모둠 번호로도 들어갈 수 있으니, 다른 모둠 것으로 답을 내거나 코인을 걸지 못하게 <strong>모둠마다 암호</strong>를 둔 거예요. 모둠장에게만 종이로 줍니다.</p></div>
+      <p>다 적었으면 <kbd>진행 화면으로</kbd>.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="display">3</span>폰으로 접속하기</h2>
+  <p class="lead">모둠 역할. 폰마다 한 번.</p>
+  <div class="steps">
+    <div class="step"><div class="no">5</div><div>
+      <h3>주소 열기 <span class="dev ph">폰</span></h3>
+      <p>QR을 카메라로 비추거나, 주소를 직접 넣습니다. 이번엔 <code>/teacher</code> <strong>없이</strong>.</p>
+      <p><code>https://wilde-derby.baesisi3648.workers.dev</code></p>
+    </div></div>
+    <div class="step"><div class="no">6</div><div>
+      <h3>판 코드 → 모둠 → 암호 <span class="dev ph">폰</span></h3>
+      <ol>
+        <li>판 코드 4자리 (예: <code>K7PX</code>) → <kbd>다음</kbd></li>
+        <li>내 모둠 버튼 누르기 (1모둠)</li>
+        <li>그 모둠의 암호 4자리 → <kbd>들어가기</kbd></li>
+      </ol>
+      <p>들어가면 위에 "지금은 ▸ 다음 라운드를 기다려요"가 보이고, 아래에 <strong>문제 · 힌트 · 베팅</strong> 탭 세 개가 있습니다. 두 번째 폰(또는 시크릿 창)으로 2모둠도 같은 방법으로 들어가세요.</p>
+      <div class="note tip"><span class="t">폰이 한 대뿐이면</span><p>1모둠만 폰으로 들어가고 2모둠은 그냥 두세요. 2모둠은 답을 안 내고 코인을 안 거는 모둠이 됩니다. 게임은 그대로 돌아갑니다.</p></div>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="display">4</span>라운드 돌리기</h2>
+  <p class="lead">여기부터는 반복입니다. 한 라운드가 어떻게 흘러가는지 한 번만 익히면 끝.</p>
+  <div class="steps">
+
+    <div class="step"><div class="no">7</div><div>
+      <h3>라운드 시작 <span class="dev pc">노트북</span></h3>
+      <p>진행 화면 아래의 <kbd>🎲 1라운드 시작</kbd>을 누릅니다. 바로 <strong>경주 20초</strong>가 시작돼요.</p>
+      <div class="screen">
+        <div class="lane"><span>1/10</span><div class="track"><b></b><i style="width:78%"></i></div><span class="name">치타 🐆</span></div>
+        <div class="lane"><span>0/10</span><div class="track"><b></b><i style="width:0"></i></div><span class="name">호랑이 🐅</span></div>
+        <div class="lane"><span>2/10</span><div class="track"><b></b><i style="width:82%"></i></div><span class="name">거북이 🐢</span></div>
+        <div style="color:#8FA3B5;font-size:12px;margin-top:6px">▲ 결승선은 왼쪽. 동물은 오른쪽에서 왼쫃으로 달립니다.</div>
+      </div>
+      <p>3·2·1 카운트다운 뒤 8마리가 달립니다. 폰에도 같은 경주가 작게 보여요. 이 20초 동안은 폰에 누를 게 없습니다. 첫 라운드는 대부분 0~2칸만 움직여서 조용하게 느껴지는데, 뒤 라운드로 갈수록 크게 움직입니다.</p>
+    </div></div>
+
+    <div class="step"><div class="no">8</div><div>
+      <h3>문제 풀기 (90초) <span class="dev ph">폰</span></h3>
+      <ol>
+        <li><strong>난이도</strong>를 고릅니다: 쉬움 · 중간 · 어려움. <strong>어려울수록 힌트가 세요.</strong> 한 번 고르면 이 라운드에는 못 바꿉니다.</li>
+        <li>문제와 보기 4개가 나옵니다. 하나 고르고 <kbd>제출하기</kbd>.</li>
+        <li>맞으면 ⭕ 와 함께 <strong>힌트 탭</strong>에 새 힌트가 하나 생깁니다. 틀리면 ❌ 와 정답·해설이 남고 힌트는 없어요.</li>
+      </ol>
+      <p>모든 모둠이 답을 내면 노트북에 "모둠이 다 끝났어요 · 5초 뒤 넘어갑니다"가 뜨고 자동으로 넘어갑니다. 안 낸 모둠이 있으면 90초를 다 기다립니다.</p>
+    </div></div>
+
+    <div class="step"><div class="no">9</div><div>
+      <h3>모둠 토론 (180초) <span class="dev both">둘 다</span></h3>
+      <p>폰은 힌트 탭이 자동으로 열리고, 그 외에는 조용합니다. 실제 수업에서는 이 3분이 게임의 알맹이예요. 힌트를 모아서 "그럼 1등은 얘 아니면 얘네"를 추리하는 시간.</p>
+      <p>혼자 해 볼 때 3분이 길면 노트북에서 <kbd>지금 넘어가기 ▶</kbd>를 누르면 바로 베팅으로 갑니다. 토론은 자동으로는 절대 짧아지지 않아요.</p>
+    </div></div>
+
+    <div class="step"><div class="no">10</div><div>
+      <h3>베팅 (60초) <span class="dev ph">폰</span></h3>
+      <p>베팅 탭에서 동물 옆 <kbd>+</kbd>를 누르면 칩이 쌓입니다. 한 라운드에 <strong>최대 3코인</strong>, 여러 동물에 나눠 걸 수 있어요. <kbd>💰 N코인 걸기</kbd> → 확인하면 <strong>되돌릴 수 없습니다.</strong></p>
+      <p>확정하는 순간 칩이 화면 위로 날아가고 "📺 TV를 보세요"가 뜹니다. 노트북의 <strong>배당판</strong>이 그 즉시 움직여요. 코인이 몰린 동물의 배당률은 내려가고(▼), 나머지는 올라갑니다(▲).</p>
+      <div class="odds">
+        <div class="box"><h4>아무도 안 건 동물</h4><div class="n">8.00<small>배</small></div><p style="margin:6px 0 0;font-size:13px;color:var(--muted)">8마리 모두 기본 판돈(15코인)만 있을 때</p></div>
+        <div class="box"><h4>내가 3코인 건 동물</h4><div class="n">6.83<small>배</small></div><p style="margin:6px 0 0;font-size:13px;color:var(--muted)">돈이 몰리면 배당은 낮아진다 — 남들이 안 거는 곳에 맞게 걸수록 크게 딴다</p></div>
+      </div>
+      <p>모든 모둠이 확정하면 5초 뒤 자동으로 다음으로 넘어갑니다.</p>
+    </div></div>
+
+    <div class="step"><div class="no">11</div><div>
+      <h3>다음 라운드 <span class="dev pc">노트북</span></h3>
+      <p>화면이 "2라운드 준비"로 바뀌고 버튼이 <kbd>🎲 2라운드 시작</kbd>이 됩니다. 누르면 7번부터 반복. <strong>5라운드 또는 6라운드</strong>에서 끝나는데, 몇 번째가 마지막인지는 학생에게 비밀입니다. 마지막 라운드가 끝나면 시작 버튼이 사라지고 <kbd>정산하기</kbd>만 남아요.</p>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="display">5</span>정산</h2>
+  <p class="lead">가장 재미있는 부분. 노트북에서 한 단계씩 넘깁니다.</p>
+  <div class="steps">
+    <div class="step"><div class="no">12</div><div>
+      <h3>정답 공개와 계산 <span class="dev pc">노트북</span></h3>
+      <ol>
+        <li>오른쪽 아래 <kbd>정산하기</kbd> → 확인.</li>
+        <li><kbd>다음 순위 공개</kbd>를 누르면 스포트라이트가 <strong>3등 → 2등 → 1등</strong> 순서로 한 마리씩 비춥니다. 1등을 맨 마지막에 밝히는 게 포인트.</li>
+        <li><kbd>모둠별 계산 보기</kbd>: 각 모둠의 코인이 올라가거나 내려갑니다. 줄을 펼치면 "거북이(1등) 3코인 × 6.83배 × 100% = 20" 처럼 계산식이 보여요.</li>
+        <li><kbd>우승 발표</kbd>: 컨페티와 함께 1위 모둠. 폰에도 최종 결과가 뜹니다.</li>
+      </ol>
+      <div class="note tip"><span class="t">배당 계산법</span><p>동물에 건 코인 × 그 동물의 배당률 × (1등 100% / 2등 70% / 3등 50%). 4등 밑에 건 코인은 0. 배당률은 <strong>베팅이 마감된 시점</strong>의 값이 아니라 <strong>정산 시점의 최종 판돈</strong>으로 계산됩니다. 그래서 마지막 라운드에 어디로 돈이 몰리는지가 중요해요.</p></div>
+    </div></div>
+  </div>
+</section>
+
+<section>
+  <h2><span class="display">6</span>노트북 화면 읽는 법</h2>
+  <p class="lead">진행 화면에 뭐가 어디 있는지.</p>
+  <div class="scroll"><table class="tbl">
+    <tr><th>위치</th><th>무엇</th><th>알아둘 것</th></tr>
+    <tr><td>맨 위 오른쪽</td><td><strong>단계와 남은 시간</strong></td><td>10초 밑으로 내려가면 빨갛게 깜빡입니다. 자동 단축이 걸리면 숫자가 90→5로 한 번 튀는데 정상이에요.</td></tr>
+    <tr><td>위 넓은 판</td><td><strong>경주 트랙</strong></td><td>8마리의 현재 칸. 골인한 동물은 금색으로 바뀌지만 <strong>등수는 정산 전까지 안 보입니다.</strong> 골인 순서만 힌트로 삼으세요.</td></tr>
+    <tr><td>왼쪽 아래</td><td><strong>배당판</strong></td><td>동물 순서는 절대 안 바뀝니다(인기순 정렬 없음). 칩이 쌓이고 숫자가 굴러가는 게 실시간으로 보여요. 어느 모둠이 걸었는지는 안 보여줍니다.</td></tr>
+    <tr><td>오른쪽 아래</td><td><strong>모둠 현황</strong></td><td>제출했는지·베팅 확정했는지만. 뭘 골랐는지는 안 보입니다.</td></tr>
+    <tr><td>맨 아래 왼쪽</td><td><kbd>⏸ 일시정지</kbd> <kbd>지금 넘어가기 ▶</kbd></td><td>일시정지하면 시간이 멈추고 폰도 잠깁니다. 넘어가기는 문제·토론·베팅 단계에만 보입니다.</td></tr>
+    <tr><td>맨 아래 오른쪽</td><td>작은 링크 셋</td><td><strong>학생 주소·암호 다시 보기</strong>(재접속용), <strong>정답 순위 보기</strong>(선생님만 살짝 미리 보기), <strong>정산하기</strong>.</td></tr>
+  </table></div>
+</section>
+
+<section>
+  <h2><span class="display">7</span>막히면 여기</h2>
+  <div class="qa">
+    <details><summary>"관리자 비밀번호가 달라요"가 떠요</summary><div class="a"><p>비밀번호를 다시 확인하세요. 영문·숫자만이고 대소문자를 구분합니다. 형/누나에게 받은 값 그대로 넣어야 해요.</p></div></details>
+    <details><summary>노트북을 새로고침했더니 판이 사라졌어요</summary><div class="a"><p>사라진 게 아니에요. 선생님 화면 첫 페이지의 <kbd>판 코드로 이어하기</kbd> 탭에 판 코드를 넣으면 돌아갑니다. 같은 노트북이면 바로 열리고, 다른 기기라면 관리자 비밀번호를 한 번 더 물어봅니다. 진행 상황은 전부 서버에 있어서 폰들도 그대로 연결돼 있어요.</p></div></details>
+    <details><summary>폰에 "연결이 불안정해요" 빨간 띠가 떠요</summary><div class="a"><p>와이파이가 잠깐 끊긴 거예요. 아무것도 안 해도 1~15초 안에 스스로 다시 붙고, 붙으면 띠가 사라지면서 화면이 최신 상태로 맞춰집니다. 계속 남아 있으면 폰의 인터넷을 확인하세요.</p></div></details>
+    <details><summary>"암호를 여러 번 틀렸어요. 30초 뒤에 다시 해주세요"</summary><div class="a"><p>같은 모둠 암호를 5번 연속 틀리면 그 모둠만 30초 잠깁니다. 다른 모둠은 영향 없어요. 30초 기다렸다가 노트북의 '학생 주소·암호 다시 보기'에서 암호를 확인하고 다시 넣으세요.</p></div></details>
+    <details><summary>시간이 너무 길어요</summary><div class="a"><p>노트북에서 <kbd>지금 넘어가기 ▶</kbd>. 문제·베팅 단계는 모든 모둠이 끝내면 5초 뒤 자동으로 넘어가기도 합니다. 시간 자체를 줄이고 싶으면 <code>/admin</code>의 설정 탭에서 '문제시간초·토론시간초·베팅시간초'를 바꾸면 되는데, <strong>새로 만드는 판부터</strong> 적용돼요.</p></div></details>
+    <details><summary>경주 애니메이션이 안 나오고 말이 그냥 옮겨져요</summary><div class="a"><p>그 기기가 그래픽 가속(WebGL)을 못 쓰거나, 시스템 설정에 '동작 줄이기'가 켜져 있으면 단순 화면으로 바뀝니다. 게임은 똑같이 돌아가요. 결과에는 아무 차이가 없습니다.</p></div></details>
+    <details><summary>정답을 미리 보고 싶어요</summary><div class="a"><p>노트북 맨 아래 <strong>정답 순위 보기</strong>. 선생님만 볼 수 있고 학생 폰에는 절대 안 나갑니다. 실제로 서버가 정산 전에는 학생 쪽으로 정답을 보내지 않게 만들어져 있어서, 폰의 개발자 도구를 뒤져도 안 나와요.</p></div></details>
+    <details><summary>문제를 고치거나 동물을 바꾸고 싶어요</summary><div class="a"><p>주소 끝에 <code>/admin</code>을 붙이면 문제은행 관리 화면이 열립니다(관리자 비밀번호 필요). 문제 추가·수정·삭제, 동물 이름·이모지, 시간 설정을 바꿀 수 있어요. 여기서 고친 건 <strong>새로 만드는 판부터</strong> 적용되고, 이미 도는 판은 만들 때의 문제를 그대로 씁니다.</p></div></details>
+  </div>
+</section>
+
+<section>
+  <h2><span class="display">8</span>용어 네 개</h2>
+  <dl class="terms">
+    <dt>판 코드</dt><dd>4자리. 한 게임(판)의 이름표. 칠판에 적히는 것이라 <strong>비밀이 아닙니다.</strong></dd>
+    <dt>모둠 암호</dt><dd>4자리 숫자. 모둠마다 하나. 답 제출·베팅을 남이 대신 못 하게 막습니다. 모둠장에게만.</dd>
+    <dt>교사 열쇠</dt><dd>12자리. 판을 만든 노트북 브라우저에 자동 저장돼 있어서 보통은 볼 일이 없어요. 잃어버리면 관리자 비밀번호로 되찾습니다.</dd>
+    <dt>관리자 비밀번호</dt><dd>판 만들기, 열쇠 되찾기, 문제은행 관리에 쓰는 하나뿐인 비밀번호. 학생은 필요 없습니다.</dd>
+  </dl>
+</section>
+
+<section>
+  <div class="note stop"><span class="t">실제 수업에 쓰기 전 꼭 확인할 것</span><p>학교 와이파이에서 주소가 열리는지 <strong>선생님 폰으로</strong> 먼저 확인하세요. 학교망이 외부 주소를 막는 것이 가장 흔한 사고입니다. 그리고 앱스 스크립트로 만든 예전 버전은 한 학기 동안 그대로 두고 함께 씁니다.</p></div>
+</section>
+
+</div>
+
+</body>
+</html>
