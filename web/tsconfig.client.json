@@ -1,0 +1,32 @@
+{
+  // src/client/ — 브라우저에서 도는 코드. Vite 가 번들한다.
+  //
+  // ⚠️ tsconfig 가 셋인 이유는 tsconfig.json 머리 주석과 같다 —
+  //    @cloudflare/workers-types · @types/node · DOM 은 같은 이름(fetch, WebSocket …)을
+  //    서로 다르게 선언해서 한 프로그램에 섞으면 충돌한다. 화면은 DOM 만 본다.
+  //
+  // ⚠️ `types: []` 로 둔 것은 실수가 아니다. 비워 두지 않으면 node_modules/@types 아래
+  //    (@types/node) 가 전부 딸려 들어와서, 화면 코드가 브라우저에 없는 API 를 써도
+  //    타입 검사가 통과한다.
+  "compilerOptions": {
+    "target": "ES2022",
+    // ⚠️ `dom` 은 **소문자여야 한다.** TypeScript 7 은 "DOM" 을 못 알아보고 조용히 빼버려서,
+    //    document·window·WebSocket 이 전부 "Cannot find name" 이 된다 (ES2022 는 대문자도 된다).
+    "lib": ["ES2022", "dom", "dom.iterable"],
+    "types": [],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "noEmit": true,
+
+    "strict": true,
+    "noUncheckedIndexedAccess": false,
+    "noImplicitOverride": true,
+    "noFallthroughCasesInSwitch": true,
+    "verbatimModuleSyntax": true,
+
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": ["src/client/**/*.ts"]
+}

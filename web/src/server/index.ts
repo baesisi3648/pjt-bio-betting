@@ -90,11 +90,20 @@ export default {
       return roomOf(env, ws[1]!).fetch(new Request(doUrl.toString(), request));
     }
 
-    // 화면은 4단계에서 붙는다. 그때 정적 자산(assets)이 이 자리를 가져간다
-    if (url.pathname === '/' ) {
-      return new Response('와일드 더비 — 4단계에서 화면이 붙습니다. API 는 /api/version 부터.', {
-        status: 200, headers: { 'content-type': 'text/plain; charset=utf-8' }
-      });
+    // ── 화면 (4단계) ──
+    //
+    // wrangler.jsonc 의 `run_worker_first: ["/api/*", "/ws/*"]` 때문에 그 둘 말고는
+    // 정적 자산이 **먼저** 시도된다. 여기까지 온 것은 dist/client 에 그 파일이 없다는 뜻이다.
+    //
+    // ⚠️ /teacher 를 여기서 한 번 더 잡는 이유: assets 의 html_handling 이
+    //    /teacher → teacher.html 을 해 주지만, 그 설정에 기대는 것만으로는
+    //    배포 설정 한 줄이 바뀌는 날 교사 화면이 통째로 404 가 된다.
+    //    수업 시작 5분 전에 그걸 발견하고 싶지 않다.
+    if (!url.pathname.startsWith('/api/')) {
+      if (url.pathname === '/teacher' || url.pathname === '/teacher/') {
+        return env.ASSETS.fetch(new Request(new URL('/teacher.html', url), request));
+      }
+      return env.ASSETS.fetch(request);
     }
 
     const res = await handle(await toApiRequest(request), portsOf(env));

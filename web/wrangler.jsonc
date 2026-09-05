@@ -32,5 +32,25 @@
     }
   ],
 
+  // 교사·학생 화면. Vite 가 만든 결과물을 **같은 출처**에서 서빙한다 —
+  // 다른 출처면 소켓·API 가 교차 출처 문제를 만들고, 학교망 프록시가 그걸 자주 막는다.
+  //
+  // ⚠️ `npm run build` 를 하지 않으면 dist/client 가 없어서 wrangler 가 뜨지 않는다.
+  //    그래서 `npm run dev` 는 build 를 먼저 돌린다 (package.json).
+  //
+  // run_worker_first: 이 둘만 Worker 가 먼저 본다. 나머지는 정적 자산이 먼저다.
+  //   ⚠️ `/api/*` 를 빼면 dist/client 에 없는 API 경로가 자산 404 로 끝나고,
+  //      화면은 봉투 대신 HTML 을 받아 "서버 응답을 읽지 못했어요" 만 뜬다.
+  // html_handling: /teacher → teacher.html. (Worker 에도 같은 처리를 남겨 뒀다 —
+  //   src/server/index.ts 주석 참조)
+  // not_found_handling: none — 없는 경로는 Worker 로 넘어가고, Worker 가 답한다
+  "assets": {
+    "directory": "./dist/client",
+    "binding": "ASSETS",
+    "html_handling": "auto-trailing-slash",
+    "not_found_handling": "none",
+    "run_worker_first": ["/api/*", "/ws/*"]
+  },
+
   "observability": { "enabled": true }
 }

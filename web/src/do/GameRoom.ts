@@ -33,6 +33,11 @@ export interface Env {
   DB: D1Database;
   /** wrangler secret. 없으면 관리자 경로는 전부 닫힌다 (src/server/router.ts) */
   ADMIN_PASSWORD?: string;
+  /**
+   * 화면(dist/client). 같은 출처에서 서빙해야 소켓·API 가 교차 출처 문제를 안 만든다.
+   * ⚠️ 여기에 외부 자원을 참조하는 파일을 올리지 마세요 — 학교망에서 막히면 수업이 멈춥니다
+   */
+  ASSETS: Fetcher;
 }
 
 /**

@@ -33,21 +33,26 @@
 - [x] **게이트** — `test/gates.ts` 17개
 - [x] **이식 대조** — `test/parity.ts`. 같은 시드로 두 구현을 돌려 결과가 같은지 봅니다
 - [x] **저장·동시성 (Durable Object)** — `src/do/room.ts`(방 코어)와 `src/do/GameRoom.ts`(DO 어댑터).
-      뷰는 `src/game/views.ts` 한 벌뿐입니다. 통합 게이트 `test/room.ts` 31개
+      뷰는 `src/game/views.ts` 한 벌뿐입니다. 통합 게이트 `test/room.ts` 32개
 - [x] **게이트웨이 (교사 열쇠 · 모둠 암호 인증)** — `src/server/`. 라우트 표는 `MIGRATION.md` §8-1b.
       인증 자체는 `room.ts` 안에 그대로 있고, 여기서는 **옮기기만** 합니다
 - [x] **D1 문제은행** — `migrations/0001_init.sql`(스키마) + `0002_seed.sql`(54문항·동물 8·설정 8).
       시드는 `scripts/import-questions.ts` 가 `apps-script/` 를 **읽어서** 만듭니다 (`npm run seed`)
-- [ ] 화면 (Teacher/Team — 기존 HTML 을 WebSocket 으로)
+- [x] **화면 — 기능 이식 (4a)** — `src/client/`. `apps-script/Teacher.html`·`Team.html`·`Shared.html`
+      을 옮기고 폴링을 WebSocket 구독으로 바꿨습니다. 프레임워크 없음, 번들은 Vite,
+      **외부 자원 0개**(QR 도 번들 안의 구현입니다 — `src/client/shared/qr.ts`, 게이트 `test/qr.ts`)
+- [ ] 화면 — 연출 (4b): PixiJS 경주 무대 · 정산 드럼롤 · 폰 미니 경주 (`MIGRATION.md` §11)
 - [ ] 문제은행 관리 화면 (가져오기는 끝났습니다 — 남은 건 CRUD 화면)
 - [ ] 배포
 
 ## 돌려보기
 
 ```bash
-npm test         # 타입 검사 2벌 + 규칙 17 + 대조 14 + 방 코어 31 + 게이트웨이 23
+npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + QR 10
 npm run room     # 방 코어만
 npm run gateway  # 게이트웨이(HTTP 라우트 · 인증)만
+npm run qr       # 화면이 그리는 QR 이 실제로 디코드되는지만
+npm run build    # 화면을 dist/client 로 (Vite)
 npm run seed     # apps-script/ 를 읽어 migrations/0002_seed.sql 을 다시 만든다
 ```
 
@@ -55,7 +60,10 @@ npm run seed     # apps-script/ 를 읽어 migrations/0002_seed.sql 을 다시 �
 
 ```bash
 npx wrangler d1 migrations apply wilde-derby --local
-npx wrangler dev
+npm run dev                    # = npm run build && wrangler dev
+                               #   ⚠️ dist/client 이 없으면 wrangler 가 뜨지 않는다
+open http://localhost:8787/            # 학생 화면
+open http://localhost:8787/teacher     # 교사 화면
 curl localhost:8787/api/version
 curl -X POST -H 'content-type: application/json' \
      -d '{"className":"2학년 3반","unit":"유전","teamCount":6}' \
@@ -80,8 +88,12 @@ Node 의 strip-only 모드가 그 문법만은 못 지웁니다.
 
 | | 무엇을 보나 | 타입 |
 |---|---|---|
-| `tsconfig.json` | `src/**` | Workers |
-| `tsconfig.test.json` | `test/**` | Node |
+| `tsconfig.json` | `src/**` (단 `src/client` 제외) | Workers |
+| `tsconfig.test.json` | `test/**` · `scripts/**` | Node |
+| `tsconfig.client.json` | `src/client/**` | DOM |
+
+⚠️ `lib` 에 적는 `dom` 은 **소문자여야 합니다.** TypeScript 7 은 `"DOM"` 을 못 알아보고
+조용히 빼버려서 `document`·`window` 가 전부 "Cannot find name" 이 됩니다.
 
 `src/do/room.ts` 는 Workers API 를 하나도 쓰지 않습니다 — 시계·저장·알람·통신을
 전부 주입받기 때문입니다. 그래서 `test/room.ts` 가 workerd 없이 한 판을 통째로 돌립니다.
@@ -127,6 +139,45 @@ DO 는 그것보다 훨씬 빨라서 4자리 암호(1만 가지)가 몇 분이�
 **`withLock` 이 없습니다.** Durable Object 가 판마다 단일 스레드라 공짜입니다.
 대신 `room.ts` 의 모든 메서드가 **동기 함수**입니다 — 읽고→고치고→쓰기 사이에
 `await` 가 하나라도 들어가면 그 틈으로 다른 요청이 끼어들어 코인이 증발합니다.
+
+## 화면 (4a)
+
+프레임워크가 없습니다 (사용자 결정, `MIGRATION.md` §10). 순수 HTML/CSS + TypeScript 이고
+Vite 는 번들과 정적 자산 빌드에만 씁니다.
+
+```
+src/client/
+  index.html      학생 (S4 접속 · S5 게임 · S6 결과)   ← /
+  teacher.html    교사 (S1 시작 · 배포 안내 · S2 진행 · S3 정산)   ← /teacher
+  shared/         base.css · ui(토스트·확인대화·배너) · socket · clock · gateway · qr
+  team/  teacher/ 화면별 CSS 와 로직
+```
+
+**폴링하지 않습니다.** 상태의 정본은 소켓 푸시(`{type:'state', data}`)이고, 1초마다 도는
+것은 타이머 숫자 계산뿐입니다 — 그것도 서버 시각 기준입니다
+(`serverNow` 로 offset 을 잡고 `phaseEndsAt - now()` 로 잽니다).
+
+**끊기면 다시 붙습니다.** 지수 백오프 1→2→4→8→15초(지터 ±25%)로 재연결하고,
+붙자마자 `getState` 로 상태를 통째로 다시 받습니다. 끊긴 동안 놓친 푸시를 따라잡는
+방법은 그것뿐입니다. 잠깐(1.5초 미만) 끊긴 것에는 배너를 띄우지 않습니다 —
+0.3초짜리 재연결에 빨간 띠가 번쩍이면 진짜 끊겼을 때와 구분이 안 됩니다.
+
+**암호·열쇠는 매 메시지에 싣습니다.** 소켓이 붙어 있다는 사실로 권한을 가정하지 않습니다.
+모둠 암호는 `localStorage` 에 저장하지 않습니다(판 코드와 모둠 번호만) — 원본과 같습니다.
+
+**교사 진행 버튼은 소켓이 죽어도 눌립니다.** 원본에 없던 것입니다. `shared/gateway.ts` 의
+`hostOp` 이 소켓 전송에 실패하면 같은 op 을 HTTP 라우트로 다시 보냅니다
+(advance·pause·finalize·reveal·handout — **교사 op 만**).
+
+**외부 자원이 0개입니다.** CDN·외부 글꼴·외부 이미지가 없습니다. 학교망에서 하나라도
+막히면 수업이 멈춥니다. QR 도 `apps-script/QR.gs` 를 옮긴 번들 안의 구현을 씁니다.
+
+```bash
+npm run build && grep -r 'https\?://' dist/client   # w3.org 이름공간 말고는 안 나와야 합니다
+```
+
+**화면은 `src/game/` 의 타입만 `import type` 으로 씁니다.** 값으로 가져오면 `truth` 를
+계산하는 규칙이 학생 폰에 실립니다. 비밀 유출은 아니지만 §4-1 의 정신에 어긋납니다.
 
 ## 규칙을 고칠 때
 

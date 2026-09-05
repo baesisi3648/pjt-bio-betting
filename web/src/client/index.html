@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>와일드 더비</title>
+<!-- ⚠️ 외부 글꼴·CDN 링크를 넣지 마세요. 학교망에서 막히면 수업이 멈춥니다 -->
+<link rel="stylesheet" href="./shared/base.css">
+<link rel="stylesheet" href="./team/team.css">
+</head>
+<body><div class="wrap">
+
+<!-- ══ S4 접속 ══ -->
+<div id="join">
+  <div class="card">
+    <h1>🧬 와일드 더비</h1>
+    <div id="j1">
+      <p class="sub">칠판에 적힌 판 코드 4자리를 넣어주세요</p>
+      <input id="jcode" maxlength="4" style="text-transform:uppercase" autocomplete="off">
+      <button class="big" id="j1-next">다음</button>
+    </div>
+    <div id="j2" class="hidden">
+      <p class="sub">우리 모둠을 골라주세요</p>
+      <div class="teamgrid" id="jteams"></div>
+    </div>
+    <div id="j3" class="hidden">
+      <p class="sub" id="j3sub">암호 4자리를 넣어주세요</p>
+      <input id="jpin" maxlength="4" inputmode="numeric" autocomplete="off">
+      <button class="big" id="j3-go">들어가기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S5 게임 ══ -->
+<div id="game" class="hidden">
+  <div class="card" style="padding:14px 16px">
+    <div class="bar"><div id="tbar" style="width:100%"></div></div>
+    <div class="now" id="now"></div>
+    <div class="me"><span id="mname"></span><span id="mcoins"></span></div>
+  </div>
+  <div class="tabs">
+    <button id="t0" class="on" data-tab="0">문제</button>
+    <button id="t1" data-tab="1">힌트<span id="hb" class="badge hidden"></span></button>
+    <button id="t2" data-tab="2">베팅</button>
+  </div>
+  <div class="card" id="pane"></div>
+</div>
+
+<!-- ══ S6 결과 ══ -->
+<div id="result" class="hidden"></div>
+
+<div class="ver" id="ver"></div>
+<div id="toast" class="hidden"></div>
+</div>
+
+<script type="module" src="./team/main.ts"></script>
+</body>
+</html>

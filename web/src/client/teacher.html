@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>와일드 더비 — 교사</title>
+<!-- ⚠️ 외부 글꼴·CDN 링크를 넣지 마세요. 학교망에서 막히면 수업이 멈춥니다 -->
+<link rel="stylesheet" href="./shared/base.css">
+<link rel="stylesheet" href="./teacher/teacher.css">
+</head>
+<body>
+<div class="wrap">
+
+<!-- ══ S1 시작 화면 ══ -->
+<div id="s1">
+  <h1>🧬 생명과학 와일드 더비 <span id="ver-badge" style="font-size:18px;color:var(--muted);font-weight:400">버전 확인 중…</span></h1>
+  <div class="tabs">
+    <button id="tab-new" class="on" data-pane="new">새 판 만들기</button>
+    <button id="tab-resume" data-pane="resume">판 코드로 이어하기</button>
+  </div>
+
+  <div id="pane-new" class="card">
+    <label for="cls">반 이름</label><input id="cls" placeholder="2학년 3반">
+    <label for="unit">단원</label><select id="unit"></select>
+    <div id="no-questions" class="warn hidden">
+      📋 <b>문제은행이 비어 있습니다.</b>
+
+      아직 D1 에 문제가 들어가지 않았습니다. 배포한 사람이 아래를 한 번 실행해야 합니다.
+      <b>npx wrangler d1 migrations apply wilde-derby</b>
+      (로컬에서 확인 중이면 뒤에 <b>--local</b> 을 붙입니다)
+
+      넣으신 뒤 아래 버튼을 누르면 목록이 갱신됩니다.
+      <button class="btn-pause" style="margin-top:12px" id="btn-reload">다시 불러오기</button>
+    </div>
+    <label for="cnt">모둠 수</label><select id="cnt"></select>
+    <label>모둠 이름 (비우면 1모둠, 2모둠…)</label>
+    <div id="names" class="names"></div>
+    <div id="check"></div>
+    <button class="primary" id="btn-create">판 만들기</button>
+  </div>
+
+  <div id="pane-resume" class="card hidden">
+    <label for="rcode">판 코드 4자리</label><input id="rcode" maxlength="4" style="text-transform:uppercase">
+    <!-- ⚠️ 교사 열쇠는 판을 만든 브라우저에만 저장된다. 기기를 바꿨거나 기록을 지웠으면
+         관리자 비밀번호로 되찾는다 (MIGRATION §10 — 사용자 결정).
+         앱스 스크립트판의 "스프레드시트 메뉴에서 확인" 안내는 이 흐름으로 대체됐다 -->
+    <div id="key-row" class="hidden">
+      <label for="radmin">관리자 비밀번호</label>
+      <input id="radmin" type="password" autocomplete="current-password">
+      <div class="qrhint">이 기기에 저장된 교사 열쇠가 없습니다.<br>
+        관리자 비밀번호를 넣으면 이 판의 열쇠를 되찾아 이어갑니다.</div>
+    </div>
+    <button class="primary" id="btn-resume">이어하기</button>
+    <h2 style="margin-top:26px">최근 판</h2>
+    <table><tbody id="recent"></tbody></table>
+  </div>
+</div>
+
+<!-- ══ 배포 안내 ══ -->
+<div id="handout" class="hidden">
+  <div class="card">
+    <h2>칠판에 적어주세요</h2>
+    <div class="code" id="out-code"></div>
+    <div class="qrwrap" style="margin-top:16px">
+      <div class="qrbox" id="out-qr"></div>
+      <div style="max-width:620px">
+        <h2>학생 주소</h2>
+        <div class="url" id="out-url"></div>
+        <div id="url-warn" class="stop hidden">⚠️ 이 주소는 학생이 못 엽니다.<br>배포 주소(https://…)로 접속한 뒤 다시 만들어주세요.</div>
+        <div class="qrhint">폰 카메라로 QR을 비추면 바로 열립니다.<br>
+          그다음 판 코드 <b id="qr-code-echo" style="color:var(--gold)"></b> 를 넣으면 돼요.</div>
+      </div>
+    </div>
+  </div>
+  <div class="card">
+    <h2>모둠별 암호 — 모둠장에게만 종이로 주세요</h2>
+    <div class="pinhint noprint">🔒 가려져 있습니다. 암호를 누르면 그것만 보입니다. 인쇄하면 전부 보입니다.</div>
+    <table><thead><tr><th>모둠</th><th>이름</th><th>암호</th></tr></thead><tbody id="out-pins"></tbody></table>
+    <div class="controls noprint" style="margin-top:20px">
+      <button class="btn-pause" id="btn-reveal-pins">전부 보기</button>
+      <button class="btn-pause" id="btn-print">인쇄하기</button>
+      <button class="btn-red" id="btn-go-play">진행 화면으로</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══ S2 진행 화면 ══ -->
+<div id="s2" class="hidden">
+  <div class="hdr">
+    <div><span id="p-cls" style="color:var(--muted)"></span> <span class="round" id="p-round"></span></div>
+    <div class="timer num" id="p-timer"></div>
+  </div>
+  <div class="card">
+    <!-- 4b(연출)가 PixiJS 경주 무대를 넣을 자리. 지금은 비어 있고, 비어 있어도 게임은 돈다 -->
+    <div id="race-stage" class="hidden"></div>
+    <div id="phase-note" class="phase-big hidden"></div>
+    <div id="track"></div>
+  </div>
+  <div class="two">
+    <div class="card"><h2>💰 배당률</h2><table class="tote"><tbody id="odds"></tbody></table></div>
+    <div class="card"><h2>모둠 현황</h2><table><tbody id="prog"></tbody></table></div>
+  </div>
+  <div class="card controls">
+    <button class="btn-red" id="btn-round">🎲 라운드 시작</button>
+    <button class="btn-pause" id="btn-pause">⏸ 일시정지</button>
+    <span style="flex:1"></span>
+    <button class="btn-small" id="btn-handout">학생 주소·암호 다시 보기</button>
+    <button class="btn-small" id="btn-reveal">정답 순위 보기</button>
+    <button class="btn-small" id="btn-finalize">정산하기</button>
+  </div>
+  <div id="reveal" class="reveal hidden"></div>
+</div>
+
+<!-- ══ S3 정산 화면 ══ -->
+<div id="s3" class="hidden">
+  <h1>🏁 최종 결과</h1>
+  <div class="card"><div class="step" id="r-step"></div>
+    <button class="btn-red" id="r-next">다음</button></div>
+  <div id="r-body"></div>
+</div>
+
+<div class="ver" id="ver"></div>
+<div id="toast" class="hidden"></div>
+</div>
+
+<script type="module" src="./teacher/main.ts"></script>
+</body>
+</html>

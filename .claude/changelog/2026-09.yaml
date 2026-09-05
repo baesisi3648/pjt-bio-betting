@@ -297,3 +297,195 @@ entries:
     description: Update documentation MIGRATION.md
     impact:
       - database migration
+  - date: "2026-09-05T03:18:52"
+    type: feature
+    domain: web
+    files:
+      - web/tsconfig.client.json
+    description: Create tsconfig.client in web
+    impact:
+      - configuration change
+  - date: "2026-09-05T03:19:05"
+    type: feature
+    domain: web
+    files:
+      - web/vite.config.ts
+    description: Create vite.config in web
+    impact:
+      - "external dependency added: vite"
+  - date: "2026-09-05T03:19:19"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/base.css
+    description: Create base in web
+    impact:
+      - none
+  - date: "2026-09-05T03:19:48"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/ui.ts
+    description: Create ui in web
+    impact:
+      - none
+  - date: "2026-09-05T03:20:06"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/clock.ts
+    description: Create clock in web
+    impact:
+      - "internal dependency added: ../../game/views.ts"
+  - date: "2026-09-05T03:20:57"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/socket.ts
+    description: Create socket in web
+    impact:
+      - "internal dependency added: ../../do/room.ts"
+  - date: "2026-09-05T03:21:31"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/gateway.ts
+    description: Create gateway in web
+    impact:
+      - "internal dependency added: ../../do/room.ts, ./ui.ts, ./socket.ts"
+  - date: "2026-09-05T03:22:38"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/qr.ts
+    description: Create qr in web
+    impact:
+      - none
+  - date: "2026-09-05T03:22:51"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/index.html
+    description: Create index in web
+    impact:
+      - none
+  - date: "2026-09-05T03:23:22"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/team.css
+    description: Create team in web
+    impact:
+      - none
+  - date: "2026-09-05T03:25:29"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/main.ts
+    description: Create main in web
+    impact:
+      - "internal dependency added: ../../game/config.ts, ../../game/types.ts, ../../game/views.ts (+more)"
+  - date: "2026-09-05T03:26:06"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher.html
+    description: Create teacher in web
+    impact:
+      - none
+  - date: "2026-09-05T03:26:46"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Create teacher in web
+    impact:
+      - none
+  - date: "2026-09-05T03:29:08"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Create main in web
+    impact:
+      - "internal dependency added: ../../game/config.ts, ../../game/views.ts, ../shared/clock.ts (+more)"
+  - date: "2026-09-05T03:29:16"
+    type: refactor
+    domain: web
+    files:
+      - web/src/do/GameRoom.ts
+    description: Refactor GameRoom
+    impact:
+      - none
+  - date: "2026-09-05T03:29:27"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Add new functionality to index in web
+    impact:
+      - none
+  - date: "2026-09-05T03:29:37"
+    type: feature
+    domain: web
+    files:
+      - web/wrangler.jsonc
+    description: Add new functionality to wrangler in web
+    impact:
+      - none
+  - date: "2026-09-05T03:29:42"
+    type: refactor
+    domain: web
+    files:
+      - web/package.json
+    description: Refactor package
+    impact:
+      - configuration change
+  - date: "2026-09-05T03:30:22"
+    type: test
+    domain: web
+    files:
+      - web/test/qr.ts
+    description: Add test file qr.ts
+    impact:
+      - "internal dependency added: ../src/client/shared/qr.ts"
+  - date: "2026-09-05T03:31:14"
+    type: test
+    domain: web
+    files:
+      - web/test/qr.ts
+    description: Add test file qr.ts
+    impact:
+      - "internal dependency added: ../src/client/shared/qr.ts"
+  - date: "2026-09-05T03:32:01"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-05T03:32:14"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T03:32:44"
+    type: feature
+    domain: web
+    files:
+      - web/tsconfig.client.json
+    description: Add new functionality to tsconfig.client in web
+    impact:
+      - configuration change
+  - date: "2026-09-05T03:33:00"
+    type: feature
+    domain: web
+    files:
+      - web/tsconfig.json
+    description: Add new functionality to tsconfig in web
+    impact:
+      - configuration change

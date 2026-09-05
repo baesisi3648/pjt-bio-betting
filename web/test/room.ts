@@ -685,6 +685,24 @@ gate('LATE', '마감 뒤 알람이 늦어도 제출·베팅은 받지 않는다 
   };
 });
 
+gate('VIEW-TRACK', '뷰가 트랙칸수를 싣고, 교사 뷰만 roundStarted 를 싣는다', () => {
+  const t = new Table();
+  const r = t.room.create(
+    { code: 'TRK', className: 'X', unit: '유전', teamCount: 2 }, QUESTIONS, ANIMALS, { trackCells: 14 }
+  );
+  if (!r.ok) return { ok: false, detail: '판 생성 실패' };
+  t.hostKey = r.data.hostKey;
+  const before = t.tv();
+  const adv = t.room.advanceRound(t.hostKey);
+  if (!adv.ok) return { ok: false, detail: '진행 실패 ' + adv.error };
+  const tv = t.tv(), v = t.view(1);
+  return {
+    ok: tv.trackCells === 14 && v.trackCells === 14 && before.roundStarted === false && tv.roundStarted === true &&
+        !('roundStarted' in v),
+    detail: `trackCells 교사 ${tv.trackCells} · 모둠 ${v.trackCells} · roundStarted 시작 전 ${before.roundStarted} → 시작 후 ${tv.roundStarted} · 모둠 뷰에는 없음`
+  };
+});
+
 gate('DONE', '마지막 라운드 뒤 진행 버튼은 done 으로 간다', () => {
   const t = new Table();
   t.open(2, 'DONE');

@@ -22,5 +22,9 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["src/**/*.ts"]
+  // ⚠️ src/client/** 은 여기서 뺀다. 화면은 브라우저에서 돌고 DOM 을 쓰므로
+  //    Workers 타입으로 검사하면 document·window 가 전부 "Cannot find name" 이 된다.
+  //    화면은 tsconfig.client.json 이 본다 (tsconfig 가 셋인 이유는 위 주석과 같다).
+  "include": ["src/**/*.ts"],
+  "exclude": ["src/client/**"]
 }

@@ -50,6 +50,8 @@ export interface Clock {
 export interface TeamView extends Clock {
   code: string;
   round: number;
+  /** 트랙 칸 수. ⚠️ 화면이 10 으로 박아 두면 '설정'이 거짓말을 한다 (MIGRATION §5 trackCells) */
+  trackCells: number;
   phase: Phase;
   secondsLeft: number | null;
   stateVersion: number;
@@ -82,6 +84,9 @@ export interface TeacherView extends Clock {
   unit: string;
   round: number;
   lastRound: number;
+  /** 이번 라운드가 이미 돌았는가. 교사 화면이 '다음은 몇 라운드'를 적는 데 쓴다 (Code.gs 원본에도 있었다) */
+  roundStarted: boolean;
+  trackCells: number;
   phase: Phase;
   secondsLeft: number | null;
   stateVersion: number;
@@ -224,6 +229,7 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
     ...clockOf(state, now),
     code: state.code,
     round: state.round,
+    trackCells: state.settings.trackCells,
     phase: state.pausedAt ? PHASES.PAUSED : state.phase,
     secondsLeft: secondsLeft(state, now),
     stateVersion: state.stateVersion,
@@ -286,6 +292,8 @@ export function teacherView(state: GameState, now: number): TeacherView {
     unit: state.unit,
     round: state.round,
     lastRound: state.lastRound,
+    roundStarted: state.roundStarted,
+    trackCells: state.settings.trackCells,
     phase: state.pausedAt ? PHASES.PAUSED : state.phase,
     secondsLeft: secondsLeft(state, now),
     stateVersion: state.stateVersion,

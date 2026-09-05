@@ -1,0 +1,38 @@
+/* apps-script/Shared.html 의 <style> 을 그대로 옮긴 것.
+   05-design-system.md — 외부 글꼴·CDN 없음. 학교망에서 막히면 수업이 멈춘다 */
+:root{
+  --bg:#0F1720; --bg-light:#F5F7FA; --card:#1B2734; --card-light:#FFF;
+  --text:#E8EDF2; --text-dark:#1B2734; --muted:#7A8A99;
+  --gold:#F2B441; --run:#4FC3F7; --goal:#EF5350; --ok:#66BB6A; --wait:#FFA726;
+  --easy:#7CB342; --normal:#FB8C00; --hard:#E53935;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+     -webkit-text-size-adjust:100%}
+.num{font-variant-numeric:tabular-nums}
+button{font:inherit;cursor:pointer;border:none;border-radius:8px}
+button:disabled{opacity:.4;cursor:default}
+.hidden{display:none !important}
+
+/* 연결 경고 */
+#conn{position:fixed;top:0;left:0;right:0;background:var(--goal);color:#fff;
+      padding:10px;text-align:center;font-weight:700;z-index:99}
+
+/* 확인 대화 — alert/confirm은 폴링을 막으므로 쓰지 않는다.
+   ⚠️ 소켓으로 바뀐 지금도 그대로다: alert 는 그 탭의 자바스크립트를 통째로 세워서
+      선생님이 확인을 누를 때까지 상태 푸시도 타이머도 멈춘다 */
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:flex;
+       align-items:center;justify-content:center;z-index:100;padding:20px}
+#modal .box{background:#fff;color:var(--text-dark);border-radius:14px;padding:24px;max-width:420px;width:100%}
+#modal p{font-size:17px;line-height:1.6;margin-bottom:20px;white-space:pre-line}
+#modal .btns{display:flex;gap:10px}
+#modal button{flex:1;padding:14px;font-size:16px;font-weight:700}
+#modal .yes{background:var(--gold);color:#1B2734}
+#modal .no{background:#E3E8EE;color:#48606F}
+.ver{color:var(--muted);font-size:12px;text-align:center;padding:8px}
+
+/* 움직임을 불편해하는 학생·교사를 위해. 연출은 거들 뿐이라 꺼져도 게임은 그대로 돌아간다 */
+@media (prefers-reduced-motion: reduce){
+  *{animation-duration:.01ms !important;animation-iteration-count:1 !important;
+    transition-duration:.01ms !important}
+}

@@ -9,14 +9,20 @@
     "parity": "node test/parity.ts",
     "room": "node test/room.ts",
     "gateway": "node test/gateway.ts",
+    "qr": "node test/qr.ts",
     "seed": "node scripts/import-questions.ts",
-    "test": "npm run typecheck && npm run gates && npm run parity && npm run room && npm run gateway",
-    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
+    "build": "vite build",
+    "dev": "npm run build && wrangler dev",
+    "test": "npm run typecheck && npm run gates && npm run parity && npm run room && npm run gateway && npm run qr",
+    "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json && tsc -p tsconfig.client.json"
   },
   "devDependencies": {
     "@cloudflare/workers-types": "^5.20260905.1",
     "@types/node": "^26.4.1",
+    "jsqr": "^1.4.0",
+    "qrcode": "^1.5.4",
     "typescript": "^7.0.2",
+    "vite": "^8.2.2",
     "wrangler": "^4.129.0"
   }
 }

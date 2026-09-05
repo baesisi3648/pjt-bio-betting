@@ -76,14 +76,16 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 - `web/src/server/` — 공개 HTTP API. 라우터는 `env` 를 모르고 포트만 안다 (§8-1b)
 - `web/src/do/ops.ts` — 이름표(dispatch) + 암호 연속 실패 잠금. Worker 와 소켓이 같은 걸 쓴다
 - `web/migrations/` — D1 스키마 + 시드(54문항·동물 8·설정 8). `scripts/import-questions.ts` 가 만든다
-- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 31 · `gateway.ts` 23 (가짜 시계·알람·인메모리 포트)
+- `web/src/client/` — 교사·학생 화면. 프레임워크 없음, Vite 번들, 소켓 푸시 + 재연결
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `qr.ts` 10
 
-**남은 것** — §7에 단계별로 있습니다. 게이트웨이 → 화면(기능 → 연출) → 문제은행 → 배포
+**남은 것** — §7에 단계별로 있습니다. 화면 연출(4b) → 문제은행 관리 화면 → 배포
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 2벌 + 게이트 17 + 대조 14 + 방 31 + 게이트웨이 23
+npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + QR 10
+npm run dev           # web/ — vite build 후 wrangler dev (먼저 d1 migrations apply --local)
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
 
@@ -248,7 +250,7 @@ web/
 
 ### 2단계 — 저장·동시성 (Durable Object) ✅ 완료
 
-`src/do/room.ts`(코어) + `src/do/GameRoom.ts`(어댑터) + `test/room.ts` 31개.
+`src/do/room.ts`(코어) + `src/do/GameRoom.ts`(어댑터) + `test/room.ts` 32개.
 아래는 당시의 요구였고 전부 반영됐습니다. 원본과 다르게 한 점은 `room.ts` 머리 주석에 있습니다.
 
 - `GameRoom` DO: 판 코드 하나 = 인스턴스 하나
@@ -283,7 +285,10 @@ web/
 **완료 판정**: `SEC1`~`SEC11`에 대응하는 게이트가 전부 통과. 그리고 **수정 전 코드에
 돌려 실제로 실패하는지 확인**할 것 — 통과만으로는 게이트가 진짜인지 모릅니다.
 
-### 4단계 — 화면
+### 4단계 — 화면 (4a ✅ 완료 · 4b 연출 남음)
+
+`src/client/`(index.html 학생 · teacher.html 교사 · shared/ 소켓·시계·봉투·QR) + Vite 빌드 +
+Worker `assets`. 4a 는 헤드리스 Chrome 두 탭으로 한 판을 끝까지 돌려 확인했습니다.
 
 - 기존 HTML 이식, 폴링을 WebSocket 구독으로 교체
 - 배당판이 실시간으로 움직이는 것이 이 이전의 눈에 보이는 성과입니다
@@ -427,6 +432,8 @@ gwVersion() / gwDiagnose()
 - `phaseEndsAt`·`serverNow`·`phaseSeconds` — 화면이 타이머와 경주 진행률을 **서버 시각**으로
   계산하기 위한 것 (§11-2). `secondsLeft` 만으로는 늦게 들어온 폰이 다른 지점부터 봅니다
 - `raceMoves` — `moving` 단계에서만. 이번 라운드 이동량 8개 (§8-3)
+- `trackCells` — 두 뷰 모두. 화면이 10 으로 박아 두던 것을 막기 위해 (§5 함정). `roundStarted` 는
+  교사 뷰에만 — 원본 `Code.gs` 에도 있었는데 2단계 이식에서 빠졌던 것
 - 위치는 `roundStarted ? round : round-1` 라운드까지 반영 — 원본은 판 생성 직후부터
   1라운드 이동이 반영된 위치를 내보냈는데, 경주 단계가 생긴 지금은 스포일러라서 바꿨습니다
 
