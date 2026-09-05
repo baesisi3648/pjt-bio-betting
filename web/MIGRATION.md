@@ -73,14 +73,17 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 - `web/src/game/views.ts` — 뷰 **한 벌** (`teamView`·`teacherView`·`lobby`·`handout`·`reveal`·`finalize`)
 - `web/src/do/room.ts` — 방 코어. 런타임 비의존, 인증·단계 기계·이벤트 로그·`restore`
 - `web/src/do/GameRoom.ts` — Durable Object 어댑터 (hibernation WebSocket · `alarm()` · `/op`)
-- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 31 (통합 게이트, 가짜 시계·알람)
+- `web/src/server/` — 공개 HTTP API. 라우터는 `env` 를 모르고 포트만 안다 (§8-1b)
+- `web/src/do/ops.ts` — 이름표(dispatch) + 암호 연속 실패 잠금. Worker 와 소켓이 같은 걸 쓴다
+- `web/migrations/` — D1 스키마 + 시드(54문항·동물 8·설정 8). `scripts/import-questions.ts` 가 만든다
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 31 · `gateway.ts` 23 (가짜 시계·알람·인메모리 포트)
 
 **남은 것** — §7에 단계별로 있습니다. 게이트웨이 → 화면(기능 → 연출) → 문제은행 → 배포
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 2벌 + 게이트 17 + 대조 14 + 방 31
+npm test              # web/ — 타입 검사 2벌 + 게이트 17 + 대조 14 + 방 31 + 게이트웨이 23
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
 
@@ -258,7 +261,11 @@ web/
 `test/`에 있고 통과. 앱스 스크립트판 게이트 `SIM1`~`H9c`, `H5`, `BUG1`, `RACE1`, `D6b`에
 대응하는 것이 전부 있을 것.
 
-### 3단계 — 게이트웨이와 인증
+### 3단계 — 게이트웨이와 인증 ✅ 완료
+
+`src/server/`(ports·router·bank·db·index) + `src/do/ops.ts`(이름표 + 암호 잠금) +
+`migrations/`(D1 스키마·시드) + `scripts/import-questions.ts` + `test/gateway.ts` 23개.
+라우트 표는 **§8-1b**. 아래는 당시의 요구였고 전부 반영됐습니다.
 
 - §8-1의 16개 함수를 WebSocket 메시지 / HTTP 라우트로 옮긴다
 - 교사 열쇠 · 모둠 암호 (§4-4). **모둠 암호는 매 호출 확인**
@@ -295,7 +302,8 @@ web/
 "관리 화면이 필요하다"는 뜻이고, 그건 **누가 편집할 수 있는가**를 정해야 한다는 뜻입니다.
 지금은 인증이 판 단위(교사 열쇠)뿐이라 계정 개념이 없습니다.
 
-- 시트에서 한 번 가져오는 경로를 먼저 만드세요 (54문항 + 동물 8 + 설정)
+- ~~시트에서 한 번 가져오는 경로~~ — 3단계에서 끝났습니다. `scripts/import-questions.ts` 가
+  `apps-script/` 를 읽어 `migrations/0002_seed.sql`(54문항 + 동물 8 + 설정 8)을 만듭니다
 - 문제 CRUD, 단원별 보기, 난이도별 개수 검증 (`validateSheets`가 하던 일)
 - 인증은 **관리자 비밀번호 하나** (사용자 결정, §10). 3단계와 같은 `ADMIN_PASSWORD`.
   브라우저에 저장해 매번 안 넣게 하되, 서버는 **매 호출 확인**합니다
@@ -350,6 +358,61 @@ gwVersion() / gwDiagnose()
 
 응답 봉투: `{ ok: true, data }` 또는 `{ ok: false, error, message }`.
 `error`는 코드(`NOT_HOST`, `WRONG_PIN`, `BET_CLOSED` …), `message`는 학생이 읽을 한국어.
+
+### 8-1b. 새 구현 — HTTP 라우트 (3단계에서 만든 것)
+
+봉투는 위와 같습니다. **화면은 HTTP 상태가 아니라 `error` 코드로 분기합니다** —
+상태 코드는 로그를 읽는 사람과 프록시를 위한 것입니다 (`src/server/router.ts` 의 `STATUS`).
+
+인증은 헤더가 정본이고, POST 는 본문으로도 받습니다. ⚠️ 물음표 뒤(query)로는 받지 않습니다 —
+주소는 로그·기록·어깨너머로 남습니다.
+
+| 인증 | 헤더 | 본문 대체 |
+|---|---|---|
+| 교사 열쇠 | `X-Host-Key` | `hostKey` |
+| 모둠 암호 | `X-Team-Pin` | `pin` |
+| 관리자 | `X-Admin-Password` | (없음) |
+
+| 경로 | 인증 | 입력 | 응답 `data` |
+|---|---|---|---|
+| `POST /api/game` | — ※ | `{className, unit, teamCount, teamNames?}` | `{code, hostKey, pins, teams, warnings, studentUrl}` |
+| `POST /api/game/:code/handout` | 열쇠 | — | `handoutView` + `studentUrl` |
+| `POST /api/game/:code/advance` | 열쇠 | — | `teacherView` |
+| `POST /api/game/:code/pause` | 열쇠 | — | `teacherView` |
+| `POST /api/game/:code/finalize` | 열쇠 | — | `finalizeView` (+ D1 `games.is_over=1`) |
+| `POST /api/game/:code/reveal` | 열쇠 | — | `revealView` |
+| `GET /api/game/:code/state?viewer=teacher` | 열쇠 | — | `teacherView` |
+| `GET /api/game/:code/state?viewer=team:N` | 암호 | — | `teamView` |
+| `POST /api/game/:code/join` | 암호 | `{teamNo, pin}` | `teamView` |
+| `POST /api/game/:code/level` | 암호 | `{teamNo, level}` | `{level, question}` |
+| `POST /api/game/:code/answer` | 암호 | `{teamNo, level, choice}` | `{correct, answer, explanation, newHint}` |
+| `POST /api/game/:code/bet` | 암호 | `{teamNo, bets}` | `teamView` |
+| `GET /api/game/:code/lobby` | 없음 | — | `{className, teams}` |
+| `GET /api/units` | 없음 | — | `{units, recent, recentError}` |
+| `GET /api/prepare?unit=X` | 없음 | — | `{blocking, warnings, units}` (`gwPrepare`) |
+| `GET /api/version` | 없음 | — | `{v}` |
+| `POST /api/admin/host-key` | 관리자 | `{code}` | `{code, hostKey}` |
+| `GET /ws/:code` | (매 메시지) | 소켓 | `{type:'result'…}` · 푸시 `{type:'state', data}` |
+
+※ 판 만들기에는 열쇠를 요구할 수 없습니다 — **열쇠를 발급하는 것이 이 호출**입니다.
+앱스 스크립트판도 같았습니다(교사 화면을 여는 누구나 판을 만들 수 있었습니다).
+가로막는 것은 열쇠가 아니라 **만들어도 아무 이득이 없다**는 사실입니다: 새 판은
+자기 코드의 빈 판이고, 남의 판은 코드를 알아도 열쇠 없이는 아무것도 못 합니다.
+
+⚠️ **`op` 는 어떤 공개 경로에도 없습니다.** Worker 는 GameRoom 의 **RPC 메서드**
+(`stub.op(name, args)`)로만 방을 부릅니다. 2단계의 `/room/:code/op` 는 없앴습니다 —
+그게 있으면 주소만 아는 누구나 `create` 로 아무 판이나 선점합니다 (게이트 `SEC13`).
+
+⚠️ **암호 연속 실패 잠금** (`src/do/ops.ts`). 모둠 암호는 4자리(1만 가지)라 DO 를 계속
+두드리면 6분이면 뚫립니다. **모둠 하나**당 연속 5회 실패하면 30초간 `TOO_MANY_TRIES` 입니다.
+잠금은 **틀렸을 때만** 쌓이고 성공하면 지워지므로 제 암호를 쓰는 모둠은 이 코드를 만나지
+않습니다. 잠긴 동안에는 맞는 암호도 막습니다 — "맞으면 통과"로 두면 잠금이 아무 일도 하지
+않기 때문입니다 (게이트 `SEC14`). 감수하는 것: 다른 모둠 번호로 다섯 번 틀리면 그 모둠이
+30초 멈춥니다. 4자리 암호를 지키는 값으로는 싸다고 봤습니다.
+
+⚠️ **교사 열쇠는 잠그지 않습니다.** 12자리라 브루트포스가 안 되고, 잠그면 판 코드를 아는
+학생 누구나 틀린 열쇠 다섯 번으로 **선생님의 진행·정산 버튼을 30초씩 얼릴 수** 있습니다
+(게이트 `HOST-NOLOCK`). 검토에서 고친 것입니다.
 
 ### 8-2. 두 가지 뷰
 

@@ -22,5 +22,5 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true
   },
-  "include": ["test/**/*.ts"]
+  "include": ["test/**/*.ts", "scripts/**/*.ts"]
 }

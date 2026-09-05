@@ -8,7 +8,9 @@
     "gates": "node test/gates.ts",
     "parity": "node test/parity.ts",
     "room": "node test/room.ts",
-    "test": "npm run typecheck && npm run gates && npm run parity && npm run room",
+    "gateway": "node test/gateway.ts",
+    "seed": "node scripts/import-questions.ts",
+    "test": "npm run typecheck && npm run gates && npm run parity && npm run room && npm run gateway",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json"
   },
   "devDependencies": {

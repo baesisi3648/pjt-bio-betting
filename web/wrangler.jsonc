@@ -16,5 +16,21 @@
   // SQLite 기반 DO. 무료 플랜에서 쓸 수 있는 쪽이고, storage API 는 그대로다
   "migrations": [{ "tag": "v1", "new_sqlite_classes": ["GameRoom"] }],
 
+  // 판 **사이에서** 공유되는 데이터 — 문제은행·동물·설정·'이어하기' 목록.
+  // 판 하나의 상태는 여기 없다. 그건 Durable Object 에 있다 (MIGRATION §6 대응표).
+  //
+  // ⚠️ database_id 는 자리표시다. 6단계에서 사용자가 채운다:
+  //      npx wrangler d1 create wilde-derby
+  //      npx wrangler d1 migrations apply wilde-derby --remote
+  //    (로컬은 --local. migrations/ 폴더를 wrangler 가 알아서 읽는다)
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "wilde-derby",
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "migrations"
+    }
+  ],
+
   "observability": { "enabled": true }
 }

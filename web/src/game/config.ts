@@ -90,8 +90,21 @@ export const MESSAGES: Record<string, string> = {
   PAUSED:           '선생님이 잠시 멈췄어요',
   LOCK_TIMEOUT:     '잠시 후 다시 눌러주세요',
   SHEET_INVALID:    '문제 구성을 확인해주세요',
-  NOT_HOST:         '이 판의 교사 화면이 아니에요. 교사 열쇠를 확인해주세요'
+  NOT_HOST:         '이 판의 교사 화면이 아니에요. 교사 열쇠를 확인해주세요',
+
+  // ── 3단계(게이트웨이)에서 생긴 코드 ──
+  //
+  // TOO_MANY_TRIES: 모둠 암호는 4자리(1만 가지)뿐이라, 판마다 단일 스레드인 DO 를
+  //   초당 수십 번 두드리면 6분이면 뚫린다. 연속 실패가 쌓이면 잠시 막는다 (src/do/ops.ts).
+  //   ⚠️ 이 문장을 지우면 학생 폰에 '문제가 생겼어요' 만 떠서, 기다리면 풀린다는 걸 모른다.
+  TOO_MANY_TRIES:   '암호를 여러 번 틀렸어요. 30초 뒤에 다시 해주세요',
+  BAD_REQUEST:      '요청 형식이 올바르지 않아요',
+  NOT_FOUND:        '없는 주소예요',
+  ADMIN_DENIED:     '관리자 비밀번호가 달라요',
+  // ADMIN_PASSWORD 를 안 넣고 배포하면 관리자 경로는 통째로 닫힌다.
+  // '비밀번호 없음 = 아무나 통과' 가 되면 배포 실수 한 번에 모든 판의 교사 열쇠가 샌다.
+  ADMIN_DISABLED:   '관리자 기능이 꺼져 있어요'
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2단계';
+export const DEPLOY_VERSION = 'web-3단계';

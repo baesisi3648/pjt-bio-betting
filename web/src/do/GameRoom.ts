@@ -1,25 +1,38 @@
 /**
  * GameRoom.ts — Durable Object 어댑터. **판 코드 하나 = 인스턴스 하나** (idFromName(code)).
  *
- * 게임 규칙도 단계 기계도 여기 없다. 전부 Room 에 있고, 이 파일은 런타임을 꽂는 일만 한다:
+ * 게임 규칙도 단계 기계도 여기 없다. 전부 Room 에 있고, 이름표(dispatch)와 암호 잠금은
+ * ops.ts 에 있다. 이 파일은 런타임을 꽂는 일만 한다:
  *   진짜 시계 · storage · alarm · WebSocket 푸시.
- * 이 경계를 흐리면 통합 게이트(test/room.ts)를 돌리는 데 workerd 가 필요해진다.
+ * 이 경계를 흐리면 통합 게이트(test/room.ts, test/gateway.ts)를 돌리는 데 workerd 가 필요해진다.
  *
  * ⚠️ 응답에 Date 객체를 넣지 않는다. 숫자(ms)만 (MIGRATION §5).
  * ⚠️ Room 메서드는 전부 동기다. 읽고→고치고→쓰기 사이에 await 를 넣으면 그 틈으로
  *    다른 요청이 끼어들어 코인이 증발한다 (§4-7). storage.put 은 **await 하지 않는다** —
  *    DO 의 output gate 가 "저장이 끝나기 전에는 응답이 나가지 않는다"를 보장한다.
+ *
+ * ── 3단계에서 달라진 것 ──
+ *
+ * `POST /op` HTTP 경로를 **없앴다.** 2단계에는 그게 있었고 스텁 Worker 가
+ * `/room/:code/op` 를 그대로 넘겨서, 주소만 알면 누구나 `create` 를 부를 수 있었다
+ * (MIGRATION §7 3단계 ⚠️). 지금 Worker 는 RPC 메서드 `op()` 로만 방을 부른다 —
+ * RPC 는 바인딩을 가진 Worker 만 부를 수 있어서, **인터넷에서 닿을 수 있는 문 자체가 없다.**
+ * fetch() 에 남은 것은 WebSocket 업그레이드 하나뿐이다.
  */
 
 import { DurableObject } from 'cloudflare:workers';
-import type { Level, Settings } from '../game/config.ts';
-import type { Bets, GameState, Question } from '../game/types.ts';
+import type { GameState } from '../game/types.ts';
 import { Room, err } from './room.ts';
-import type { AnimalTable, CreateConfig, Envelope, GameEvent } from './room.ts';
+import type { Envelope, GameEvent } from './room.ts';
+import { RoomOps } from './ops.ts';
+import type { ThrottleState } from './ops.ts';
 import { teacherView, teamView } from '../game/views.ts';
 
 export interface Env {
   GAME_ROOM: DurableObjectNamespace<GameRoom>;
+  DB: D1Database;
+  /** wrangler secret. 없으면 관리자 경로는 전부 닫힌다 (src/server/router.ts) */
+  ADMIN_PASSWORD?: string;
 }
 
 /**
@@ -38,6 +51,7 @@ const evKey = (seq: number) => 'ev:' + String(seq).padStart(9, '0');
 
 export class GameRoom extends DurableObject<Env> {
   private room: Room;
+  private ops: RoomOps;
 
   constructor(ctx: DurableObjectState, env: Env) {
     super(ctx, env);
@@ -54,14 +68,43 @@ export class GameRoom extends DurableObject<Env> {
       changed: () => { this.broadcast(); }
     });
 
+    // ⚠️ 실패 카운터를 저장소에 둔다. 메모리에만 두면 DO 가 잠들었다 깨어날 때마다 0 이 되고,
+    //    브루트포스는 소켓을 끊었다 다시 붙이는 것만으로 잠금을 지운다
+    this.ops = new RoomOps(this.room, {
+      now: () => Date.now(),
+      persistThrottle: (t) => { void this.ctx.storage.put('throttle', t); }
+    });
+
     // 깨어날 때 상태를 메모리에 올린다. 이게 끝나기 전에는 어떤 요청도 처리되지 않는다
     ctx.blockConcurrencyWhile(async () => {
       const saved = await ctx.storage.get<GameState>('state');
       this.room.hydrate(saved ?? null);
+      this.ops.hydrateThrottle(await ctx.storage.get<ThrottleState>('throttle'));
     });
   }
 
-  // ── HTTP ─────────────────────────────────────────────
+  // ── RPC — Worker 만 부를 수 있는 입구 ──────────────────
+
+  /**
+   * Worker 라우트가 방을 부르는 유일한 통로.
+   * 바인딩(GAME_ROOM)을 가진 코드만 부를 수 있으므로 공개 경로가 아니다.
+   */
+  async op(name: string, args: unknown[]): Promise<Envelope<unknown>> {
+    return this.ops.op(name, args);
+  }
+
+  /**
+   * ⚠️ 관리자 전용. 교사 열쇠를 되찾는 경로다 (MIGRATION §10).
+   *    관리자 비밀번호 확인은 Worker 가 하고(상수 시간 비교), 여기는 값을 꺼내 줄 뿐이다.
+   *    **이 값은 어떤 뷰에도 섞이지 않는다.** 그래서 op() 표에 넣지 않고 따로 뒀다 —
+   *    표에 있으면 언젠가 소켓으로도 부를 수 있게 된다.
+   */
+  async adminHostKey(): Promise<string | null> {
+    const state = this.room.raw();
+    return state ? state.hostKey : null;
+  }
+
+  // ── HTTP — WebSocket 업그레이드만 ────────────────────
 
   override async fetch(request: Request): Promise<Response> {
     const url = new URL(request.url);
@@ -79,23 +122,7 @@ export class GameRoom extends DurableObject<Env> {
       return new Response(null, { status: 101, webSocket: client });
     }
 
-    if (request.method === 'POST' && url.pathname.endsWith('/op')) {
-      // ⚠️ await 는 여기까지만. dispatch 안에서는 상태를 만지는 동안 await 가 없다
-      const body = await request.json<{ op?: string; args?: unknown[] }>().catch(() => null);
-      if (!body || typeof body.op !== 'string') {
-        return this.json(err('SHEET_INVALID', '요청 형식이 올바르지 않아요'), 400);
-      }
-      const result = this.dispatch(body.op, body.args || []);
-      return this.json(result, result.ok ? 200 : 200);
-    }
-
     return new Response('없는 경로예요', { status: 404 });
-  }
-
-  private json(body: unknown, status = 200): Response {
-    return new Response(JSON.stringify(body), {
-      status, headers: { 'content-type': 'application/json; charset=utf-8' }
-    });
   }
 
   // ── WebSocket ────────────────────────────────────────
@@ -110,7 +137,7 @@ export class GameRoom extends DurableObject<Env> {
     catch { msg = null; }
 
     if (!msg || typeof msg.op !== 'string') {
-      ws.send(JSON.stringify({ type: 'result', ...err('SHEET_INVALID', '요청 형식이 올바르지 않아요') }));
+      ws.send(JSON.stringify({ type: 'result', ...err('BAD_REQUEST') }));
       return;
     }
     // ⚠️ 판 만들기는 Worker 만 한다 (문제은행·D1 목록·코드 중복 확인이 거기 있다).
@@ -120,7 +147,7 @@ export class GameRoom extends DurableObject<Env> {
       return;
     }
 
-    const result = this.dispatch(msg.op, msg.args || []);
+    const result = this.ops.op(msg.op, msg.args || []);
     if (result.ok) this.tagSocket(ws, msg.op, msg.args || []);
     ws.send(JSON.stringify({ type: 'result', id: msg.id, op: msg.op, ...result }));
   }
@@ -172,35 +199,6 @@ export class GameRoom extends DurableObject<Env> {
 
   override async alarm(): Promise<void> {
     this.room.onAlarm();
-  }
-
-  // ── 디스패치 ──────────────────────────────────────────
-
-  /**
-   * Worker 와 WebSocket 이 함께 쓰는 하나의 입구.
-   * ⚠️ 여기부터 Room 메서드가 끝날 때까지 await 가 없다 (§4-7).
-   */
-  private dispatch(op: string, a: unknown[]): Envelope<unknown> {
-    switch (op) {
-      case 'create':
-        return this.room.create(
-          a[0] as CreateConfig, a[1] as Question[], a[2] as AnimalTable, a[3] as Partial<Settings>
-        );
-      case 'join':       return this.room.join(Number(a[0]), String(a[1]));
-      case 'lobby':      return this.room.lobby();
-      case 'getState':   return this.room.getState(
-        a[0] as string | null, a[1] as string | null, a[2] as string | null
-      );
-      case 'chooseLevel':  return this.room.chooseLevel(Number(a[0]), a[1] as Level, String(a[2]));
-      case 'submitAnswer': return this.room.submitAnswer(Number(a[0]), a[1] as Level, Number(a[2]), String(a[3]));
-      case 'placeBet':     return this.room.placeBet(Number(a[0]), a[1] as Bets, String(a[2]));
-      case 'advanceRound': return this.room.advanceRound(String(a[0]));
-      case 'togglePause':  return this.room.togglePause(String(a[0]));
-      case 'finalize':     return this.room.finalize(String(a[0]));
-      case 'reveal':       return this.room.reveal(String(a[0]));
-      case 'handout':      return this.room.handout(String(a[0]));
-      default:             return err('SHEET_INVALID', `모르는 요청이에요: ${op}`);
-    }
   }
 
   /** 감사·복구용. 스냅샷 뒤 이벤트를 읽어 온다 (게이트 D6b 의 restore 에 먹인다) */

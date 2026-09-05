@@ -168,3 +168,132 @@ entries:
     description: Update documentation README.md
     impact:
       - none
+  - date: "2026-09-05T02:51:18"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Add new functionality to config in web
+    impact:
+      - none
+  - date: "2026-09-05T02:51:55"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/ops.ts
+    description: Create ops in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/types.ts, ./room.ts (+more)"
+  - date: "2026-09-05T02:52:46"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/GameRoom.ts
+    description: Create GameRoom in web
+    impact:
+      - "external dependency added: cloudflare:workers"
+      - "internal dependency added: ../game/types.ts, ./room.ts, ./room.ts (+more)"
+  - date: "2026-09-05T02:53:19"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Create ports in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/types.ts, ../do/room.ts"
+  - date: "2026-09-05T02:54:32"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Create router in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/rules.ts, ../do/room.ts (+more)"
+  - date: "2026-09-05T02:55:12"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Create db in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/config.ts, ../game/types.ts (+more)"
+  - date: "2026-09-05T02:55:40"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Create index in web
+    impact:
+      - "internal dependency added: ../do/GameRoom.ts, ../do/GameRoom.ts, ./db.ts (+more)"
+  - date: "2026-09-05T02:55:48"
+    type: feature
+    domain: web
+    files:
+      - web/wrangler.jsonc
+    description: Add new functionality to wrangler in web
+    impact:
+      - none
+  - date: "2026-09-05T02:56:04"
+    type: feature
+    domain: web
+    files:
+      - web/migrations/0001_init.sql
+    description: Create 0001_init in web
+    impact:
+      - database migration
+  - date: "2026-09-05T02:57:01"
+    type: feature
+    domain: web
+    files:
+      - web/scripts/import-questions.ts
+    description: Create import-questions in web
+    impact:
+      - "external dependency added: node:fs, node:path, node:url (+more)"
+  - date: "2026-09-05T02:58:43"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/bank.ts
+    description: Create bank in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/config.ts, ../game/types.ts (+more)"
+  - date: "2026-09-05T02:59:00"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Create db in web
+    impact:
+      - "internal dependency added: ./bank.ts, ./bank.ts, ./ports.ts"
+  - date: "2026-09-05T03:01:57"
+    type: test
+    domain: web
+    files:
+      - web/test/gateway.ts
+    description: Add test file gateway.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/game/config.ts, ../src/game/types.ts (+more)"
+  - date: "2026-09-05T03:02:11"
+    type: test
+    domain: web
+    files:
+      - web/test/gateway.ts
+    description: Update test gateway.ts
+    impact:
+      - none
+  - date: "2026-09-05T03:07:26"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration
+  - date: "2026-09-05T03:07:32"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration
