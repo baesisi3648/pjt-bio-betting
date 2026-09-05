@@ -698,3 +698,187 @@ entries:
     description: Update documentation MIGRATION.md
     impact:
       - database migration
+  - date: "2026-09-05T05:04:50"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Add new functionality to ports in web
+    impact:
+      - none
+  - date: "2026-09-05T05:05:04"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/bank.ts
+    description: Add new functionality to bank in web
+    impact:
+      - none
+  - date: "2026-09-05T05:05:11"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Add new functionality to db in web
+    impact:
+      - none
+  - date: "2026-09-05T05:05:38"
+    type: fix
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Fix issue in db
+    impact:
+      - none
+  - date: "2026-09-05T05:06:47"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/admin.ts
+    description: Create admin in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/config.ts, ./bank.ts (+more)"
+  - date: "2026-09-05T05:06:55"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Add new functionality to router in web
+    impact:
+      - none
+  - date: "2026-09-05T05:07:02"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-05T05:07:16"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Add new functionality to router in web
+    impact:
+      - none
+  - date: "2026-09-05T05:07:23"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Add new functionality to index in web
+    impact:
+      - none
+  - date: "2026-09-05T05:08:36"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Add test file harness.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/game/config.ts, ../src/game/types.ts (+more)"
+  - date: "2026-09-05T05:10:54"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Add test file admin.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/server/ports.ts, ../src/server/ports.ts (+more)"
+  - date: "2026-09-05T05:11:25"
+    type: refactor
+    domain: web
+    files:
+      - web/package.json
+    description: Refactor package
+    impact:
+      - configuration change
+  - date: "2026-09-05T05:11:28"
+    type: refactor
+    domain: web
+    files:
+      - web/package.json
+    description: Refactor package
+    impact:
+      - configuration change
+  - date: "2026-09-05T05:12:09"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin.html
+    description: Create admin in web
+    impact:
+      - none
+  - date: "2026-09-05T05:12:41"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/admin.css
+    description: Create admin in web
+    impact:
+      - none
+  - date: "2026-09-05T05:12:49"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/admin/admin.css
+    description: Refactor admin
+    impact:
+      - none
+  - date: "2026-09-05T05:14:26"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/main.ts
+    description: Create main in web
+    impact:
+      - "internal dependency added: ../shared/gateway.ts, ../shared/ui.ts, ../../do/room.ts"
+  - date: "2026-09-05T05:14:36"
+    type: feature
+    domain: web
+    files:
+      - web/vite.config.ts
+    description: Add new functionality to vite.config in web
+    impact:
+      - none
+  - date: "2026-09-05T05:14:41"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher.html
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-05T05:20:20"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-05T05:21:35"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration
+  - date: "2026-09-05T05:22:01"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration
+  - date: "2026-09-05T05:22:16"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration

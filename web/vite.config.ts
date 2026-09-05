@@ -29,8 +29,13 @@ export default defineConfig({
     assetsInlineLimit: 4096,
     rollupOptions: {
       input: {
-        index: at('./src/client/index.html'),     // 학생 (S4~S6)
-        teacher: at('./src/client/teacher.html')  // 교사 (S1~S3)
+        index: at('./src/client/index.html'),      // 학생 (S4~S6)
+        teacher: at('./src/client/teacher.html'),  // 교사 (S1~S3)
+        // ⚠️ 문제은행 관리는 **별도 진입점**이다. 수업용 교사 번들에 관리 코드가 실리지
+        //    않게 하려고 그렇게 뒀다 — teacher.html 에서 admin/main.ts 를 import 하지 마세요.
+        //    `npm run build` 뒤 `grep -l "api/admin/questions" dist/client/assets/*.js` 가
+        //    admin 청크만 내놓아야 한다 (PixiJS 를 학생 번들에서 떼어 둔 것과 같은 규칙)
+        admin: at('./src/client/admin.html')       // 문제은행 관리 (5단계)
       }
     }
   }

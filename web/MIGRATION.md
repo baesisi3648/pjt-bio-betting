@@ -77,14 +77,17 @@ web/             ← 새 구현. 규칙만 옮겨진 상태
 - `web/src/do/ops.ts` — 이름표(dispatch) + 암호 연속 실패 잠금. Worker 와 소켓이 같은 걸 쓴다
 - `web/migrations/` — D1 스키마 + 시드(54문항·동물 8·설정 8). `scripts/import-questions.ts` 가 만든다
 - `web/src/client/` — 교사·학생 화면. 프레임워크 없음, Vite 번들, 소켓 푸시 + 재연결
-- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `qr.ts` 10 · `race.ts` 9
+- `web/src/server/admin.ts` + `src/client/admin.html`·`admin/` — 문제은행 관리 화면과 그 API.
+  시트의 '문제'·'동물'·'설정' 탭과 `validateSheets` 메뉴를 대신합니다 (5단계)
+- `web/test/harness.ts` — 게이트가 쓰는 인메모리 포트 한 벌 (`gateway.ts`·`admin.ts` 가 같이 씀)
+- `web/test/gates.ts` 17 · `parity.ts` 14 · `room.ts` 32 · `gateway.ts` 23 · `admin.ts` 8 · `qr.ts` 10 · `race.ts` 9
 
-**남은 것** — §7에 단계별로 있습니다. 문제은행 관리 화면(5단계) → 배포(6단계)
+**남은 것** — §7에 단계별로 있습니다. 배포(6단계)
 
 **검사 현황**
 
 ```bash
-npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + QR 10 + 경주 9
+npm test              # web/ — 타입 검사 3벌 + 게이트 17 + 대조 14 + 방 32 + 게이트웨이 23 + 관리 8 + QR 10 + 경주 9
 npm run dev           # web/ — vite build 후 wrangler dev (먼저 d1 migrations apply --local)
 cd .. && npm test     # apps-script/ — 62개 (이전 중에도 계속 통과해야 함)
 ```
@@ -319,25 +322,69 @@ Worker `assets`. 4a·4b 모두 헤드리스 Chrome 두 탭으로 한 판을 끝�
 - `race.ts` 의 `SEGMENTS` 를 1 로 되돌리면 경주가 등속이 되어 순위 흔들림이 사라집니다
   (`RACE-SHAKE` 가 잡습니다)
 
-### 5단계 — 문제은행 관리 화면
+### 5단계 — 문제은행 관리 화면 ✅ 완료
 
-**여기에 숨은 작업이 있습니다.** 문제은행을 앱 안으로 옮기기로 한 결정은
-"관리 화면이 필요하다"는 뜻이고, 그건 **누가 편집할 수 있는가**를 정해야 한다는 뜻입니다.
-지금은 인증이 판 단위(교사 열쇠)뿐이라 계정 개념이 없습니다.
+`src/server/admin.ts`(라우트) + `src/client/admin.html`·`admin/main.ts`·`admin/admin.css`(화면) +
+`test/admin.ts` 게이트 8개. 라우트 표는 **§8-1b**. 아래는 당시의 요구였고 전부 반영됐습니다.
 
 - ~~시트에서 한 번 가져오는 경로~~ — 3단계에서 끝났습니다. `scripts/import-questions.ts` 가
   `apps-script/` 를 읽어 `migrations/0002_seed.sql`(54문항 + 동물 8 + 설정 8)을 만듭니다
 - 문제 CRUD, 단원별 보기, 난이도별 개수 검증 (`validateSheets`가 하던 일)
 - 인증은 **관리자 비밀번호 하나** (사용자 결정, §10). 3단계와 같은 `ADMIN_PASSWORD`.
-  브라우저에 저장해 매번 안 넣게 하되, 서버는 **매 호출 확인**합니다
+  브라우저는 `sessionStorage` 에 두고 **매 요청 헤더로** 싣습니다 — 서버는 매 호출 확인합니다.
+  세션·쿠키·토큰을 만들지 않았습니다
 
-**완료 판정**: 시트 없이 판을 만들어 끝까지 돌 것.
+더해진 것 / 알아둘 것:
 
-### 6단계 — 배포
+| | |
+|---|---|
+| 별도 진입점 | `admin.html` 은 Vite input 이 따로다. **수업용 교사 번들에 관리 코드가 없다** — `npm run build` 뒤 `grep -l "api/admin/questions" dist/client/assets/*.js` 가 `admin-*` 만 내놔야 한다 |
+| 화면에 상수를 박지 않는다 | 난이도·설정 범위·동물 코드는 전부 서버 응답에 실려 온다 (`levels`·`ranges`·`codes`). 화면에 박으면 `config.ts` 를 고친 날 화면만 옛 값을 안내한다 (§5 `trackCells` 함정) |
+| 검사는 한 벌 | 동물 8줄은 `bank.ts` 의 `checkAnimals`, 설정 범위는 `room.ts` 의 `normalizeSettings` — **판을 만들 때 쓰는 그 함수**다 |
+| 설정만 다르게 군다 | 판 만들 때는 범위 밖 값을 되돌리고 알리지만(수업이 멈추면 안 되니까), 관리 화면에서는 **저장하지 않고 거절**한다. 틀린 값을 표에 남길 이유가 없다 |
+| 안내문 | "여기서 고친 것은 **새로 만드는 판**부터" 를 화면 상단에 고정했다. 없으면 "고쳤는데 왜 옛날 문제가 나오냐"가 반드시 나온다 (§4-6). 게이트 `ADM-GAME` |
+| ⚠️ 비밀번호는 ASCII 만 | HTTP 헤더 값은 Latin-1 만 싣는다. **한글·이모지가 든 관리자 비밀번호는 브라우저가 보내지도 못한다** — 화면이 보내기 전에 걸러 이유를 말한다. 교사 화면 '이어하기'의 열쇠 되찾기도 같은 헤더를 쓰므로 같은 제약이 있다 (거기는 아직 안내가 없다) |
 
-- Cloudflare 계정 필요 (무료 플랜으로 충분)
-- 학교망에서 열리는지 **선생님 폰으로** 확인 — 가장 흔한 사고
-- 앱스 스크립트판과 **한동안 같이 둘 것.** 한 학기 써보고 버리세요
+**완료 판정**: 시트 없이 판을 만들어 끝까지 돌 것. ✅
+(로컬 D1 만으로 `/admin` 로그인 → 건강 표 → 문항 추가·수정·삭제 → 동물 이름 교체 →
+설정 저장까지 헤드리스 Chrome 으로 확인했습니다)
+
+### 6단계 — 배포 (사용자가 직접)
+
+Cloudflare 계정이 필요합니다 (무료 플랜으로 충분). 코드는 전부 준비돼 있고, 아래는
+**계정이 있는 사람만 할 수 있는 일**입니다.
+
+```bash
+cd web
+npx wrangler login
+npx wrangler d1 create wilde-derby
+#   → 출력의 database_id 를 wrangler.jsonc 의 "database_id" 자리(지금은 0000…)에 붙여넣기
+npx wrangler d1 migrations apply wilde-derby --remote   # 스키마 + 시드(54문항·동물 8·설정 8)
+npx wrangler secret put ADMIN_PASSWORD                  # ⚠️ 영문·숫자·기호만 (아래 참조)
+npm run build                                           # dist/client 가 없으면 deploy 가 안 뜬다
+npx wrangler deploy
+```
+
+⚠️ **관리자 비밀번호에 한글·이모지를 넣지 마세요.** HTTP 헤더는 Latin-1 만 실을 수 있어
+브라우저가 요청을 만들다 던집니다. 두 화면(관리·이어하기)이 보내기 전에 걸러 이유를
+말하지만, 애초에 그런 비밀번호를 만들지 않는 것이 맞습니다.
+
+**배포 뒤 선생님 폰으로 확인할 것** (순서대로):
+
+1. 폰(학교 와이파이, LTE 끄고)에서 `https://<주소>/` 가 열리는가 — 학교망 차단이 가장 흔한 사고
+2. 노트북에서 `/teacher` → 단원 3개가 드롭다운에 뜨는가 (안 뜨면 `migrations apply --remote` 누락)
+3. 판 만들기 → 판 코드 + QR. **폰 카메라로 QR 을 비춰** 실제로 열리는가
+4. 폰으로 접속 → 라운드 시작 → 경주 20초가 TV 와 폰에서 **같은 순서**로 보이는가
+5. 문제 제출 → 힌트 → 베팅 → TV 배당판이 즉시 움직이는가
+6. 폰 와이파이를 5초 껐다 켜기 → 배너가 뜨고 다시 붙어 상태가 맞는가
+7. `/admin` → 관리자 비밀번호로 들어가지는가. `ADMIN_DISABLED` 가 뜨면 `secret put` 누락
+8. `/admin` 에서 문항 하나를 고친 뒤 **새 판**에 그 문제가 나오는가 (도는 판은 안 바뀌는 게 정상)
+9. 다른 기기에서 '판 코드로 이어하기' + 관리자 비밀번호로 열쇠가 회수되는가
+10. 앱스 스크립트판은 **그대로 둡니다.** 한 학기 같이 쓰고 나서 버립니다
+
+선택: 관리자 비밀번호 브루트포스는 서버에 카운터가 없습니다(Worker 는 아이소레이트가
+여럿이라 정확히 셀 수 없음). 비밀번호를 길게 잡고, 원하면 Cloudflare 대시보드의
+Rate Limiting 규칙으로 `/api/admin/*` 를 거세요.
 
 ---
 
@@ -416,6 +463,32 @@ gwVersion() / gwDiagnose()
 | `GET /api/version` | 없음 | — | `{v}` |
 | `POST /api/admin/host-key` | 관리자 | `{code}` | `{code, hostKey}` |
 | `GET /ws/:code` | (매 메시지) | 소켓 | `{type:'result'…}` · 푸시 `{type:'state', data}` |
+
+**관리자 — 문제은행 (5단계).** 전부 `X-Admin-Password` 를 **매 호출** 요구합니다.
+`ADMIN_PASSWORD` 가 없으면 전부 `ADMIN_DISABLED`, 틀리면 `ADMIN_DENIED` 입니다.
+
+| 경로 | 입력 | 응답 `data` |
+|---|---|---|
+| `GET /api/admin/questions?unit=X` | `unit` 없으면 전부 | `{questions[], units[]}` |
+| `POST /api/admin/questions` | `{unit, level, text, choices[4], answer, explanation}` | `{question}` |
+| `PUT /api/admin/questions/:id` | 같음 | `{question}` · 없는 id → `NOT_FOUND` |
+| `DELETE /api/admin/questions/:id` | — | `{id}` · 없는 id → `NOT_FOUND` |
+| `GET /api/admin/animals` | — | `{animals[8], codes, blocking}` |
+| `PUT /api/admin/animals` | `{animals[8]}` | 같음 (저장 후 상태) |
+| `GET /api/admin/settings` | — | `{settings[], ranges, warnings}` |
+| `PUT /api/admin/settings` | `{settings:{key:value}}` | 같음 · 범위 밖이면 `BAD_REQUEST` (**저장 안 함**) |
+| `GET /api/admin/summary` | — | `{units:[{unit,counts,total,blocking,warnings}], levels, minPerLevel, animals}` |
+
+⚠️ **문항 응답에는 정답과 해설이 들어 있습니다.** 이 모양을 다른 라우트에 재사용하지 마세요.
+`GET /api/units`·`/api/prepare` 는 지금처럼 개수·경고만 내보냅니다 (게이트 `LEAK-ADMIN`).
+
+⚠️ **확인은 `router.ts` 의 `adminDenied` 한 곳입니다.** `/api/admin/` 으로 시작하는 경로는
+전부 그 문을 지납니다 — 라우트마다 따로 확인하면 새 라우트 하나에서 빠뜨리는 날이 옵니다.
+`admin.ts` 안에는 비밀번호를 비교하는 코드가 없습니다.
+
+⚠️ **비밀번호는 ASCII 여야 합니다.** HTTP 헤더 값은 Latin-1 바이트만 싣습니다 —
+한글·이모지가 든 비밀번호는 브라우저가 요청을 만들다가 던집니다 (서버까지 가지도 않습니다).
+관리 화면은 보내기 전에 걸러 이유를 말합니다.
 
 ※ 판 만들기에는 열쇠를 요구할 수 없습니다 — **열쇠를 발급하는 것이 이 호출**입니다.
 앱스 스크립트판도 같았습니다(교사 화면을 여는 누구나 판을 만들 수 있었습니다).
@@ -522,7 +595,15 @@ waiting ──(교사가 라운드 시작)──> moving(20초) ──> quiz(90�
 QR     QR-1~QR-9   ← 새 구현에선 라이브러리를 써도 됩니다
 ```
 
-`web/` 105개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 32 + `gateway.ts` 23 + `qr.ts` 10 + `race.ts` 9.
+`web/` 113개 — `gates.ts` 17 + `parity.ts` 14 + `room.ts` 32 + `gateway.ts` 23 + `admin.ts` 8 + `qr.ts` 10 + `race.ts` 9.
+
+관리 게이트 8개 (`test/admin.ts`):
+
+```
+ADM1 ADM2 ADM3 ADM4 ADM5 ADM6   비밀번호 · CRUD · 검사 · 동물 · 설정 · 건강 표
+LEAK-ADMIN   관리자 라우트 밖 어떤 응답에도 answer·explanation 이 없다
+ADM-GAME     고친 문항은 다음 판부터 — 이미 만든 판은 옛 문제 그대로 (§4-6)
+```
 
 ---
 

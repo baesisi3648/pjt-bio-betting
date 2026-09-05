@@ -34,7 +34,7 @@
 import type { AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
-import { FATAL, api, handle, hostOp, isOk } from '../shared/gateway.ts';
+import { FATAL, HEADER_UNSAFE_MSG, api, handle, headerSafe, hostOp, isOk } from '../shared/gateway.ts';
 import { qrSvg } from '../shared/qr.ts';
 import { GameSocket } from '../shared/socket.ts';
 import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
@@ -264,6 +264,9 @@ function resume(): void {
     toast('이 기기에 교사 열쇠가 없어요. 관리자 비밀번호를 넣어주세요');
     return;
   }
+
+  // 한글·이모지 비밀번호는 헤더에 실리지 못해 브라우저가 던진다 — 보내기 전에 이유를 말한다
+  if (!headerSafe(pw)) { toast(HEADER_UNSAFE_MSG); ($('radmin') as HTMLInputElement).value = ''; return; }
 
   api('/api/admin/host-key', {
     method: 'POST', headers: { 'X-Admin-Password': pw }, body: { code: c }

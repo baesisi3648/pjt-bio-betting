@@ -22,6 +22,23 @@ export const FATAL: Record<string, true> = {
 /** 서버가 잠근 시간(초). src/do/ops.ts THROTTLE.lockMs 와 같아야 한다 */
 export const LOCK_SECONDS = 30;
 
+/**
+ * HTTP 헤더 값은 Latin-1 바이트만 실을 수 있다. 한글·이모지가 든 값을 헤더에 넣으면
+ * **브라우저가 요청을 만들다가 던진다** — 서버까지 가지도 못한다.
+ *
+ * ⚠️ 그냥 두면 화면에는 "서버에 닿지 못했어요" 만 떠서, 선생님은 배포가 고장 난 줄 안다.
+ *    관리자 비밀번호를 헤더로 보내는 두 화면(관리 화면 · 교사 '이어하기')이 보내기 전에
+ *    이 함수로 걸러 이유를 말한다. 배포 절차에도 "영문·숫자·기호만" 이라고 적혀 있다.
+ */
+export function headerSafe(s: string): boolean {
+  for (let i = 0; i < s.length; i++) if (s.charCodeAt(i) > 0xFF) return false;
+  return true;
+}
+
+export const HEADER_UNSAFE_MSG =
+  '이 비밀번호는 브라우저가 보낼 수 없어요 — 한글이나 이모지가 들어 있습니다.\n' +
+  '관리자 비밀번호를 영문·숫자·기호로 바꿔주세요 (npx wrangler secret put ADMIN_PASSWORD)';
+
 export function isOk<T>(env: Envelope<T>): env is { ok: true; data: T } {
   return env.ok === true;
 }

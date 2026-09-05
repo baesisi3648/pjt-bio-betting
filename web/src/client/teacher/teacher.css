@@ -190,3 +190,11 @@ details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
   from{transform:translateY(-30px) rotate(0deg);opacity:1}
   to  {transform:translateY(105vh) rotate(760deg);opacity:.15}
 }
+
+/* ── 문제은행 관리 링크 (5단계) ──
+   ⚠️ 링크뿐이다. 관리 화면은 별도 진입점(admin.html)이고, 그 코드는 이 번들에 없다 */
+.adminlink{margin-top:22px;padding-top:16px;border-top:1px solid #263745;
+           display:flex;gap:14px;align-items:baseline;flex-wrap:wrap}
+.adminlink a{color:var(--run);font-size:22px;font-weight:700;text-decoration:none}
+.adminlink a:hover{text-decoration:underline}
+.adminlink span{color:var(--muted);font-size:18px}

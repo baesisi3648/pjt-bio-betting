@@ -107,4 +107,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-3단계';
+export const DEPLOY_VERSION = 'web-2026.09.05';

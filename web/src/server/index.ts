@@ -103,6 +103,12 @@ export default {
       if (url.pathname === '/teacher' || url.pathname === '/teacher/') {
         return env.ASSETS.fetch(new Request(new URL('/teacher.html', url), request));
       }
+      // 문제은행 관리 화면 (5단계). /teacher 와 같은 이유로 여기서 한 번 더 잡는다.
+      // ⚠️ 이 화면 자체에는 비밀이 없다 — 비밀번호를 넣기 전에는 아무것도 안 보인다.
+      //    지키는 것은 이 HTML 이 아니라 /api/admin/* 이다 (router.ts adminDenied)
+      if (url.pathname === '/admin' || url.pathname === '/admin/') {
+        return env.ASSETS.fetch(new Request(new URL('/admin.html', url), request));
+      }
       return env.ASSETS.fetch(request);
     }
 

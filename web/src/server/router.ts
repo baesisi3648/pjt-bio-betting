@@ -24,6 +24,7 @@ import { DEPLOY_VERSION } from '../game/config.ts';
 import { makeCode } from '../game/rules.ts';
 import { err, ok } from '../do/room.ts';
 import type { Envelope, Err } from '../do/room.ts';
+import { adminRoute } from './admin.ts';
 import type { ApiRequest, ApiResponse, Ports, RecentGame } from './ports.ts';
 
 // ────────────────────────────────────────────────────────────
@@ -170,6 +171,20 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
 
   if (path === '/api/admin/host-key' && method === 'POST') return adminHostKeyRoute(req, ports);
 
+  // ── 관리자 — 문제은행 관리 (5단계) ──
+  //
+  // ⚠️ **관리자 경로가 열리는 문은 여기 하나뿐이다.** 확인이 admin.ts 안이 아니라
+  //    이 앞에 있는 이유: 라우트를 하나 더 더하는 날 그 하나만 확인을 빠뜨리게 되기
+  //    때문이다. 여기 있으면 `/api/admin/` 으로 시작하는 무엇을 더해도 이 문을 지난다.
+  //
+  // ⚠️ **매 호출 확인한다.** 세션도 쿠키도 토큰도 만들지 않는다 (MIGRATION §10).
+  //    브라우저가 sessionStorage 에 두고 매번 헤더로 싣는다 — 서버는 그 사정을 모른다.
+  if (path.startsWith('/api/admin/')) {
+    const denied = adminDenied(req, ports);
+    if (denied) return denied;
+    return reply(await adminRoute(req, ports, path, method, body));
+  }
+
   return fail('NOT_FOUND');
 }
 
@@ -260,18 +275,31 @@ async function prepareRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse>
 // ────────────────────────────────────────────────────────────
 
 /**
- * 교사 열쇠는 판을 만든 브라우저에만 저장된다. 기기를 바꾸거나 기록을 지웠으면
- * 여기서 되찾는다. 앱스 스크립트판은 스프레드시트 메뉴가 그 통로였다 (Setup.gs).
+ * 관리자 확인. 거부할 이유가 있으면 그 응답을, 통과면 null 을 준다.
  *
  * ⚠️ `ADMIN_PASSWORD` 를 안 넣고 배포하면 **전부 거부**한다.
  *    "비밀번호가 없으면 확인을 건너뛴다" 로 만들면 secret 하나 빠뜨린 배포에서
  *    판 코드만 아는 학생이 정답 순위와 모든 모둠 암호를 가져간다.
+ *
+ * ⚠️ 관리자 라우트가 늘어도 **이 함수 하나**를 지난다. 각 라우트가 저마다 확인하면
+ *    새 라우트 하나에서 빠뜨리는 날이 오고, 그때 문제은행 전체가 열린다.
  */
-async function adminHostKeyRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> {
+function adminDenied(req: ApiRequest, ports: Ports): ApiResponse | null {
   if (!ports.adminPassword) return fail('ADMIN_DISABLED');
 
   const given = req.headers['x-admin-password'] ?? '';
   if (!timingSafeEqual(given, ports.adminPassword)) return fail('ADMIN_DENIED');
+
+  return null;
+}
+
+/**
+ * 교사 열쇠는 판을 만든 브라우저에만 저장된다. 기기를 바꾸거나 기록을 지웠으면
+ * 여기서 되찾는다. 앱스 스크립트판은 스프레드시트 메뉴가 그 통로였다 (Setup.gs).
+ */
+async function adminHostKeyRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> {
+  const denied = adminDenied(req, ports);
+  if (denied) return denied;
 
   const code = String(bodyOf(req).code ?? '').toUpperCase().trim();
   if (!code) return fail('BAD_REQUEST', '판 코드를 넣어주세요');

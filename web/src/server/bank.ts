@@ -54,14 +54,16 @@ function toQuestion(r: QuestionRow, skipped: string[]): Question | null {
   };
 }
 
-export function validateUnit(
-  unit: string, questionRows: QuestionRow[], animalRows: AnimalRow[], settingRows: SettingRow[]
-): PreparedUnit {
+/**
+ * 동물 표 검사 — 정확히 8줄이어야 한다 (MIGRATION §8-5).
+ *
+ * ⚠️ `validateUnit`(판 만들기)과 관리 화면의 건강 표(`/api/admin/summary`)가
+ *    **이 함수 하나**를 같이 쓴다. 관리 쪽에 비슷한 검사를 하나 더 쓰면,
+ *    판 만들기는 막는데 관리 화면은 초록불인 상태가 생긴다 — 정답이 새는데
+ *    초록불이 켜졌던 그 함정과 같은 종류다 (MIGRATION §5).
+ */
+export function checkAnimals(animalRows: AnimalRow[]): { blocking: string[]; animals: AnimalTable } {
   const blocking: string[] = [];
-  const warnings: string[] = [];
-  const settingWarnings: string[] = [];
-
-  // ── 동물: 정확히 8줄이어야 한다 (MIGRATION §8-5) ──
   const rows = animalRows.filter((r) => String(r.name || '').trim());
   const names = {} as Record<AnimalCode, string>;
   const emojis = {} as Record<AnimalCode, string>;
@@ -75,7 +77,19 @@ export function validateUnit(
       emojis[c] = String(r.emoji ?? '').trim();
     });
   }
-  const animals: AnimalTable = { names, emojis };
+  return { blocking, animals: { names, emojis } };
+}
+
+export function validateUnit(
+  unit: string, questionRows: QuestionRow[], animalRows: AnimalRow[], settingRows: SettingRow[]
+): PreparedUnit {
+  const warnings: string[] = [];
+  const settingWarnings: string[] = [];
+
+  // ── 동물: 정확히 8줄이어야 한다 (MIGRATION §8-5) ──
+  const checked = checkAnimals(animalRows);
+  const blocking: string[] = checked.blocking.slice();
+  const animals: AnimalTable = checked.animals;
 
   // ── 설정 ──
   const raw: Record<string, unknown> = {};

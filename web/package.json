@@ -9,12 +9,13 @@
     "parity": "node test/parity.ts",
     "room": "node test/room.ts",
     "gateway": "node test/gateway.ts",
+    "admin": "node test/admin.ts",
     "qr": "node test/qr.ts",
     "race": "node test/race.ts",
     "seed": "node scripts/import-questions.ts",
     "build": "vite build",
     "dev": "npm run build && wrangler dev",
-    "test": "npm run typecheck && npm run gates && npm run parity && npm run room && npm run gateway && npm run qr && npm run race",
+    "test": "npm run typecheck && npm run gates && npm run parity && npm run room && npm run gateway && npm run admin && npm run qr && npm run race",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json && tsc -p tsconfig.client.json"
   },
   "devDependencies": {

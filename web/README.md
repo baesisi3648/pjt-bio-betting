@@ -44,15 +44,18 @@
 - [x] **화면** — `src/client/`. 프레임워크 없이 Vite 번들, 소켓 푸시 + 재연결. 경주 무대는 PixiJS
       (`teacher/stage.ts`, 동적 import 로 교사 번들에만), 폰 미니 트랙은 Canvas 2D. 두 화면이
       `shared/race.ts` 안무 하나를 같이 써서 같은 경주를 본다. 라이브 배당판·정산 드럼롤·칩 날리기 (MIGRATION §11)
-- [ ] 문제은행 관리 화면 (가져오기는 끝났습니다 — 남은 건 CRUD 화면)
+- [x] **문제은행 관리 화면** — `src/server/admin.ts` + `src/client/admin.html`·`admin/` (`/admin`).
+      시트의 '문제'·'동물'·'설정' 탭과 메뉴의 '시트 상태 확인'(`validateSheets`)을 대신합니다.
+      인증은 관리자 비밀번호 하나 (`ADMIN_PASSWORD`), **매 호출 확인**. 게이트 `test/admin.ts` 8개
 - [ ] 배포
 
 ## 돌려보기
 
 ```bash
-npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + QR 10 + 경주 9
+npm test         # 타입 검사 3벌 + 규칙 17 + 대조 14 + 방 코어 32 + 게이트웨이 23 + 관리 8 + QR 10 + 경주 9
 npm run room     # 방 코어만
 npm run gateway  # 게이트웨이(HTTP 라우트 · 인증)만
+npm run admin    # 문제은행 관리 라우트만
 npm run qr       # 화면이 그리는 QR 이 실제로 디코드되는지만
 npm run build    # 화면을 dist/client 로 (Vite)
 npm run seed     # apps-script/ 를 읽어 migrations/0002_seed.sql 을 다시 만든다
@@ -66,15 +69,20 @@ npm run dev                    # = npm run build && wrangler dev
                                #   ⚠️ dist/client 이 없으면 wrangler 가 뜨지 않는다
 open http://localhost:8787/            # 학생 화면
 open http://localhost:8787/teacher     # 교사 화면
+open http://localhost:8787/admin       # 문제은행 관리 (관리자 비밀번호)
 curl localhost:8787/api/version
 curl -X POST -H 'content-type: application/json' \
      -d '{"className":"2학년 3반","unit":"유전","teamCount":6}' \
      localhost:8787/api/game
 ```
 
-관리자 경로(`POST /api/admin/host-key` — 교사 열쇠 되찾기)는 `ADMIN_PASSWORD` 를
-넣어야 열립니다. **안 넣으면 맞는 값을 줘도 거부합니다** — secret 하나 빠뜨린 배포에서
-판 코드만 아는 학생이 정답과 모든 모둠 암호를 가져가면 안 되기 때문입니다.
+관리자 경로(`POST /api/admin/host-key` — 교사 열쇠 되찾기, `/api/admin/*` — 문제은행)는
+`ADMIN_PASSWORD` 를 넣어야 열립니다. **안 넣으면 맞는 값을 줘도 거부합니다** — secret 하나
+빠뜨린 배포에서 판 코드만 아는 학생이 정답과 모든 모둠 암호를 가져가면 안 되기 때문입니다.
+
+⚠️ **비밀번호는 영문·숫자·기호로 하세요.** HTTP 헤더 값은 Latin-1 바이트만 실을 수 있어서,
+한글이나 이모지가 든 비밀번호는 **브라우저가 요청을 만들다가 던집니다**(서버까지 가지도 않습니다).
+관리 화면은 보내기 전에 걸러 이유를 말하지만, 교사 화면의 '이어하기'는 아직 그 안내가 없습니다.
 
 ```bash
 npx wrangler secret put ADMIN_PASSWORD          # 배포용
@@ -151,9 +159,21 @@ Vite 는 번들과 정적 자산 빌드에만 씁니다.
 src/client/
   index.html      학생 (S4 접속 · S5 게임 · S6 결과)   ← /
   teacher.html    교사 (S1 시작 · 배포 안내 · S2 진행 · S3 정산)   ← /teacher
+  admin.html      문제은행 관리 (문제 · 동물 · 설정)   ← /admin
   shared/         base.css · ui(토스트·확인대화·배너) · socket · clock · gateway · qr
-  team/  teacher/ 화면별 CSS 와 로직
+  team/  teacher/  admin/   화면별 CSS 와 로직
 ```
+
+**관리 화면은 별도 진입점입니다.** 수업용 교사 번들에 관리 코드가 실리면 안 되기 때문입니다
+(PixiJS 를 학생 번들에서 떼어 둔 것과 같은 규칙). 교사 화면에는 링크 하나뿐입니다.
+
+```bash
+npm run build && grep -l "api/admin/questions" dist/client/assets/*.js   # admin-*.js 만 나와야 합니다
+```
+
+**관리 화면은 상수를 박아 두지 않습니다.** 난이도·설정 범위·동물 코드는 전부 서버 응답에
+실려 옵니다. 화면에 박으면 `src/game/config.ts` 를 고친 날 화면만 옛 값을 안내합니다 —
+'설정의 트랙칸수를 12로 바꿔도 조용히 10칸'이었던 그 함정과 같은 종류입니다.
 
 **폴링하지 않습니다.** 상태의 정본은 소켓 푸시(`{type:'state', data}`)이고, 1초마다 도는
 것은 타이머 숫자 계산뿐입니다 — 그것도 서버 시각 기준입니다

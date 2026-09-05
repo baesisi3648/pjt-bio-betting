@@ -97,6 +97,47 @@ export interface PreparedUnit {
   settings: Partial<Settings>;
 }
 
+// ────────────────────────────────────────────────────────────
+// 문제은행 관리 화면 (5단계)
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 관리 화면이 다루는 문항 한 벌.
+ *
+ * ⚠️ **여기에는 정답과 해설이 들어 있다.** 이 모양이 나가는 곳은 `/api/admin/*` 뿐이고,
+ *    그 앞에는 관리자 비밀번호 확인이 있다 (router.ts adminDenied).
+ *    `GET /api/units`·`/api/prepare` 는 지금처럼 개수와 경고만 내보낸다 —
+ *    거기에 이 타입을 얹는 순간 판 코드도 필요 없이 정답이 새어 나간다 (게이트 LEAK-ADMIN).
+ *
+ * D1 의 choice1~4 를 `choices[4]` 로 묶어 둔 것은 화면이 다루기 쉬워서이고,
+ * 열 이름을 아는 곳은 여전히 db.ts 뿐이다.
+ */
+export interface AdminQuestion {
+  id: number;
+  unit: string;
+  /** 쉬움 | 중간 | 어려움. 검사는 admin.ts 가 한다 */
+  level: string;
+  text: string;
+  /** 정확히 4개 */
+  choices: string[];
+  /** 1~4 */
+  answer: number;
+  explanation: string;
+}
+
+/** 아직 id 가 없는 문항 (추가) 또는 id 를 따로 받는 문항 (수정) */
+export type QuestionDraft = Omit<AdminQuestion, 'id'>;
+
+/**
+ * 동물 한 줄.
+ * ⚠️ `code` 는 A~H 로 고정이다 — 게임 코드가 그 이름을 쓴다 (migrations/0001_init.sql).
+ *    관리 화면이 바꾸는 것은 **이름과 이모지뿐**이고, 추가·삭제는 없다.
+ */
+export interface AdminAnimal { code: string; name: string; emoji: string }
+
+/** '설정' 한 줄. label 은 SETTING_RANGE 가 갖고 있으므로 여기서는 값만 오간다 */
+export interface AdminSetting { key: string; value: string }
+
 export interface DbPort {
   listUnits(): Promise<string[]>;
   recentGames(limit: number): Promise<RecentGame[]>;
@@ -105,6 +146,19 @@ export interface DbPort {
   hasGame(code: string): Promise<boolean>;
   addGame(row: { code: string; className: string; unit: string; createdAt: number }): Promise<void>;
   markOver(code: string): Promise<void>;
+
+  // ── 관리 화면 (5단계). 부르는 곳은 admin.ts 하나뿐이다 ──
+  /** unit 이 null 이면 전부 */
+  adminQuestions(unit: string | null): Promise<AdminQuestion[]>;
+  adminAddQuestion(q: QuestionDraft): Promise<AdminQuestion>;
+  /** 없는 id 면 false — 라우트가 NOT_FOUND 로 바꾼다 */
+  adminUpdateQuestion(id: number, q: QuestionDraft): Promise<boolean>;
+  adminDeleteQuestion(id: number): Promise<boolean>;
+  adminAnimals(): Promise<AdminAnimal[]>;
+  /** 8줄을 통째로 바꾼다. A~H 가 아닌 줄은 지운다 (그래야 망가진 표를 화면에서 고칠 수 있다) */
+  adminSaveAnimals(rows: AdminAnimal[]): Promise<void>;
+  adminSettings(): Promise<AdminSetting[]>;
+  adminSaveSettings(rows: AdminSetting[]): Promise<void>;
 }
 
 // ────────────────────────────────────────────────────────────
