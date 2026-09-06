@@ -1891,3 +1891,11 @@ entries:
     description: Refactor audio
     impact:
       - none
+  - date: "2026-09-06T23:47:34"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/public/guide.html
+    description: Create guide in web
+    impact:
+      - none
