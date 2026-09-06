@@ -1362,3 +1362,35 @@ entries:
     description: Add new functionality to teacher in web
     impact:
       - none
+  - date: "2026-09-06T14:21:24"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Add documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-06T14:58:22"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Create rules in web
+    impact:
+      - "internal dependency added: ./config.ts"
+  - date: "2026-09-06T15:01:18"
+    type: feature
+    domain: web
+    files:
+      - web/migrations/0005_renewal_levels.sql
+    description: Create 0005_renewal_levels in web
+    impact:
+      - database migration
+  - date: "2026-09-06T15:03:40"
+    type: test
+    domain: web
+    files:
+      - web/test/gates.ts
+    description: Add test file gates.ts
+    impact:
+      - "internal dependency added: ../src/game/rules.ts, ../src/game/config.ts, ../src/game/config.ts (+more)"

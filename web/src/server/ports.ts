@@ -115,7 +115,7 @@ export interface PreparedUnit {
 export interface AdminQuestion {
   id: number;
   unit: string;
-  /** 쉬움 | 중간 | 어려움. 검사는 admin.ts 가 한다 */
+  /** config.ts 의 LEVELS (쉬움 | 보통 | 어려움). 검사는 admin.ts 가 한다 */
   level: string;
   text: string;
   /** 정확히 4개 */

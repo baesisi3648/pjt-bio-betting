@@ -6,7 +6,24 @@
  */
 
 export const ANIMAL_CODES = ['A', 'B', 'C', 'D', 'E', 'F', 'G', 'H'] as const;
-export const LEVELS = ['쉬움', '중간', '어려움'] as const;
+/**
+ * 난이도. '중간' → '보통' (RENEWAL §1 결정표).
+ *
+ * ⚠️ 이 문자열은 D1 `questions.level` 에 그대로 들어 있는 값이다.
+ *    바꾸면 마이그레이션(0005)이 옛 값을 같이 옮겨야 한다 — 안 그러면
+ *    옛 문항이 통째로 '난이도가 …가 아님' 으로 걸러진다 (bank.ts toQuestion).
+ */
+export const LEVELS = ['쉬움', '보통', '어려움'] as const;
+
+/**
+ * 한 판의 라운드 수. **10라운드 고정** (RENEWAL §1).
+ *
+ * ⚠️ 설정에 두지 않는다. 힌트가 라운드×난이도로 짝지어져 있어서(§2-2)
+ *    라운드 수가 판마다 달라지면 힌트 30개도 판마다 달라진다.
+ *    실제로 몇 라운드에서 끝나는지는 `state.lastRound`(9 또는 10)이고,
+ *    그건 학생에게 비공개다.
+ */
+export const ROUNDS = 10;
 
 export type AnimalCode = (typeof ANIMAL_CODES)[number];
 export type Level = (typeof LEVELS)[number];
@@ -36,11 +53,12 @@ export const DEFAULTS = {
   initialCoins:    20,
   maxBetPerRound:  3,
   seedCoins:       15,   // PDF는 5. 리뷰 C6 — 5면 최대 배당 29.6배라 추론이 복권이 된다
-  moveSeconds:     20,   // 경주(moving) 단계. 앱스 스크립트판에는 없던 단계다 — MIGRATION §8-3
-  quizSeconds:     90,
-  discussSeconds: 180,   // 감독 G-02 — 힌트를 놓고 이야기하는 시간. 이 수업의 실체
-  betSeconds:      60,
-  trackCells:      10,
+  // ── 시간 (RENEWAL §1 결정표) — 라운드 190초 × 10라운드 ≈ 32분 ──
+  moveSeconds:     15,   // 경주(moving) 단계. 앱스 스크립트판에는 없던 단계다 — MIGRATION §8-3
+  quizSeconds:     40,
+  discussSeconds:  90,   // 감독 G-02 — 힌트를 놓고 이야기하는 시간. 이 수업의 실체
+  betSeconds:      45,
+  trackCells:      20,
   /**
    * 모든 모둠이 이번 단계 행동을 마친 뒤 몇 초 더 두는가 (문제·베팅 단계만).
    * 0 이면 자동 단축을 끈다.
@@ -64,7 +82,9 @@ export const SETTING_RANGE: Record<string, { min: number; max: number; label: st
   quizSeconds:    { min: 10, max: 900, label: '문제시간초' },
   discussSeconds: { min: 10, max: 900, label: '토론시간초' },
   betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
-  trackCells:     { min: 4,  max: 30,  label: '트랙칸수' },
+  // 5 미만이면 4~8위 다섯 마리를 서로 다른 칸에 못 세우고, 27 이상이면 전원이 매 라운드 3칸이라
+  // 선두가 안 바뀐다 (RENEWAL §2-1 조건 5·6). 게이트 RACE-TRK 가 경계를 지킨다
+  trackCells:     { min: 5,  max: 26,  label: '트랙칸수' },
   // 0 은 '끔' 이라 min 이 0 이다. 다른 시간 설정과 달리 하한이 없다
   autoSkipSeconds: { min: 0, max: 30,  label: '자동단축초' }
 };
@@ -76,8 +96,17 @@ export const PIN_LENGTH = 4;
 export const HOST_KEY_LENGTH = 12;
 
 export const LIMITS = {
-  reverseAttempts:  50,   // 이동 역산 재시도
-  minHintsPerLevel:  6    // 감독 G-03 — 6라운드 내내 같은 난이도를 골라도 중복 없게
+  /**
+   * 경주 계획 재시도. 50 → 200 으로 올렸다.
+   *
+   * 리뉴얼 생성기는 "선두가 두 번 이상 바뀐다 · 1위는 4라운드 이후에 처음 선두"라는
+   * 조건(RENEWAL §2-1 조건 6)을 **굴려 보고 안 맞으면 다시 굴린다.** 50 번으로는
+   * 트랙이 좁을 때(설정 4~30) 실패해서 판이 안 만들어지는 일이 생긴다.
+   */
+  reverseAttempts: 200,
+  /** 힌트 10개가 1·2·3등을 확정해 버리면 다시 굴린다 (RENEWAL §2-2, 게이트 HINT-HARD) */
+  hintAttempts:     60,
+  minHintsPerLevel:  6    // 감독 G-03 — 난이도별 문항이 이보다 적으면 경고 (문제은행은 2단계)
 };
 
 /**
@@ -103,6 +132,9 @@ export const MESSAGES: Record<string, string> = {
   BET_CLOSED:       '베팅 시간이 지났어요. 다음 라운드를 기다려주세요',
   ALREADY_ANSWERED: '이번 라운드는 이미 제출했어요',
   ALREADY_BET:      '이미 확정했어요',
+  // 골인한 동물에는 걸 수 없다 (RENEWAL §1). 1위가 8라운드에 들어와 화면에 보이는
+  // 순간부터 그 줄은 닫힌다 — 안 그러면 마지막 라운드 베팅이 공짜다
+  BET_FINISHED:     '이미 골인한 동물에는 걸 수 없어요',
   TOO_MANY_COINS:   '이번 라운드에는 3개까지만 걸 수 있어요',
   NOT_ENOUGH_COINS: '코인이 모자라요',
   BAD_AMOUNT:       '코인 수가 이상해요',
@@ -129,4 +161,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2026.09.05';
+export const DEPLOY_VERSION = 'web-2026.09.06';

@@ -11,11 +11,11 @@
  *   node test/room.ts
  */
 
-import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES } from '../src/game/config.ts';
+import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, ROUNDS } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import { computeOdds } from '../src/game/rules.ts';
 import type { GameState, Question, Rng } from '../src/game/types.ts';
-import { allTeamsDone, teacherView, teamView } from '../src/game/views.ts';
+import { allTeamsDone, finishedOf, teacherView, teamView } from '../src/game/views.ts';
 import { Room, restore } from '../src/do/room.ts';
 import type { GameEvent } from '../src/do/room.ts';
 
@@ -26,8 +26,9 @@ import type { GameEvent } from '../src/do/room.ts';
 const QUESTIONS: Question[] = [];
 {
   let id = 1;
+  // 10라운드가 되었으므로 난이도별 10문항. 모자랄 때의 순환 재사용은 gates.ts D5b 가 본다
   for (const lv of LEVELS) {
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= ROUNDS; i++) {
       QUESTIONS.push({
         id: id++, unit: '유전', level: lv, text: `${lv} 문제 ${i}`,
         choices: ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ'], answer: (i % 4) + 1, explanation: '해설'
@@ -69,9 +70,10 @@ class Table {
     });
   }
 
-  open(teamCount = 6, code = 'TST1') {
+  open(teamCount = 6, code = 'TST1', fraudEnabled?: boolean) {
     const r = this.room.create(
-      { code, className: '2학년 3반', unit: '유전', teamCount }, QUESTIONS, ANIMALS
+      { code, roomTitle: '2학년 3반', setName: '유전', teamCount, fraudEnabled },
+      QUESTIONS, ANIMALS
     );
     if (!r.ok) throw new Error('판 생성 실패: ' + r.message);
     this.code = r.data.code; this.hostKey = r.data.hostKey; this.pins = r.data.pins;
@@ -113,7 +115,13 @@ function answerOf(t: Table, round: number, level: Level): number {
   return st.questionById[id]!.answer;
 }
 
-/** 한 판을 끝까지 돌린다. 라운드마다 진행 버튼 → 경주 → 문제 → 토론 → 베팅 */
+/**
+ * 한 판을 끝까지 돌린다. 라운드마다 진행 버튼 → 경주 → 문제 → 토론 → 베팅.
+ *
+ * ⚠️ 8라운드쯤부터 1위가 골인해 있다. 골인한 동물에 걸면 서버가 BET_FINISHED 로
+ *    거절하므로(RENEWAL §1), 여기서도 아직 안 들어온 동물을 고른다 —
+ *    "베팅이 조용히 안 들어간 채로 판이 도는" 상태에서 정산을 검사하면 안 된다.
+ */
 function playFullGame(t: Table, teams = 6): number[] {
   const last = t.state().lastRound;
   const roundsSeen: number[] = [];
@@ -123,13 +131,17 @@ function playFullGame(t: Table, teams = 6): number[] {
     for (let n = 1; n <= teams; n++) {
       const lv = LEVELS[n % 3]!;
       t.room.chooseLevel(n, lv, t.pins[n]!);
-      // 4모둠은 맞히고 2모둠은 틀린다 — 힌트가 골고루 나가야 D6 이 의미가 있다
+      // 4모둠은 맞히고 2모둠은 틀린다 — 힌트가 골고루 나가야 검사가 의미 있다
       t.room.submitAnswer(n, lv, n <= 4 ? answerOf(t, r, lv) : 99, t.pins[n]!);
     }
     t.endPhase();                        // quiz    → discuss
     t.endPhase();                        // discuss → betting
+    const open = ANIMAL_CODES.filter((c) => finishedOf(t.state()).indexOf(c) < 0);
     for (let n = 1; n <= teams; n++) {
-      t.room.placeBet(n, { [ANIMAL_CODES[(n + r) % 8]!]: 2 }, t.pins[n]!);
+      const bet = t.room.placeBet(n, { [open[(n + r) % open.length]!]: 1 }, t.pins[n]!);
+      if (!bet.ok && bet.error !== 'NOT_ENOUGH_COINS') {
+        throw new Error(`${r}R ${n}모둠 베팅 실패: ${bet.error}`);
+      }
     }
     t.endPhase();                        // betting → waiting
     roundsSeen.push(t.state().round);
@@ -175,6 +187,35 @@ gate('SIM1', '판 생성 — 6모둠, 암호 발급, 대기 단계에서 시작'
         s.phase === PHASES.WAITING && s.roundStarted === false,
     detail: `코드 ${created.code}, 모둠 6개, 열쇠 ${created.hostKey.length}자리, 단계 ${s.phase}`
   };
+});
+
+gate('SIM1b', `판이 ${ROUNDS}라운드로 만들어진다 — lastRound 는 9 또는 10, 문항은 ${ROUNDS}라운드 분`, () => {
+  const s = T.state();
+  const plans = Object.keys(s.questionPlan).length;
+  const hints = LEVELS.map((lv) => s.hintPool[lv].length);
+  // ⚠️ 문항을 lastRound 만큼만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가 샌다
+  return {
+    ok: (s.lastRound === 9 || s.lastRound === 10) && plans === ROUNDS &&
+        hints.every((n) => n === ROUNDS) && s.settings.trackCells === DEFAULTS.trackCells,
+    detail: `lastRound ${s.lastRound} (학생 비공개) · 문항 배정 ${plans}라운드 분 · 힌트 ${hints.join('/')} · 트랙 ${s.settings.trackCells}칸`
+  };
+});
+
+gate('FRAUD-ROOM', '사기 라운드는 2~4 중 하나이고, 스위치를 끄면 null', () => {
+  const on = T.state();
+  const off = new Table();
+  off.open(2, 'NOFR', false);
+  const so = off.state();
+  const bad: string[] = [];
+  if (!on.fraudEnabled || on.fraudRound == null || on.fraudRound < 2 || on.fraudRound > 4) {
+    bad.push(`켠 판 fraudRound=${String(on.fraudRound)}`);
+  }
+  if (so.fraudEnabled || so.fraudRound !== null) bad.push(`끈 판 fraudRound=${String(so.fraudRound)}`);
+  // 30문장은 어느 쪽이든 서로 다르다
+  const all = LEVELS.flatMap((lv) => on.hintPool[lv]);
+  if (new Set(all).size !== 30) bad.push(`중복 문장 ${30 - new Set(all).size}개`);
+  return { ok: bad.length === 0,
+           detail: bad.length ? '⛔ ' + bad.join(', ') : `켠 판 ${on.fraudRound}라운드 · 끈 판 null · 30문장 전부 다름` };
 });
 
 gate('SIM2', '모둠 접속', () => {
@@ -257,10 +298,93 @@ gate('D2b', '3코인 초과·남의 코인을 서버가 막는다', () => {
   return { ok: codes === 'TOO_MANY_COINS/BAD_AMOUNT/ALREADY_BET' && okBet.ok, detail: codes + ' · 정상 베팅은 통과' };
 });
 
-gate('D6', '같은 모둠에 같은 힌트 두 번 안 감', () => {
-  const teams = FULL.state().teams;
-  const ok = teams.every((t) => new Set(t.hints.map((h) => h.text)).size === t.hints.length);
-  return { ok, detail: teams.map((t) => `${t.no}모둠 ${t.hints.length}개`).join(', ') };
+gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 동물이 뜬다', () => {
+  // 1위가 골인한 **뒤에도 라운드가 남는** 판이 필요하다 (골인 8R + lastRound 9·10 등).
+  // 1위가 마지막 라운드에 들어오는 판에서는 검사할 베팅 단계 자체가 없다
+  let t = new Table();
+  for (let i = 0; i < 50; i++) {
+    t = new Table();
+    t.open(2, 'BFIN');
+    if (t.state().finishRound[t.state().truth[0]!]! < t.state().lastRound) break;
+  }
+  const winner = t.state().truth[0]!;
+  const firstFinish = t.state().finishRound[winner]!;   // 8 또는 9라운드 (서버만 안다)
+  if (firstFinish >= t.state().lastRound) return { ok: false, detail: '검사할 판을 못 만들었다' };
+
+  // 골인 전 라운드에는 1위에게도 걸 수 있다
+  let early: ReturnType<typeof t.room.placeBet> | null = null;
+  for (let r = 1; r <= firstFinish; r++) {
+    t.room.advanceRound(t.hostKey);
+    t.endPhase(); t.endPhase(); t.endPhase();           // → betting
+    if (r === firstFinish - 1) early = t.room.placeBet(1, { [winner]: 1 }, t.pins[1]!);
+    t.endPhase();                                       // → waiting
+  }
+
+  // 이제 1위는 결승선에 있다
+  const pos = t.view(1).positions[winner]!;
+  const atGoal = pos === t.state().settings.trackCells;
+
+  t.room.advanceRound(t.hostKey);
+  t.endPhase(); t.endPhase(); t.endPhase();              // 다음 라운드 betting
+  const finished = t.view(1).finished;
+  const tvFinished = t.tv().finished;
+  const blocked = t.room.placeBet(2, { [winner]: 1 }, t.pins[2]!);
+  const open = ANIMAL_CODES.find((c) => finished.indexOf(c) < 0)!;
+  const allowed = t.room.placeBet(2, { [open]: 1 }, t.pins[2]!);
+
+  return {
+    ok: !!early?.ok && atGoal &&
+        finished.indexOf(winner) >= 0 && tvFinished.indexOf(winner) >= 0 &&
+        !blocked.ok && blocked.error === 'BET_FINISHED' && allowed.ok,
+    detail: `${firstFinish}R 에 1위 골인(${pos}칸, lastRound ${t.state().lastRound}) · 그전 라운드에는 걸렸다(${!!early?.ok}) · ` +
+            `골인 뒤 ${blocked.ok ? 'ok⛔' : blocked.error} · 폰·교사 finished ${finished.length}/${tvFinished.length}마리 · ` +
+            `아직 안 들어온 동물은 통과(${allowed.ok})`
+  };
+});
+
+gate('HINT-ROUND', '힌트는 (라운드, 난이도)로 정해진다 — 같은 걸 두 번 받는 일이 없다', () => {
+  const st = FULL.state();
+  const bad: string[] = [];
+  for (const t of st.teams) {
+    if (new Set(t.hints.map((h) => h.text)).size !== t.hints.length) bad.push(`${t.no}모둠 중복`);
+    for (const h of t.hints) {
+      // 저장된 hintPool 의 그 자리와 **글자 하나까지** 같아야 한다
+      if (st.hintPool[h.level][h.round - 1] !== h.text) bad.push(`${t.no}모둠 ${h.round}R ${h.level} 자리 어긋남`);
+    }
+  }
+  // 같은 라운드에 같은 난이도를 고른 두 모둠은 **같은 힌트**를 받는다 (RENEWAL §1)
+  const shared: string[] = [];
+  for (let r = 1; r <= st.lastRound; r++) {
+    const byLevel: Record<string, Set<string>> = {};
+    for (const t of st.teams) {
+      const h = t.hints.find((x) => x.round === r);
+      if (h) (byLevel[h.level] ||= new Set()).add(h.text);
+    }
+    for (const lv of Object.keys(byLevel)) {
+      if (byLevel[lv]!.size > 1) bad.push(`${r}R ${lv} 모둠마다 다른 힌트`);
+      else shared.push(`${r}R${lv}`);
+    }
+  }
+  return { ok: bad.length === 0 && shared.length > 0,
+           detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ')
+             : FULL.state().teams.map((t) => `${t.no}모둠 ${t.hints.length}개`).join(', ') +
+               ` · 같은 라운드·난이도는 모둠끼리 같은 문장 (${shared.length}자리 확인)` };
+});
+
+gate('HINT-ONCE', '한 라운드에 두 번 제출할 수 없다 — 그래서 힌트가 두 번 갈 길이 없다', () => {
+  const t = new Table();
+  t.open(2, 'HONE');
+  t.room.advanceRound(t.hostKey);
+  t.endPhase();                                   // → quiz
+  const first = t.room.submitAnswer(1, '어려움', answerOf(t, 1, '어려움'), t.pins[1]!);
+  const again = t.room.submitAnswer(1, '어려움', answerOf(t, 1, '어려움'), t.pins[1]!);
+  const other = t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
+  const hints = t.state().teams[0]!.hints;
+  return {
+    ok: first.ok && !again.ok && again.error === 'ALREADY_ANSWERED' &&
+        !other.ok && other.error === 'ALREADY_ANSWERED' && hints.length === 1,
+    detail: `첫 제출 통과 · 같은 난이도 재제출 ${again.ok ? 'ok⛔' : again.error} · 다른 난이도도 ${other.ok ? 'ok⛔' : other.error} · 힌트 ${hints.length}개`
+  };
 });
 
 const fin = FULL.room.finalize(FULL.hostKey);
@@ -311,28 +435,38 @@ gate('H4c', '정산 후에만 정답이 공개된다', () => {
            detail: `모둠·교사 뷰 모두 truth 포함 (${v.truth!.join('')})` };
 });
 
-gate('H4d/H4f', '어떤 단계에서도 정산 전에는 truth·moves·lastRound 가 안 나간다', () => {
+gate('LEAK', '어떤 단계에서도 정산 전에 truth·moves·lastRound·fraudRound·finishRound 가 안 나간다', () => {
   const t = new Table();
   t.open(2, 'H4D');
   const seen: string[] = [];
   const bad: string[] = [];
   const truthStr = t.state().truth.join('","');
+  const fraudRound = t.state().fraudRound;
 
   const inspect = () => {
     const phase = t.state().phase;
     seen.push(phase);
-    const tvKeys = allKeys(JSON.parse(JSON.stringify(t.tv())));
-    const tvJson = JSON.stringify(t.tv());
+    const tv = t.tv();
+    const tvKeys = allKeys(JSON.parse(JSON.stringify(tv)));
+    const tvJson = JSON.stringify(tv);
     if (tvKeys.has('moves')) bad.push(`교사뷰(${phase}).moves`);
-    if (t.tv().truth !== null) bad.push(`교사뷰(${phase}).truth`);
+    if (tvKeys.has('finishRound')) bad.push(`교사뷰(${phase}).finishRound`);
+    if (tvKeys.has('hintPool')) bad.push(`교사뷰(${phase}).hintPool`);
+    if (tv.truth !== null) bad.push(`교사뷰(${phase}).truth`);
+    // ⚠️ 정산 전에는 null 이다. 교사 화면은 TV 에 그대로 뜬다 (RENEWAL §2-3)
+    if (tv.fraudRound !== null) bad.push(`교사뷰(${phase}).fraudRound=${String(tv.fraudRound)}`);
     if (tvJson.includes(truthStr)) bad.push(`교사뷰(${phase}) 정답 문자열`);
 
     for (const n of [1, 2]) {
       const v = JSON.parse(JSON.stringify(t.view(n)));
       const keys = allKeys(v);
       const json = JSON.stringify(v);
-      for (const k of ['truth', 'moves', 'lastRound']) if (keys.has(k)) bad.push(`모둠뷰(${phase}).${k}`);
+      for (const k of ['truth', 'moves', 'lastRound', 'fraudRound', 'finishRound', 'hintPool', 'fraudEnabled']) {
+        if (keys.has(k)) bad.push(`모둠뷰(${phase}).${k}`);
+      }
       if (json.includes(truthStr)) bad.push(`모둠뷰(${phase}) 정답 문자열`);
+      // 스위치가 켜졌다는 것만 알린다 — 어느 라운드인지는 아니다
+      if (t.view(n).fraudNotice !== true) bad.push(`모둠뷰(${phase}).fraudNotice`);
     }
   };
 
@@ -343,8 +477,29 @@ gate('H4d/H4f', '어떤 단계에서도 정산 전에는 truth·moves·lastRound
   t.endPhase(); inspect();                      // betting
   t.endPhase(); inspect();                      // waiting
 
+  // 스위치를 끈 판은 안내 자체가 꺼진다
+  const off = new Table();
+  off.open(2, 'NOFR2', false);
+  if (off.view(1).fraudNotice !== false) bad.push('끈 판인데 fraudNotice=true');
+
   return { ok: bad.length === 0,
-           detail: bad.length ? '⛔ ' + bad.join(', ') : `${seen.join('·')} — 6개 단계 × 3개 뷰에서 0건` };
+           detail: bad.length ? '⛔ ' + bad.join(', ')
+             : `${seen.join('·')} — 6개 단계 × 3개 뷰에서 0건 · 실제 사기 라운드는 ${fraudRound}R (안 나갔다) · fraudNotice 켬 true / 끔 false` };
+});
+
+gate('REVEAL-FRAUD', '정산 뒤에야 교사 뷰에 사기 라운드가 뜬다 (모둠 뷰에는 끝까지 없다)', () => {
+  const t = new Table();
+  t.open(2, 'RVFR');
+  const secret = t.state().fraudRound;
+  playFullGame(t, 2);
+  const before = t.tv().fraudRound;
+  t.room.finalize(t.hostKey);
+  const after = t.tv().fraudRound;
+  const teamKeys = allKeys(JSON.parse(JSON.stringify(t.view(1))));
+  return {
+    ok: before === null && after === secret && secret !== null && !teamKeys.has('fraudRound'),
+    detail: `정산 전 ${String(before)} → 정산 후 ${String(after)}라운드 공개 · 모둠 뷰에는 정산 뒤에도 없음`
+  };
 });
 
 gate('H4f-raceMoves', 'moving 뷰의 raceMoves 는 동물 8개, 값 0~3 뿐', () => {
@@ -410,7 +565,7 @@ gate('RACE1', '마감 직전 제출은 알람이 와도 미제출로 덮이지 �
 
 // ── 복구 ─────────────────────────────────────────────────
 
-gate('D6b', 'restore 뒤에도 hintGiven 이 복원되어 같은 힌트가 다시 안 나간다', () => {
+gate('D6b', 'restore 가 힌트를 되살리고, 복구 뒤에도 같은 자리의 힌트만 나온다', () => {
   const t = new Table();
   t.open(2, 'D6B');
   t.room.advanceRound(t.hostKey);
@@ -420,27 +575,31 @@ gate('D6b', 'restore 뒤에도 hintGiven 이 복원되어 같은 힌트가 다�
   const firstHint = first.data.newHint!.text;
 
   // 스냅샷이 이벤트보다 뒤처진 상황: 판 만든 직후 스냅샷 + 그 뒤 이벤트 전부
-  const stale = t.snapshots[0]!;
-  const rec = restore(stale, t.events);
-
-  const restoredKeys = JSON.stringify(rec.hintGiven);
+  const rec = restore(t.snapshots[0]!, t.events);
   const restoredHints = rec.teams[0]!.hints.length;
 
-  // 복구된 상태로 방을 다시 세우고, 같은 난이도를 또 맞힌다
+  // ⚠️ 예전에는 여기서 hintGiven(모둠별 '이미 준 힌트' 자리)까지 되살려야 했고,
+  //    빠뜨리면 복구 직후 1번 힌트가 다시 나갔다. 이제 그 상태가 아예 없다 —
+  //    힌트는 (라운드, 난이도)로 정해지므로 되살릴 것이 없다 (RENEWAL §2-2)
+  const noGiven = !('hintGiven' in (rec as unknown as Record<string, unknown>));
+
+  // 복구된 상태로 방을 다시 세우고, **다음 라운드**에 같은 난이도를 맞힌다
   const t2 = new Table();
   t2.now = t.now;
+  rec.round = 2;
   rec.teams[0]!.answered = {};
   rec.phase = PHASES.QUIZ;
   rec.phaseEndsAt = t2.now + 99_999;
   t2.room.hydrate(rec);
-  const second = t2.room.submitAnswer(1, '어려움', answerOf(t2, rec.round, '어려움'), t.pins[1]!);
+  const second = t2.room.submitAnswer(1, '어려움', answerOf(t2, 2, '어려움'), t.pins[1]!);
   if (!second.ok) return { ok: false, detail: '복구 후 제출 실패: ' + second.message };
   const secondHint = second.data.newHint?.text || '(없음)';
 
   return {
-    ok: restoredHints === 1 && restoredKeys !== '{}' && secondHint !== firstHint,
-    detail: `복구된 hintGiven ${restoredKeys}, 힌트 ${restoredHints}개 · 다시 맞히니 ` +
-            (secondHint === firstHint ? '⛔ 같은 힌트' : '다른 힌트가 나갔다')
+    ok: restoredHints === 1 && noGiven && secondHint !== firstHint &&
+        secondHint === rec.hintPool['어려움'][1],
+    detail: `복구된 힌트 ${restoredHints}개 · hintGiven 필드 없음 ${noGiven} · ` +
+            `2라운드에 다시 맞히니 ` + (secondHint === firstHint ? '⛔ 같은 힌트' : '그 라운드 자리의 힌트가 나갔다')
   };
 });
 
@@ -649,7 +808,7 @@ gate('NO-DATE', '모든 응답에 Date 객체가 없다 (숫자 ms 만)', () => 
 gate('CFG-MOVE', '경주시간초가 이상하면 기본값으로 되돌리고 알린다', () => {
   const t = new Table();
   const r = t.room.create(
-    { code: 'CFG', className: 'X', unit: '유전', teamCount: 2 },
+    { code: 'CFG', roomTitle: 'X', setName: '유전', teamCount: 2 },
     QUESTIONS, ANIMALS,
     { moveSeconds: NaN, quizSeconds: 99_999, betSeconds: 45 } as never
   );
@@ -688,7 +847,7 @@ gate('LATE', '마감 뒤 알람이 늦어도 제출·베팅은 받지 않는다 
 gate('VIEW-TRACK', '뷰가 트랙칸수를 싣고, 교사 뷰만 roundStarted 를 싣는다', () => {
   const t = new Table();
   const r = t.room.create(
-    { code: 'TRK', className: 'X', unit: '유전', teamCount: 2 }, QUESTIONS, ANIMALS, { trackCells: 14 }
+    { code: 'TRK', roomTitle: 'X', setName: '유전', teamCount: 2 }, QUESTIONS, ANIMALS, { trackCells: 14 }
   );
   if (!r.ok) return { ok: false, detail: '판 생성 실패' };
   t.hostKey = r.data.hostKey;
@@ -762,7 +921,7 @@ gate('SKIP2', 'discuss 스킵 → betting, betting 스킵 → waiting + 전 모�
   return {
     ok: a.ok && b.ok && toBetting && st.phase === PHASES.WAITING &&
         st.phaseEndsAt === null && t.alarmAt === null && locked,
-    detail: `discuss → ${toBetting ? 'betting(60초)' : '⛔'} → ${st.phase} · ` +
+    detail: `discuss → ${toBetting ? `betting(${DEFAULTS.betSeconds}초)` : '⛔'} → ${st.phase} · ` +
             `안 건 모둠까지 betLocked ${locked} (알람 경로와 같다) · 알람 해제 ${t.alarmAt === null}`
   };
 });
@@ -840,7 +999,7 @@ gate('AUTO1', 'quiz — 마지막 모둠이 답을 내면 마감이 5초 뒤로 
   const partialKept = t.state().phaseEndsAt === full && t.alarmAt === full;
 
   t.tick(3_000);
-  t.room.submitAnswer(3, '중간', answerOf(t, 1, '중간'), t.pins[3]!);
+  t.room.submitAnswer(3, '보통', answerOf(t, 1, '보통'), t.pins[3]!);
   const st = t.state();
   const target = t.now + DEFAULTS.autoSkipSeconds * 1000;
   const shortened = st.phaseEndsAt === target && t.alarmAt === target;
@@ -903,14 +1062,14 @@ gate('AUTO2', 'betting — 마지막 모둠이 확정하면 같은 방식으로 
   };
 });
 
-gate('AUTO3', 'discuss 는 어떤 조건에도 당겨지지 않는다 (토론 180초가 이 수업의 실체)', () => {
+gate('AUTO3', `discuss 는 어떤 조건에도 당겨지지 않는다 (토론 ${DEFAULTS.discussSeconds}초가 이 수업의 실체)`, () => {
   const t = new Table();
   t.open(2, 'AUT3');
   t.room.advanceRound(t.hostKey);
   t.endPhase();                                   // → quiz
   // '모둠이 다 했다'가 참인 가장 강한 조건으로 토론에 들어간다
   t.room.submitAnswer(1, '쉬움', answerOf(t, 1, '쉬움'), t.pins[1]!);
-  t.room.submitAnswer(2, '중간', answerOf(t, 1, '중간'), t.pins[2]!);
+  t.room.submitAnswer(2, '보통', answerOf(t, 1, '보통'), t.pins[2]!);
   t.endPhase();                                   // → discuss
 
   const full = t.state().phaseEndsAt!;
@@ -938,7 +1097,7 @@ gate('AUTO3', 'discuss 는 어떤 조건에도 당겨지지 않는다 (토론 18
 gate('AUTO4', '자동단축초가 0 이면 자동 단축이 없다', () => {
   const t = new Table();
   const r = t.room.create(
-    { code: 'AUT4', className: 'X', unit: '유전', teamCount: 2 }, QUESTIONS, ANIMALS,
+    { code: 'AUT4', roomTitle: 'X', setName: '유전', teamCount: 2 }, QUESTIONS, ANIMALS,
     { autoSkipSeconds: 0 }
   );
   if (!r.ok) return { ok: false, detail: '판 생성 실패' };

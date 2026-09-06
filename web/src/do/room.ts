@@ -24,19 +24,19 @@
  */
 
 import {
-  ANIMAL_CODES, DEFAULTS, LEVELS, LIMITS, MESSAGES, PHASES, SETTING_RANGE
+  ANIMAL_CODES, DEFAULTS, LEVELS, MESSAGES, PHASES, ROUNDS, SETTING_RANGE
 } from '../game/config.ts';
 import type { AnimalCode, Level, Settings } from '../game/config.ts';
 import {
-  buildHints, computeOdds, makeCode, makeHostKey, makePin, planQuestions, planRace,
-  positionsAtRound, rankByPosition, settle, takeHint, validateBet
+  buildFraudRound, buildHintPlan, computeOdds, makeCode, makeHostKey, makePin,
+  planQuestions, planRace, positionsAtRound, rankByPosition, settle, validateBet
 } from '../game/rules.ts';
 import type {
   AnswerRecord, Bets, GameState, Hint, Question, Rng, Team
 } from '../game/types.ts';
 import {
-  allTeamsDone, canSkipNow, finalizeView, handoutView, lobbyView, revealView,
-  teacherView, teamView
+  allTeamsDone, canSkipNow, currentPositions, finalizeView, handoutView, lobbyView,
+  revealView, teacherView, teamView
 } from '../game/views.ts';
 import type {
   FinalizeView, HandoutView, LobbyView, RevealView, TeacherView, TeamView
@@ -99,8 +99,12 @@ export interface AnimalTable {
 export interface CreateConfig {
   /** DO 는 판 코드 하나가 인스턴스 하나라, 코드는 보통 Worker 가 정해서 넘긴다 */
   code?: string;
-  className: string;
-  unit: string;
+  /** 화면에 뜨는 방 이름 (예전 className) */
+  roomTitle: string;
+  /** 문제 세트 이름. 전체를 고르면 비운다 (예전 unit) */
+  setName?: string | null;
+  /** 사기 라운드 스위치. **기본은 켬** (RENEWAL §1) */
+  fraudEnabled?: boolean;
   teamCount: number;
   teamNames?: string[];
   /** 문제은행 검증에서 나온 경고를 그대로 교사 화면까지 흘려보낸다 */
@@ -234,9 +238,22 @@ export class Room {
     const settings = normalizeSettings(rawSettings, warnings);
 
     // 경주 계획 — 순위를 먼저 정하고 이동을 역산한다 (§4-2). 실패하면 다시 굴린다
-    let race = null, tries = 0;
-    while (!race && tries++ < LIMITS.reverseAttempts) race = planRace(this.rng, settings.trackCells);
-    if (!race) return err('SHEET_INVALID', '경주를 만들지 못했어요. 다시 시도해주세요.');
+    //
+    // ⚠️ 트랙칸수가 5 미만이면 4~8위를 서로 다른 칸에 못 세우고, 27 이상이면
+    //    모두가 매 라운드 3칸씩 달려야 해서 선두가 바뀌지 않는다 (RENEWAL §2-1 조건 5·6).
+    //    설정 범위(4~30)는 그대로 두고, 만들 수 없는 값이면 이유를 말한다 —
+    //    조용히 조건을 포기하면 힌트가 겹치거나 경주가 밋밋해진다
+    const race = planRace(this.rng, settings.trackCells, ROUNDS);
+    if (!race) {
+      return err('SHEET_INVALID', `경주를 만들지 못했어요. '설정'의 트랙칸수를 5~26 사이로 해주세요 (지금 ${settings.trackCells}).`);
+    }
+
+    // 사기 라운드는 2·3·4 중 하나. 스위치를 끄면 없다 (RENEWAL §1)
+    const fraudEnabled = config.fraudEnabled !== false;
+    const fraudRound = fraudEnabled ? buildFraudRound(this.rng) : null;
+    // ⚠️ 문장과 논리식이 **한 번의 호출**에서 같이 나온다. 따로 부르면 무작위 선택이
+    //    갈라져 게이트가 다른 문장을 검증하게 된다 (rules.buildHintPlan 주석)
+    const hintPlan = buildHintPlan(race.truth, animals.names, this.rng, { fraudRound, rounds: ROUNDS });
 
     const byLevel: Partial<Record<Level, Question[]>> = {};
     for (const lv of LEVELS) byLevel[lv] = [];
@@ -261,8 +278,10 @@ export class Room {
       version: 1,
       code: config.code || makeCode(this.rng),
       hostKey: makeHostKey(this.rng),
-      className: config.className,
-      unit: config.unit,
+      roomTitle: config.roomTitle,
+      setName: config.setName ?? null,
+      fraudEnabled,
+      fraudRound,
       round: 1,
       lastRound: race.lastRound,
       phase: PHASES.WAITING,
@@ -273,11 +292,14 @@ export class Room {
       eventSeq: 0,
       truth: race.truth,
       moves: race.moves,
+      finishRound: race.finishRound,
       animals: animals.names,
       emojis: animals.emojis,
-      hintPool: buildHints(race.truth, animals.names),
-      hintGiven: {},
-      questionPlan: planQuestions(byLevel, race.lastRound, this.rng),
+      // 사기 라운드 자리는 이미 거짓 문장으로 치환돼 있다 — 지급할 때 다시 따지지 않는다
+      hintPool: hintPlan.texts,
+      // ⚠️ lastRound(9|10)가 아니라 ROUNDS(10)만큼 배정한다. 9라운드 분만 배정하면
+      //    10라운드에 문제가 없다는 것으로 마지막 라운드가 드러난다 (§4-1)
+      questionPlan: planQuestions(byLevel, ROUNDS, this.rng),
       questionById: {},
       pool,
       teams,
@@ -395,7 +417,7 @@ export class Room {
     if (!q) return err('SHEET_INVALID');
 
     const correct = Number(choice) === Number(q.answer);
-    const hint = correct ? this.giveHint(team, level) : null;
+    const hint = correct ? this.hintFor(state.round, level) : null;
     const record: AnswerRecord = { level, choice: Number(choice), correct, hint };
 
     team.answered[state.round] = record;
@@ -412,18 +434,20 @@ export class Room {
   }
 
   /**
-   * ⚠️ 같은 모둠에 같은 힌트를 두 번 주지 않는다 (§4-5).
-   *    hintGiven 은 **상태에 들어가 저장된다.** team.hints 만 저장하고 이걸 빼면
-   *    복구 직후 1번 힌트가 다시 나간다 — 앱스 스크립트판에서 실제로 난 버그다.
+   * 이 라운드·이 난이도의 힌트. **라운드와 난이도만으로 정해진다** (RENEWAL §2-2).
+   *
+   * ⚠️ 예전에는 모둠마다 '이미 준 힌트' 목록(`hintGiven`)을 들고 다음 것을 꺼냈고,
+   *    복구할 때 그 목록을 빠뜨려 같은 힌트가 두 번 나갔다 (옛 게이트 D6b).
+   *    이제 그 상태 자체가 없다 — 같은 라운드에 같은 난이도를 고른 모둠은 **같은 힌트**를
+   *    받고(RENEWAL §1), 한 라운드에 한 번만 제출할 수 있으므로(ALREADY_ANSWERED)
+   *    같은 모둠이 같은 힌트를 두 번 받을 길이 없다.
+   * ⚠️ 사기 라운드 판단을 여기서 다시 하지 않는다. hintPool 에 이미 거짓 문장이
+   *    들어 있다 — 판단이 두 벌이면 한쪽만 고치는 날 참 힌트가 나간다 (MIGRATION §5).
    */
-  private giveHint(team: Team, level: Level): Hint | null {
-    const state = this.state!;
-    const given = state.hintGiven[team.no] || [];
-    const picked = takeHint(state.hintPool, given, level, state.round);
-    if (!picked) return null;
-    given.push(picked.key);
-    state.hintGiven[team.no] = given;
-    return picked.hint;
+  private hintFor(round: number, level: Level): Hint | null {
+    const pool = this.state!.hintPool[level] || [];
+    const text = pool[round - 1];
+    return text ? { round, level, text } : null;
   }
 
   /**
@@ -452,7 +476,9 @@ export class Room {
     if ('error' in t) return t.error;
     const team = t.team;
 
-    const check = validateBet(team, state.round, bets, state.settings);
+    // ⚠️ 현재 위치를 넘긴다 — 골인한 동물에는 못 건다 (BET_FINISHED, RENEWAL §1).
+    //    화면이 잠그는 줄과 서버가 거절하는 줄이 **같은 값**을 봐야 한다 (views.finishedOf)
+    const check = validateBet(team, state.round, bets, state.settings, currentPositions(state));
     if (!check.ok) return err(check.error);
 
     // ⚠️ 여기부터 아래까지 await 가 하나도 없다. 있으면 6모둠 동시 베팅에 코인이 증발한다
@@ -720,13 +746,13 @@ export class Room {
 // ────────────────────────────────────────────────────────────
 
 /**
- * ⚠️ 되돌리면 복구 뒤 같은 힌트가 두 번 나간다 (게이트 D6b).
+ * 스냅샷 + 그 뒤 이벤트 재생.
  *
- * 앱스 스크립트판의 replayEvent 는 team.hints 만 되살리고 hintGiven 은 비워둔 채였다.
- * 그러면 복구 직후 같은 난이도를 또 맞힌 모둠에게 1번 힌트가 다시 간다 —
- * §4-5 가 지키려던 규칙이 정작 복구 경로에서만 깨져 있었다.
- *
- * 힌트 문구는 판을 만들 때 hintPool 에 굳어 있으므로, 문구로 자리를 되찾을 수 있다.
+ * ⚠️ 예전에는 여기서 `hintGiven`(모둠별로 이미 준 힌트 자리)을 같이 되살려야 했고,
+ *    앱스 스크립트판이 정확히 그걸 빠뜨려 복구 직후 같은 힌트가 두 번 나갔다.
+ *    리뉴얼에서 힌트가 (라운드, 난이도)로 정해지면서 그 상태 자체가 사라졌다 —
+ *    되살릴 것이 없으므로 빠뜨릴 것도 없다 (RENEWAL §2-2).
+ *    **다시 넣지 마세요.** 넣는 순간 같은 규칙이 두 벌이 된다 (MIGRATION §5).
  */
 export function restore(snapshot: GameState, events: GameEvent[]): GameState {
   const state: GameState = JSON.parse(JSON.stringify(snapshot));
@@ -744,7 +770,6 @@ export function restore(snapshot: GameState, events: GameEvent[]): GameState {
       if (rec.correct && rec.hint) {
         team.hints = team.hints || [];
         team.hints.push(rec.hint);
-        markHintGiven(state, team.no, rec.hint);
       }
     } else if (ev.kind === 'bet' && team) {
       const bets = (ev.payload.bets || {}) as Bets;
@@ -775,16 +800,4 @@ export function restore(snapshot: GameState, events: GameEvent[]): GameState {
     state.stateVersion = (state.stateVersion || 0) + 1;
   }
   return state;
-}
-
-function markHintGiven(state: GameState, teamNo: number, hint: Hint): void {
-  if (!hint || !hint.level || !state.hintPool) return;
-  const pool = state.hintPool[hint.level] || [];
-  const idx = pool.indexOf(hint.text);
-  if (idx < 0) return;                     // 풀에 없는 문구 — 되찾을 자리가 없다
-  const key = `${hint.level}#${idx}`;
-  state.hintGiven = state.hintGiven || {};
-  const given = state.hintGiven[teamNo] || [];
-  if (given.indexOf(key) < 0) given.push(key);
-  state.hintGiven[teamNo] = given;
 }

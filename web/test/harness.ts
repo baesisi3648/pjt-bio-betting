@@ -62,11 +62,13 @@ export const QUESTIONS: QuestionRow[] = [];
 export const ANIMAL_NAMES = ['치타', '사자', '호랑이', '늑대', '얼룩말', '타조', '개구리', '거북이'];
 export const ANIMALS: AnimalRow[] = ANIMAL_CODES.map((c, i) => ({ code: c, name: ANIMAL_NAMES[i]!, emoji: '🐎' }));
 
+// ⚠️ migrations/0002 + 0005 의 값과 **같아야 한다.** 시드와 가짜가 갈라지면
+//    게이트가 딴 판(옛 시간·옛 트랙)을 검사하고, 배포판만 조용히 다르게 돈다
 export const SETTINGS: SettingRow[] = [
   { key: 'initialCoins', value: '20' }, { key: 'maxBetPerRound', value: '3' },
-  { key: 'seedCoins', value: '15' }, { key: 'moveSeconds', value: '20' },
-  { key: 'quizSeconds', value: '90' }, { key: 'discussSeconds', value: '180' },
-  { key: 'betSeconds', value: '60' }, { key: 'trackCells', value: '10' },
+  { key: 'seedCoins', value: '15' }, { key: 'moveSeconds', value: '15' },
+  { key: 'quizSeconds', value: '40' }, { key: 'discussSeconds', value: '90' },
+  { key: 'betSeconds', value: '45' }, { key: 'trackCells', value: '20' },
   // migrations/0004_auto_skip.sql 과 같은 값. 시드와 가짜가 갈라지면 게이트가 딴 판을 검사한다
   { key: 'autoSkipSeconds', value: '5' }
 ];
@@ -301,9 +303,13 @@ export function errOf(res: ApiResponse): string {
  * ⚠️ `net.adminPassword = undefined` 로 만든 **뒤에** 부르면 `ADMIN_DISABLED` 로 던진다.
  *    미설정 배포를 검사하는 게이트는 판을 **먼저** 만들고 나서 꺼야 한다 (SEC12).
  */
-export async function open(net: Net, unit = '유전', teamCount = 6, className = '2학년 3반'): Promise<Opened> {
+export async function open(
+  net: Net, unit = '유전', teamCount = 6, roomTitle = '2학년 3반', fraudEnabled?: boolean
+): Promise<Opened> {
   const res = await net.call('POST', '/api/game', {
-    headers: admin(net.adminPassword ?? ''), body: { className, unit, teamCount }
+    headers: admin(net.adminPassword ?? ''),
+    // 본문의 정본은 `roomTitle` 이다. 옛 이름(`className`)도 받는지는 GW-TITLE 이 따로 본다
+    body: { roomTitle, unit, teamCount, ...(fraudEnabled === undefined ? {} : { fraudEnabled }) }
   });
   if (!res.body.ok) throw new Error('판 생성 실패: ' + res.body.error + ' ' + res.body.message);
   const d = dataOf(res);

@@ -10,11 +10,20 @@ import type { AnimalCode, Level, Phase, Settings } from './config.ts';
 /** 동물별 라운드별 이동량(0~3) */
 export type Moves = Record<AnimalCode, number[]>;
 
+/** 골인 라운드. 1·2·3위만 숫자, 4~8위는 끝까지 못 들어오므로 null */
+export type FinishRound = Record<AnimalCode, number | null>;
+
 /** 한 판의 경주 계획. truth[0] = 1등, lastRound 는 학생에게 비공개 */
 export interface Race {
   truth: AnimalCode[];
+  /** 3위가 골인하는 라운드 = 판이 끝나는 라운드 (9 또는 10). ⚠️ 학생에게 비공개 */
   lastRound: number;
   moves: Moves;
+  /**
+   * 동물별 골인 라운드. ⚠️ **어느 뷰에도 담지 않는다** — 미래가 통째로 샌다.
+   * 화면이 쓰는 것은 '지금 골인했는가'(views.finishedOf)뿐이다.
+   */
+  finishRound: FinishRound;
 }
 
 /** 동물별 현재 칸 */
@@ -89,8 +98,20 @@ export interface GameState {
   version: number;
   code: string;
   hostKey: string;
-  className: string;
-  unit: string;
+  /** 화면에 뜨는 방 이름. 예전 이름은 className 이었다 (RENEWAL §1) */
+  roomTitle: string;
+  /** 문제 세트 이름. '전체' 를 고르면 null (RENEWAL §1). 예전 이름은 unit */
+  setName: string | null;
+
+  /** 사기 라운드 스위치 (교사가 판을 만들 때 정한다. 기본 켬) */
+  fraudEnabled: boolean;
+  /**
+   * 거짓 힌트가 나가는 라운드 (2~4 중 하나). 스위치가 꺼져 있으면 null.
+   *
+   * ⚠️ **truth 와 같은 등급의 비밀이다.** 정산 전에는 어떤 뷰에도 담기지 않는다 —
+   *    학생이 알면 그 라운드 힌트만 버리면 되므로 게임이 통째로 무너진다 (RENEWAL §2-3).
+   */
+  fraudRound: number | null;
 
   round: number;
   lastRound: number;              // 학생에게 비공개
@@ -103,12 +124,21 @@ export interface GameState {
 
   truth: AnimalCode[];            // truth[0] = 1등. ⚠️ 정산 전에는 절대 내보내지 않는다
   moves: Moves;
+  finishRound: FinishRound;       // ⚠️ 미래다. 뷰에 담지 않는다
 
   animals: Record<AnimalCode, string>;
   emojis: Record<AnimalCode, string>;
 
+  /**
+   * 난이도별 힌트 10개 (라운드 r 의 힌트는 hintPool[난이도][r-1]).
+   *
+   * ⚠️ 사기 라운드 자리는 **거짓 문장으로 이미 치환된 채** 저장된다.
+   *    지급할 때 "이 라운드가 사기인가"를 다시 따지면 판단이 두 벌이 되고,
+   *    그중 하나만 고치는 날 참 힌트가 나간다 (MIGRATION §5).
+   * ⚠️ hintGiven 은 없앴다. 힌트는 이제 (라운드, 난이도)로 결정되므로
+   *    "같은 힌트를 두 번" 이라는 상태 자체가 없다 (RENEWAL §2-2).
+   */
   hintPool: Record<Level, string[]>;
-  hintGiven: Record<number, string[]>;   // 모둠번호 → ['어려움#0', ...]
 
   questionPlan: QuestionPlan;
   questionById: Record<number, Question>;   // 배정된 문항의 내용을 굳혀 둔다

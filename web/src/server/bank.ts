@@ -39,7 +39,9 @@ function toQuestion(r: QuestionRow, skipped: string[]): Question | null {
   const text = String(r.text || '').trim();
   if (!text) return null;
   if ((LEVELS as readonly string[]).indexOf(level) < 0) {
-    skipped.push(`문항 ${r.id} — 난이도가 쉬움/중간/어려움이 아님 (${level})`);
+    // ⚠️ 문구에 난이도를 손으로 적지 않는다 — '중간'이 '보통'으로 바뀐 날
+    //    화면만 옛 이름을 안내하게 된다 (MIGRATION §5 trackCells 함정과 같은 종류)
+    skipped.push(`문항 ${r.id} — 난이도가 ${LEVELS.join('/')} 가 아님 (${level})`);
     return null;
   }
   const answer = Number(r.answer);

@@ -32,7 +32,7 @@ const PW = 'sEcRet-비밀번호-1234';
  *    (판이 실제로 안 만들어지는지는 게이트웨이 쪽 `GW-CREATE-AUTH` 가 더 자세히 본다)
  */
 const ROUTES: [string, string, unknown][] = [
-  ['POST', '/api/game', { className: '2학년 3반', unit: '유전', teamCount: 6 }],
+  ['POST', '/api/game', { roomTitle: '2학년 3반', unit: '유전', teamCount: 6 }],
   ['GET', '/api/admin/questions', undefined],
   ['GET', '/api/admin/questions?unit=유전', undefined],
   ['POST', '/api/admin/questions', { unit: '유전', level: '쉬움', text: 'ㅁ', choices: ['1', '2', '3', '4'], answer: 1 }],
@@ -46,7 +46,7 @@ const ROUTES: [string, string, unknown][] = [
 ];
 
 const q = (over: Record<string, unknown> = {}) => ({
-  unit: '유전', level: '중간', text: '새로 넣은 문제',
+  unit: '유전', level: '보통', text: '새로 넣은 문제',
   choices: ['보기1', '보기2', '보기3', '보기4'], answer: 3, explanation: '새 해설',
   ...over
 });
@@ -228,7 +228,7 @@ await gate('ADM5', '설정 — 범위 밖은 저장하지 않고 경고 문장�
   const net = new Net();
   const cases: [string, unknown, string][] = [
     ['quizSeconds 5', { settings: { quizSeconds: 5 } }, '10~900'],
-    ['trackCells 99', { settings: { trackCells: 99 } }, '4~30'],
+    ['trackCells 99', { settings: { trackCells: 99 } }, '5~26'],
     ['moveSeconds 1', { settings: { moveSeconds: 1 } }, '5~60'],
     ['숫자가 아님', { settings: { betSeconds: '육십' } }, '숫자가 아니라'],
     ['빈 값', { settings: { betSeconds: '' } }, '값을 넣어주세요'],
@@ -244,8 +244,9 @@ await gate('ADM5', '설정 — 범위 밖은 저장하지 않고 경고 문장�
     msgs.push(msg);
     if (errOf(r) !== 'BAD_REQUEST' || msg.indexOf(must) < 0) bad.push(`${label} → ${errOf(r)} "${msg}"`);
   }
-  const untouched = net.db.settings.find((s) => s.key === 'quizSeconds')!.value === '90' &&
-                    net.db.settings.find((s) => s.key === 'trackCells')!.value === '10';
+  // 거부됐으니 표는 시드값(migrations 0002+0005) 그대로여야 한다
+  const untouched = net.db.settings.find((s) => s.key === 'quizSeconds')!.value === '40' &&
+                    net.db.settings.find((s) => s.key === 'trackCells')!.value === '20';
 
   // 범위 안이면 저장되고, 새 판이 그 값으로 돈다
   const okRes = await net.call('PUT', '/api/admin/settings', {

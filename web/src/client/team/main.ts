@@ -99,7 +99,7 @@ function step1(): void {
   if (c.length !== 4) { toast('판 코드 4자리를 넣어주세요'); return; }
 
   api(`/api/game/${encodeURIComponent(c)}/lobby`).then((env) => {
-    const d = handle(env) as { className: string; teams: { no: number; name: string }[] } | null;
+    const d = handle(env) as { roomTitle: string; teams: { no: number; name: string }[] } | null;
     if (!d) return;
     CODE = c;
     // ⚠️ 원본은 모둠 이름을 onclick 문자열에 끼워 넣느라 작은따옴표를 지웠다.
@@ -330,7 +330,9 @@ function quizHtml(): string {
   if (!me.chosenLevel && !openQuestion) {
     return '<p class="sub">어려울수록 좋은 힌트를 받아요</p><div class="levels">' +
       '<button class="lv-easy" data-act="level" data-level="쉬움">쉬움 · 힌트 약</button>' +
-      '<button class="lv-normal" data-act="level" data-level="중간">중간 · 힌트 중</button>' +
+            // ⚠️ 난이도 값은 서버의 LEVELS 와 **글자 하나까지 같아야** 문제가 배정된다.
+      //    '중간' → '보통' (RENEWAL §1). 화면 문구 자체는 3단계에서 손댄다
+      '<button class="lv-normal" data-act="level" data-level="보통">보통 · 힌트 중</button>' +
       '<button class="lv-hard" data-act="level" data-level="어려움">어려움 · 힌트 강</button></div>';
   }
   // 답을 낸 뒤에도 문제 본문은 서버가 보내준다 (views.ts teamView — 정답은 안 담긴다)

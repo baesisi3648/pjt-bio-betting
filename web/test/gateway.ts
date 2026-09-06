@@ -408,10 +408,17 @@ await gate('GW1', '판 생성 → 6모둠 접속 → 진행 → 정산까지 HTT
     }
     net.endPhase(g.code);                        // quiz → discuss
     net.endPhase(g.code);                        // discuss → betting
+    // ⚠️ 8라운드쯤부터 1위가 골인해 있다 — 그 동물에 걸면 BET_FINISHED 로 거절된다.
+    //    폰이 보는 것과 같은 값(teamView.finished)으로 아직 안 들어온 동물을 고른다
+    const view = dataOf(await net.call('GET', `/api/game/${g.code}/state?viewer=team:1`, { headers: pin(g.pins[1]!) }));
+    const open = ANIMAL_CODES.filter((c) => (view.finished as string[]).indexOf(c) < 0);
     for (let n = 1; n <= 6; n++) {
-      await net.call('POST', `/api/game/${g.code}/bet`, {
-        headers: pin(g.pins[n]!), body: { teamNo: n, bets: { [ANIMAL_CODES[(n + r) % 8]!]: 2 } }
+      const bet = await net.call('POST', `/api/game/${g.code}/bet`, {
+        headers: pin(g.pins[n]!), body: { teamNo: n, bets: { [open[(n + r) % open.length]!]: 1 } }
       });
+      if (!bet.body.ok && errOf(bet) !== 'NOT_ENOUGH_COINS') {
+        return { ok: false, detail: `${r}R ${n}모둠 베팅 ${errOf(bet)}` };
+      }
     }
     net.endPhase(g.code);                        // betting → waiting
   }
@@ -470,15 +477,15 @@ await gate('GW3', '판 코드가 겹치면 다시 뽑아 성공한다', async ()
   // AAAA 는 D1 목록에 이미 있고, BBBB 는 DO 에 방이 이미 서 있다
   await net.db.addGame({ code: 'AAAA', className: '앞반', unit: '유전', createdAt: net.clock.now - 1000 });
   const bbbb = net.roomOf('BBBB');
-  bbbb.room.create({ code: 'BBBB', className: '앞반', unit: '유전', teamCount: 2 },
+  bbbb.room.create({ code: 'BBBB', roomTitle: '앞반', setName: '유전', teamCount: 2 },
     validateUnit('유전', net.db.questions.filter((q) => q.unit === '유전'), net.db.animals, net.db.settings).questions,
     { names: {} as Record<AnimalCode, string>, emojis: {} as Record<AnimalCode, string> });
 
-  const res = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: '뒷반', unit: '유전', teamCount: 2 } });
+  const res = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { roomTitle: '뒷반', unit: '유전', teamCount: 2 } });
   const code = String(dataOf(res).code);
-  // 앞 판을 덮어쓰지 않았다
+  // 앞 판을 덮어쓰지 않았다 (D1 games 표의 열 이름은 아직 class_name 이다 — 2단계에서 바꾼다)
   const kept = net.db.games.find((x) => x.code === 'AAAA')!.className === '앞반' &&
-               net.state('BBBB').className === '앞반';
+               net.state('BBBB').roomTitle === '앞반';
 
   return {
     ok: res.body.ok && code === 'CCCC' && kept && net.db.games.length === 2,
@@ -576,7 +583,8 @@ await gate('LEAK', '정산 전 어떤 공개 응답에도 truth·moves·lastRoun
     for (const [name, res] of responses) {
       const keys = allKeys(res.body);
       const json = JSON.stringify(res.body);
-      for (const k of ['truth', 'moves', 'lastRound', 'pin', 'pins', 'hostKey', 'hintPool', 'hintGiven', 'questionById']) {
+      for (const k of ['truth', 'moves', 'lastRound', 'pin', 'pins', 'hostKey', 'hintPool',
+                       'fraudRound', 'finishRound', 'questionById']) {
         if (keys.has(k)) bad.push(`${label}/${name}.${k}`);
       }
       if (json.includes(truthStr)) bad.push(`${label}/${name} 정답 문자열`);
@@ -586,7 +594,10 @@ await gate('LEAK', '정산 전 어떤 공개 응답에도 truth·moves·lastRoun
     // 교사 응답은 열쇠로 지켜지지만 TV 에 그대로 뜬다 — truth 는 정산 전까지 null 이어야 한다
     const tv = await net.call('GET', `/api/game/${g.code}/state?viewer=teacher`, { headers: host(g.hostKey) });
     if (allKeys(tv.body).has('moves')) bad.push(`${label}/teacher.moves`);
+    if (allKeys(tv.body).has('finishRound')) bad.push(`${label}/teacher.finishRound`);
     if (dataOf(tv).truth !== null) bad.push(`${label}/teacher.truth`);
+    // 사기 라운드는 정산 뒤에만. 이 응답은 TV 에 그대로 뜬다 (RENEWAL §2-3)
+    if (dataOf(tv).fraudRound !== null) bad.push(`${label}/teacher.fraudRound`);
     if (JSON.stringify(tv.body).includes(truthStr)) bad.push(`${label}/teacher 정답 문자열`);
   };
 
@@ -599,7 +610,48 @@ await gate('LEAK', '정산 전 어떤 공개 응답에도 truth·moves·lastRoun
   net.endPhase(g.code); await inspect('waiting2');
 
   return { ok: bad.length === 0,
-           detail: bad.length ? '⛔ ' + bad.join(', ') : '6개 단계 × 10개 응답에서 0건' };
+           detail: bad.length ? '⛔ ' + bad.join(', ')
+             : `6개 단계 × 10개 응답에서 0건 (실제 사기 라운드는 ${String(net.state(g.code).fraudRound)}R)` };
+});
+
+await gate('GW-TITLE', '방 제목·문제 세트·사기 스위치 — 옛 이름(className)도 그대로 받는다', async () => {
+  const net = new Net();
+  const bad: string[] = [];
+
+  // ⚠️ 교사 화면은 4단계까지 옛 이름을 보낸다. 이게 안 되면 배포하는 순간 판이 안 만들어진다
+  const oldName = await net.call('POST', '/api/game', {
+    headers: admin(net.adminPassword!), body: { className: '옛이름 반', unit: '유전', teamCount: 2 }
+  });
+  const code = String(dataOf(oldName).code);
+  if (!oldName.body.ok) bad.push('className 으로 판이 안 만들어짐: ' + errOf(oldName));
+  else if (net.state(code).roomTitle !== '옛이름 반') bad.push('roomTitle 로 저장 안 됨');
+
+  const lobby = dataOf(await net.call('GET', `/api/game/${code}/lobby`));
+  if (lobby.roomTitle !== '옛이름 반') bad.push(`lobby.roomTitle=${String(lobby.roomTitle)}`);
+  if (allKeys(lobby).has('className')) bad.push('lobby 에 옛 이름이 남아 있다');
+
+  const hostKey = String(dataOf(oldName).hostKey);
+  const tv = dataOf(await net.call('GET', `/api/game/${code}/state?viewer=teacher`, { headers: host(hostKey) }));
+  if (tv.roomTitle !== '옛이름 반' || tv.setName !== '유전') bad.push('교사 뷰 이름');
+  if (tv.fraudEnabled !== true) bad.push('사기 스위치 기본값이 켬이 아니다');
+
+  // 새 이름도 받고, 스위치를 끄면 꺼진 채로 만들어진다
+  const off = await open(net, '유전', 2, '새이름 반', false);
+  const tv2 = dataOf(await net.call('GET', `/api/game/${off.code}/state?viewer=teacher`, { headers: host(off.hostKey) }));
+  if (tv2.roomTitle !== '새이름 반') bad.push('roomTitle 본문이 안 먹음');
+  if (tv2.fraudEnabled !== false || net.state(off.code).fraudRound !== null) bad.push('스위치를 껐는데 사기 라운드가 있다');
+
+  const team = dataOf(await net.call('GET', `/api/game/${off.code}/state?viewer=team:1`, { headers: pin(off.pins[1]!) }));
+  if (team.fraudNotice !== false) bad.push('끈 판인데 폰에 안내가 뜬다');
+  if (team.roomTitle !== '새이름 반') bad.push('폰 뷰에 방 제목이 없다');
+
+  // 방 제목이 비면 거절한다
+  const empty = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { unit: '유전', teamCount: 2 } });
+  if (errOf(empty) !== 'BAD_REQUEST') bad.push(`제목 없음 → ${errOf(empty)}`);
+
+  return { ok: bad.length === 0,
+           detail: bad.length ? '⛔ ' + bad.join(', ')
+             : 'className·roomTitle 둘 다 받아 roomTitle 로 저장 · 로비·교사·폰 뷰에 새 이름 · 스위치 기본 켬, 끄면 fraudRound null' };
 });
 
 await gate('LEAK-moving', 'moving 뷰에는 이번 라운드 이동량만 실린다', async () => {

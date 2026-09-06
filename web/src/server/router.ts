@@ -223,13 +223,19 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
   if (denied) return denied;
 
   const body = bodyOf(req);
-  const className = String(body.className ?? '').trim();
-  const unit = String(body.unit ?? '').trim();
+  // ⚠️ 본문의 이름은 `roomTitle` 이 정본이지만 `className` 도 받는다.
+  //    교사 화면은 4단계에서야 새 이름으로 바뀐다 — 그때까지 옛 이름을 보낸다.
+  //    이 한 줄이 없으면 리뉴얼 1단계를 배포하는 순간 판이 하나도 안 만들어진다
+  const roomTitle = String(body.roomTitle ?? body.className ?? '').trim();
+  // 문제 세트 이름. D1 열 이름(`questions.unit`)은 2단계에서 바꾼다 (RENEWAL §3-1)
+  const unit = String(body.setName ?? body.unit ?? '').trim();
   const teamCount = Math.floor(Number(body.teamCount));
   const teamNames = Array.isArray(body.teamNames) ? body.teamNames.map((x) => String(x ?? '')) : undefined;
+  // 사기 라운드 스위치는 **기본이 켬**이다 (RENEWAL §1). 안 보내면 켜진 판이 만들어진다
+  const fraudEnabled = body.fraudEnabled === undefined ? true : !!body.fraudEnabled;
 
-  if (!className) return fail('BAD_REQUEST', '반 이름을 넣어주세요');
-  if (!unit) return fail('BAD_REQUEST', '단원을 골라주세요');
+  if (!roomTitle) return fail('BAD_REQUEST', '방 제목을 넣어주세요');
+  if (!unit) return fail('BAD_REQUEST', '문제 세트를 골라주세요');
   if (!(teamCount >= 1 && teamCount <= MAX_TEAMS)) {
     return fail('BAD_REQUEST', `모둠 수는 1~${MAX_TEAMS} 사이여야 해요`);
   }
@@ -248,7 +254,7 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
     if (await ports.db.hasGame(code)) { lastErr = err('GAME_EXISTS'); continue; }
 
     const res = await ports.room(code).op('create', [
-      { code, className, unit, teamCount, teamNames, warnings: prep.warnings },
+      { code, roomTitle, setName: unit, fraudEnabled, teamCount, teamNames, warnings: prep.warnings },
       prep.questions, prep.animals, prep.settings
     ]);
 
@@ -257,7 +263,8 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
     if (!res.ok) return reply(res);
 
     // 목록('이어하기')용 한 줄. ⚠️ 상태 자체는 DO 에 있다 — 이 표는 목록일 뿐이다 (§7 3단계)
-    await ports.db.addGame({ code, className, unit, createdAt: ports.now() });
+    // D1 `games` 표의 열 이름은 그대로다 (class_name·unit). 문제은행 이름 바꾸기는 2단계
+    await ports.db.addGame({ code, className: roomTitle, unit, createdAt: ports.now() });
 
     return reply(ok({ ...(res.data as object), studentUrl: studentUrlOf(req) }));
   }

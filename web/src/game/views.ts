@@ -63,6 +63,19 @@ export interface TeamView extends Clock {
   teamProgress: TeamProgress[];
   isOver: boolean;
   deployVersion: string;
+  /** 방 제목 (RENEWAL §4-3 — 학생 화면에도 뜬다) */
+  roomTitle: string;
+  /**
+   * 이 판에 사기 라운드가 있는가 (**어느 라운드인지는 절대 아니다**).
+   * 폰 힌트 탭 위의 "2~4라운드 중 한 라운드의 힌트는 거짓입니다" 안내에 쓴다.
+   * ⚠️ `fraudRound` 를 여기 담는 순간 게임이 끝난다 (RENEWAL §2-3, 게이트 LEAK).
+   */
+  fraudNotice: boolean;
+  /**
+   * 이미 골인한 동물. 폰이 그 줄을 잠그는 데 쓴다 (RENEWAL §1 — `BET_FINISHED`).
+   * 비밀이 아니다: 위치가 이미 뷰에 실려 있어 화면에서 그대로 보인다.
+   */
+  finished: AnimalCode[];
   raceMoves?: RaceMoves;
   me?: {
     no: number; name: string; coins: number; hints: Hint[];
@@ -80,8 +93,20 @@ export interface TeamView extends Clock {
 
 export interface TeacherView extends Clock {
   code: string;
-  className: string;
-  unit: string;
+  roomTitle: string;
+  /** 문제 세트 이름. '전체' 면 null */
+  setName: string | null;
+  /** 사기 라운드 스위치를 켜고 만든 판인가 */
+  fraudEnabled: boolean;
+  /**
+   * 거짓 힌트가 나간 라운드. ⚠️ **정산 전에는 null 이다** (RENEWAL §2-3).
+   *
+   * 이 응답은 교사 열쇠로 지켜지지만 TV 에 그대로 뜨는 화면이기도 하다.
+   * 정산 드럼롤 뒤에 "N라운드 힌트는 거짓이었습니다"로 공개한다.
+   */
+  fraudRound: number | null;
+  /** 이미 골인한 동물 (TV 가 그 줄에 '골인'을 그리는 데 쓴다) */
+  finished: AnimalCode[];
   round: number;
   lastRound: number;
   /** 이번 라운드가 이미 돌았는가. 교사 화면이 '다음은 몇 라운드'를 적는 데 쓴다 (Code.gs 원본에도 있었다) */
@@ -112,7 +137,7 @@ export interface TeacherView extends Clock {
   allDone: boolean;
 }
 
-export interface LobbyView { className: string; teams: TeamBrief[] }
+export interface LobbyView { roomTitle: string; teams: TeamBrief[] }
 export interface HandoutView {
   code: string; pins: Record<number, string>; teams: TeamBrief[];
 }
@@ -166,6 +191,18 @@ export function raceMovesOf(state: GameState): RaceMoves {
   const out = {} as RaceMoves;
   for (const c of ANIMAL_CODES) out[c] = (now[c] || 0) - (before[c] || 0);
   return out;
+}
+
+/**
+ * 이미 결승선에 닿은 동물.
+ *
+ * ⚠️ `state.finishRound`(몇 라운드에 들어오는가)를 쓰지 않는다 — 그건 미래다.
+ *    지금 위치가 결승선 이상인가만 본다. `validateBet` 이 보는 것과 **같은 값**이라야
+ *    폰에서 잠긴 줄과 서버가 거절하는 줄이 어긋나지 않는다.
+ */
+export function finishedOf(state: GameState): AnimalCode[] {
+  const pos = currentPositions(state);
+  return ANIMAL_CODES.filter((c) => (pos[c] ?? 0) >= state.settings.trackCells);
 }
 
 /**
@@ -281,7 +318,11 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
       betLocked: !!t.betLocked[state.round]
     })),
     isOver: !!state.isOver,
-    deployVersion: DEPLOY_VERSION
+    deployVersion: DEPLOY_VERSION,
+    roomTitle: state.roomTitle,
+    // 스위치 켬/끔만. 어느 라운드인지는 여기 오지 않는다
+    fraudNotice: !!state.fraudEnabled,
+    finished: finishedOf(state)
   };
 
   if (state.phase === PHASES.MOVING) v.raceMoves = raceMovesOf(state);
@@ -325,8 +366,12 @@ export function teacherView(state: GameState, now: number): TeacherView {
   const v: TeacherView = {
     ...clockOf(state, now),
     code: state.code,
-    className: state.className,
-    unit: state.unit,
+    roomTitle: state.roomTitle,
+    setName: state.setName,
+    fraudEnabled: !!state.fraudEnabled,
+    // ⚠️ 정산 전에는 null. truth 와 같은 등급의 비밀이다 (RENEWAL §2-3)
+    fraudRound: state.isOver ? state.fraudRound : null,
+    finished: finishedOf(state),
     round: state.round,
     lastRound: state.lastRound,
     roundStarted: state.roundStarted,
@@ -361,7 +406,7 @@ export function teacherView(state: GameState, now: number): TeacherView {
 /** 접속 화면. 인증이 없으므로 게임의 비밀을 하나도 담지 않는다 */
 export function lobbyView(state: GameState): LobbyView {
   return {
-    className: state.className,
+    roomTitle: state.roomTitle,
     teams: state.teams.map((t) => ({ no: t.no, name: t.name }))
   };
 }

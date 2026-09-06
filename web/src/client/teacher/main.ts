@@ -505,7 +505,9 @@ const PHASE_KO: Record<string, string> = {
 
 function render(d: TeacherView): void {
   if (d.isOver) { showResult(d); return; }
-  $('p-cls').textContent = `${d.className} · ${d.unit}`;
+  // 1단계 리뉴얼에서 뷰 이름만 바뀌었다 (className→roomTitle, unit→setName).
+  // 화면 문구·배치는 3·4단계에서 손댄다 (RENEWAL §5)
+  $('p-cls').textContent = `${d.roomTitle} · ${d.setName ?? '전체'}`;
   $('p-round').textContent = `${d.round}라운드`;
   $('ver').textContent = '배포 ' + d.deployVersion;
 
