@@ -11,15 +11,17 @@
  *
  * ⚠️ **여기에 버튼이 없다.** 이 20초는 고개를 들어 TV 를 보라는 시간이다 (§11-2, §1).
  *
- * ⚠️ **진행 방향은 오른쪽 → 왼쪽이다.** 출발선이 오른쪽, 결승선이 왼쪽.
- *    동물 이모지(🐆 🐅 🦓 🐎 🦒 🦘 🐇 🐢)가 대부분 왼쪽을 보고 그려져 있어서, 반대로 두면
- *    말이 뒷걸음질치는 그림이 된다 (사용자 결정). TV 무대(`teacher/stage.ts`)·CSS 트랙
- *    (`teacher.css`)과 **같은 방향이어야 한다** — 방향이 갈리면 §11-2 가 막으려던 바로 그 일,
- *    "폰과 TV 가 서로를 반박하는" 그림이 난다. 되돌리려면 셋을 동시에 되돌릴 것.
- *    ⚠️ 이모지를 좌우 반전(scale(-1,1))하는 것은 사용자가 고르지 않은 방법이다. 넣지 말 것.
+ * ⚠️ **진행 방향은 왼쪽 → 오른쪽이다.** START 가 왼쪽, GOAL 이 오른쪽 (RENEWAL §1·§4-2).
+ *    3단계까지는 반대였다 — 그때 이유는 "동물 이모지가 대부분 왼쪽을 본다" 였는데,
+ *    4단계에서 **이모지를 좌우 반전**(`ctx.scale(-1,1)`)하기로 정해 그 이유가 사라졌다.
+ *    TV 무대(`teacher/stage.ts`)·CSS 폴백 트랙(`teacher.css`)과 **같은 방향이어야 한다** —
+ *    방향이 갈리면 §11-2 가 막으려던 바로 그 일, "폰과 TV 가 서로를 반박하는" 그림이 난다.
+ *    되돌리려면 셋을 동시에 되돌릴 것.
  *
- * 레인 배치도 함께 뒤집었다 — 칸수(n/10)가 왼쪽(결승선 옆), 배지가 오른쪽(출발선 옆).
+ * 레인 배치도 함께 뒤집었다 — 배지가 왼쪽(출발선 쪽), 칸수(n/20)가 오른쪽(GOAL 옆).
  * 세 렌더러가 같은 배치여야 학생이 폰과 TV 를 번갈아 봐도 같은 그림으로 읽는다.
+ * ⚠️ 폰에는 **이름 대신 번호 배지**만 둔다 (RENEWAL §4-2). 8줄에 이름까지 넣으면
+ *    390px 폭에서 트랙이 손톱만 해진다 — 번호는 TV 의 배지와 같은 번호·같은 색이다.
  *
  * ⚠️ `prefers-reduced-motion` 이면 그리지 않고 **최종 위치만 즉시** 보여준다.
  *    캔버스 안은 CSS 미디어쿼리가 못 막으므로 여기서 직접 물어본다 (§11-1).
@@ -75,19 +77,19 @@ export function mountMini(host: HTMLElement): Mini | null {
     fit(codes.length);
     const g = ctx!;
     const cells = Math.max(1, v.trackCells);
-    // 화면 순서: [칸수 POS_W] [트랙 x0~x1] [배지 TAG_W].
-    // x0 이 결승선 쪽(왼쪽), x1 이 출발선 쪽(오른쪽)이다
-    const x0 = POS_W + 4;
-    const x1 = w - TAG_W - 6;
-    const EW = 14;      // 이모지 폭. 말은 textAlign left 라 hx 에서 오른쪽으로 EW 만큼 번진다
+    // 화면 순서: [배지 TAG_W] [잔디 x0~x1] [칸수 POS_W].
+    // x0 이 출발선 쪽(왼쪽), x1 이 결승선 쪽(오른쪽)이다
+    const x0 = TAG_W + 4;
+    const x1 = w - POS_W - 4;
+    const EW = 15;      // 이모지 폭. 반전해서 그리므로 hx 에서 **왼쪽으로** EW 만큼 번진다
 
     g.clearRect(0, 0, w, h);
     codes.forEach((c, i) => {
       const y = i * LANE_H + 3;
       const mid = y + LANE_H / 2;
 
-      // 레인 배지 — 색 + 숫자. 색만으로 뜻을 전하지 않는다 (05 §2). 출발선 쪽(오른쪽 끝)
-      const bx = w - TAG_W + 4;
+      // 레인 배지 — 색 + 숫자. 색만으로 뜻을 전하지 않는다 (05 §2). 출발선 쪽(왼쪽 끝)
+      const bx = 2;
       g.fillStyle = hex(silkOf(i));
       g.beginPath();
       g.roundRect(bx, y + 2, TAG_W - 6, LANE_H - 6, 5);
@@ -98,38 +100,49 @@ export function mountMini(host: HTMLElement): Mini | null {
       g.textBaseline = 'middle';
       g.fillText(String(i + 1), bx + (TAG_W - 6) / 2, mid);
 
-      // 트랙 + 칸 눈금. 눈금은 출발선(x1)에서 결승선 쪽으로 센다
-      g.fillStyle = '#D6DFE8';
-      g.beginPath();
-      g.roundRect(x0, y + 5, x1 - x0, LANE_H - 12, 4);
-      g.fill();
-      g.fillStyle = '#C0CDD9';
-      for (let k = 1; k < cells; k++) {
-        g.fillRect(x1 - (x1 - x0 - 10) * (k / cells), y + 5, 1, LANE_H - 12);
+      // 잔디 — **한 칸 걸러 한 칸**이 두 톤이다. TV 와 같은 색값(theme.ts C.grass·grassAlt).
+      // 폰은 밝은 화면이라 잔디를 조금 밝게 쓰지만 두 톤의 대비는 같게 유지한다
+      const cw = (x1 - x0) / cells;
+      for (let k = 0; k < cells; k++) {
+        g.fillStyle = k % 2 ? '#4A9450' : '#3E8144';
+        g.fillRect(x0 + cw * k, y + 5, Math.ceil(cw) + 1, LANE_H - 12);
       }
-      // 결승선 — **왼쪽 끝**
+      // 결승선 — **오른쪽 끝**. 빨간 선은 말이 오는 쪽(왼쪽) 모서리에 둔다
+      g.fillStyle = '#16212C';
+      g.fillRect(x1 - 7, y + 5, 7, LANE_H - 12);
+      g.fillStyle = '#EAF0F5';
+      for (let r = 0; r * 4 < LANE_H - 12; r++) {
+        if (r % 2) g.fillRect(x1 - 7, y + 5 + r * 4, 3, Math.min(4, LANE_H - 12 - r * 4));
+        else g.fillRect(x1 - 4, y + 5 + r * 4, 3, Math.min(4, LANE_H - 12 - r * 4));
+      }
       g.fillStyle = '#EF5350';
-      g.fillRect(x0 + 8, y + 5, 2, LANE_H - 12);
+      g.fillRect(x1 - 9, y + 5, 2, LANE_H - 12);
 
       const p = Math.max(0, Math.min(1, (pos[c] ?? 0) / cells));
-      // p 가 커질수록 왼쪽으로. 이모지가 오른쪽으로 번지므로 여유(EW)는 출발선 쪽에 둔다
-      const hx = x1 - EW - (x1 - x0 - EW) * p;
+      // p 가 커질수록 오른쪽으로. 반전해서 그리면 이모지가 왼쪽으로 번지므로
+      // 여유(EW)는 출발선 쪽에 둔다 — hx 는 말의 **코끝**이다
+      const hx = x0 + EW + (x1 - x0 - EW) * p;
 
-      // 지나온 거리 — **출발선(오른쪽)에서 말까지**
-      g.fillStyle = p >= 1 ? 'rgba(242,180,65,.45)' : 'rgba(79,195,247,.45)';
-      g.fillRect(hx + EW, y + 5, Math.max(0, x1 - hx - EW), LANE_H - 12);
+      // 지나온 자국 — **출발선(왼쪽)에서 말까지**
+      g.fillStyle = p >= 1 ? 'rgba(242,180,65,.45)' : 'rgba(255,255,255,.28)';
+      g.fillRect(x0, y + 5, Math.max(0, hx - EW - x0), LANE_H - 12);
 
-      // 말 — 제자리 말도 몸은 들썩인다. 위치는 raceFrame 이 정한다
+      // 말 — 제자리 말도 몸은 들썩인다. 위치는 raceFrame 이 정한다.
+      // ⚠️ scale(-1,1) 로 **좌우 반전** — TV 의 말과 같은 쪽(오른쪽)을 본다
       const bob = bobT == null ? 0 : Math.sin((bobT * 1000 + i * 90) / 34) * 1.6;
+      g.save();
+      g.translate(hx, 0);
+      g.scale(-1, 1);
       g.font = '15px system-ui, sans-serif';
       g.textAlign = 'left';
-      g.fillText(v.emojis[c] || '🐎', hx, mid + bob);
+      g.fillText(v.emojis[c] || '🐎', 0, mid + bob);
+      g.restore();
 
-      // 현재 칸 — 결승선 옆(왼쪽 끝). 숫자를 가리지 않는다
+      // 현재 칸 — GOAL 옆(오른쪽 끝). ⚠️ 등수가 아니라 골인 여부만 (§4-1)
       g.fillStyle = p >= 1 ? '#B8860B' : '#5A6B7C';
       g.font = '700 10px system-ui, sans-serif';
       g.textAlign = 'left';
-      g.fillText(p >= 1 ? '골인' : `${Math.floor(pos[c] ?? 0)}/${cells}`, 3, mid);
+      g.fillText(p >= 1 ? '골인' : `${Math.floor(pos[c] ?? 0)}/${cells}`, x1 + 4, mid);
     });
   }
 

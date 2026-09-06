@@ -1,5 +1,5 @@
 /**
- * stage.ts — TV 경주 무대 (PixiJS). MIGRATION §11-2 장면 1.
+ * stage.ts — TV 경주 무대 (PixiJS). MIGRATION §11-2 장면 1 · RENEWAL §4-2 구획 2.
  *
  * ⚠️ **이 파일은 교사 번들에만 들어가야 한다.** `teacher/main.ts` 가 `import()` 로
  *    늦게 부르는 것이 그 방법이다 (정적 import 로 바꾸면 PixiJS 가 학생 폰 번들에도
@@ -7,29 +7,30 @@
  *    `npm run build` 뒤 `grep -l -i pixi dist/client/assets/*.js` 로 확인한다.
  *
  * ⚠️ **없어도 게임은 돈다.** 만들다 실패하면(WebGL 없음·오래된 TV 브라우저) null 을
- *    돌려주고, 부르는 쪽은 4a 의 CSS 트랙(`#track`)을 그대로 쓴다. `prefers-reduced-motion`
+ *    돌려주고, 부르는 쪽은 CSS 트랙(`#track`)을 그대로 쓴다. `prefers-reduced-motion`
  *    이면 아예 만들지도 않는다 (§11-1 "연출은 거들 뿐"). 캔버스 안은 CSS 미디어쿼리가
  *    못 막으므로 부르는 쪽이 `reducedMotion()` 으로 물어보고 결정한다.
  *
- * ⚠️ **글자를 가리지 않는다** (§11-1, 8m 가독성). 먼지·속도선은 트랙 안에서만 놀고
- *    이름·칸수·배지 위로 올라가지 않는다. 파티클은 레인 컨테이너 안, 글자보다 아래다.
+ * ⚠️ **글자를 가리지 않는다** (§11-1, 8m 가독성). 먼지·속도선은 잔디 안에서만 놀고
+ *    이름·칸수·배지 위로 올라가지 않는다. 파티클은 레인 컨테이너 안, 말보다 아래다.
  *
- * ⚠️ **정산 전에는 등수를 그리지 않는다** (§4-1). 골인한 말에는 '골인'만 붙는다.
+ * ⚠️ **정산 전에는 등수를 그리지 않는다** (§4-1). 골인한 말에는 '🏁 골인'만 붙는다.
  *
- * ⚠️ **진행 방향은 오른쪽 → 왼쪽이다.** 출발선이 오른쪽, 결승선이 왼쪽.
- *    동물 이모지(🐆 🐅 🦓 🐎 🦒 🦘 🐇 🐢)는 대부분 왼쪽을 보고 그려져 있어서,
- *    왼쪽 출발 / 오른쪽 결승으로 두면 말이 뒷걸음질치는 그림이 된다 (사용자 결정).
- *    되돌리려면 이 무대 · `teacher.css` 의 CSS 트랙 · `team/mini.ts` 의 폰 미니 트랙을
- *    **셋 다 동시에** 되돌려야 한다. 하나만 되돌리면 reduced-motion 이나 WebGL 없는 TV 에서
- *    폴백으로 뜨는 CSS 트랙이 폰과 반대로 달린다.
- *    ⚠️ 이모지를 scaleX(-1) 로 뒤집는 것은 사용자가 고르지 않은 방법이다. 넣지 말 것.
+ * ── 4단계에서 방향을 뒤집었다 (RENEWAL §1 결정표 · §4-2) ──
  *
- * 레인 배치도 함께 뒤집었다 — `n/10`(칸수)이 왼쪽(결승선 옆), 이름·배지가 오른쪽(출발선 옆).
- * 뒤집기 전과 **같은 짝**을 지킨 것이고(원래도 이름은 출발선 옆·칸수는 결승선 옆이었다),
- * 덤으로 제일 굵은 글자(이름 26px)가 흰 체크무늬 결승선에서 떨어져 8m 가독성이 산다 (§11-1).
+ * ⚠️ **진행 방향은 왼쪽 → 오른쪽이다.** START 가 왼쪽, GOAL 이 오른쪽.
+ *    3단계까지는 반대였다. 그때 오른쪽에서 출발시킨 이유는 "동물 이모지가 대부분 왼쪽을
+ *    보고 있어서" 였는데, 4단계에서 **이모지를 좌우 반전**(`scale.x = -1`)하기로 정해
+ *    그 이유가 사라졌다. 읽는 방향(좌→우)과 달리는 방향이 같은 쪽이 8m 밖에서 낫다.
+ *    세 렌더러(**이 무대 · `teacher.css` 의 CSS 폴백 트랙 · `team/mini.ts` 의 폰 미니
+ *    트랙**)가 **반드시 같은 방향**이어야 한다 — 하나만 되돌리면 reduced-motion 이나
+ *    WebGL 없는 TV 에서 폰과 반대로 달린다 (§11-2 가 막으려던 바로 그 그림).
+ *
+ * 레인 배치: **왼쪽(출발선 쪽)에 번호 배지 + 이름, 오른쪽(GOAL 옆)에 `n/20`.**
+ * 이름이 출발선 옆이고 칸수가 결승선 옆인 짝은 방향을 뒤집기 전과 같다.
  *
  * 외부 자원 없음 — 말은 '동물' 설정의 이모지를 Pixi `Text` 로 그려 텍스처로 굽는다.
- * 이미지도 글꼴도 받아오지 않는다 (§11-1).
+ * 잔디·울타리·체크무늬 결승선도 전부 사각형이다. 이미지도 글꼴도 받아오지 않는다 (§11-1).
  */
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
@@ -52,23 +53,37 @@ export const TUNING = {
   shakeMs: 260,
   /** 골인 플래시가 남아 있는 시간(ms) */
   flashMs: 900,
-  /** 1920 폭 기준 레인 높이(px). 화면이 좁아지면 비례해서 준다 */
-  laneH: 60
+  /**
+   * 1920 폭 기준 레인 높이(px). 화면이 좁아지면 비례해서 준다.
+   * 3단계의 60 → **90** (RENEWAL §4-2 "레인 높이 ≈ 90px"). 8줄 × 90 = 720px 이라
+   * 1080p TV 에서 트랙 하나가 화면의 3분의 2를 쓴다 — 그게 이 화면의 주인공이다.
+   */
+  laneH: 90,
+  /**
+   * 원근. 위 레인이 살짝 좁다 (92% → 100%).
+   * ⚠️ **더 세게 주지 말 것.** 이건 그림이 아니라 위치를 읽는 표다 —
+   *    위아래 레인 높이가 눈에 띄게 다르면 "어느 말이 앞서나"보다 "왜 저 줄만 작지"가
+   *    먼저 보인다 (§4-2 "위치 가독성이 우선").
+   */
+  perspective: 0.92
 };
 
 interface Lane {
   root: Container;
   covered: Sprite;
+  halo: Sprite;
   horse: Sprite;
   posText: Text;
   nameText: Text;
   flash: Sprite;
   code: AnimalCode;
   index: number;
+  /** 이 레인의 높이와 세로 중앙 (원근 때문에 줄마다 다르다) */
+  h: number; mid: number;
   /**
-   * 트랙 안쪽 좌표계. `x0` 은 **출발선(오른쪽)**, `x1` 은 **결승선(왼쪽)** 이라
-   * `w = x1 - x0` 는 **음수**다. 그 덕에 `x0 + w * pct` 라는 식은 방향을 뒤집기
-   * 전과 글자 하나 안 바뀌었다 — 방향은 x0·x1 을 어디로 잡느냐로만 정해진다.
+   * 트랙 안쪽 좌표계. `x0` 은 **출발선(왼쪽)**, `x1` 은 **결승선(오른쪽)** 이라
+   * `w = x1 - x0` 는 양수다. `x0 + w * pct` 라는 식은 방향을 뒤집기 전과 같고,
+   * 방향은 x0·x1 을 어디로 잡느냐로만 정해진다.
    */
   x0: number; x1: number; w: number;
   finished: boolean;
@@ -121,6 +136,12 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
   const overlay = new Container();    // 카운트다운 — 흔들림에 안 딸려간다
   app.stage.addChild(world);
   app.stage.addChild(overlay);
+
+  /** 잔디·울타리·관중석·START·GOAL. 레인이 바뀔 때만 다시 그린다 */
+  const field = new Graphics();
+  world.addChild(field);
+  const fieldText = new Container();
+  world.addChild(fieldText);
 
   // 먼지 한 알. 원 하나를 텍스처로 구워 전부 돌려 쓴다 (매 프레임 Graphics 를 새로 만들면 죽는다)
   const dot = new Graphics().circle(8, 8, 8).fill(0xffffff);
@@ -178,12 +199,12 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
   }
 
   /**
-   * 레인을 짓는다. **동물 목록이 바뀔 때만** 짓는다.
+   * 레인을 짓는다. **동물 목록·폭이 바뀔 때만** 짓는다.
    * ⚠️ 매 프레임 다시 지으면 말이 순간이동하고 파티클이 끊긴다 — CSS 트랙에 적힌 것과 같은 이유다
    */
   function build(v: TeacherView): void {
     const codes = Object.keys(v.animals) as AnimalCode[];
-    const key = codes.join(',') + '|' + Math.round(width);
+    const key = codes.join(',') + '|' + Math.round(width) + '|' + v.trackCells;
     if (key === laneKey) return;
     laneKey = key;
 
@@ -198,132 +219,203 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     }
     for (const l of lanes) l.root.destroy({ children: true });
     lanes = [];
-    world.removeChildren();
+    field.clear();
+    fieldText.removeChildren();
+    // ⚠️ world.removeChildren() 을 부르면 field 까지 떨어져 나간다 — 레인만 지운다
 
-    // 화면 순서: [칸수 posW] GAP [트랙 courseW] [이름·배지 tagW]
-    // ⚠️ 결승선이 왼쪽이라 칸수도 왼쪽이다. 뒤집기 전에는 정확히 좌우가 반대였다
-    const tagW = Math.round(300 * scale);
-    const posW = Math.round(96 * scale);
-    const courseX = posW + GAP;
-    const courseW = Math.max(120, width - tagW - posW - GAP);
-    const courseH = Math.round(laneH * 0.82);
-    const finishW = Math.round(34 * scale);
-    const pad = Math.round(30 * scale);          // 출발선·결승선 안쪽 여백 (말이 잘리지 않게)
-    // 출발선(오른쪽)과 결승선(왼쪽). 말이 지나는 구간은 xStart → xGoal 로 **왼쪽으로** 간다
-    const xStart = courseX + courseW - pad;
-    const xGoal = courseX + finishW;
+    // 화면 순서: [배지·이름 tagW] GAP [잔디 courseW] GAP [칸수 posW]
+    const tagW = Math.round(310 * scale);
+    const posW = Math.round(116 * scale);
+    const courseX = tagW + GAP;
+    const courseW = Math.max(160, width - tagW - posW - GAP * 2);
+    const cells = Math.max(1, v.trackCells);
 
+    // 세로: [관중석] [울타리] [레인 …] [울타리]
+    const standsH = Math.round(30 * scale);
+    const fenceH = Math.max(4, Math.round(9 * scale));
+    const top0 = standsH + fenceH;
+
+    // 원근 — 위 레인이 92%, 아래가 100%. 아주 약하게만 (TUNING.perspective 주석 참조)
+    const n = codes.length;
+    const hs = codes.map((_, i) =>
+      Math.round(laneH * (n > 1 ? TUNING.perspective + (1 - TUNING.perspective) * (i / (n - 1)) : 1)));
+    const tops: number[] = [];
+    let acc = top0;
+    for (const h of hs) { tops.push(acc); acc += h; }
+    const grassBottom = acc;
+    const totalH = grassBottom + fenceH + Math.round(4 * scale);
+
+    // ── 잔디밭 ──
+    const startW = Math.max(3, Math.round(7 * scale));    // START 기준선(흰 기둥)
+    const finishW = Math.round(34 * scale);               // GOAL 체크무늬 폭
+    const cellW = (courseW - startW - finishW) / cells;
+
+    // 관중석 — 어두운 띠 하나. 관중을 그리면 말이 안 보인다 (§4-2 "암시만")
+    field.rect(courseX, 0, courseW, standsH).fill(C.stands);
+    field.rect(courseX, standsH - Math.max(1, scale), courseW, Math.max(1, scale)).fill(0x2b3947);
+
+    // 잔디 — **한 칸 걸러 한 칸**이 두 톤이다. 이 줄무늬가 곧 20칸의 눈금이다
+    field.rect(courseX, top0, courseW, grassBottom - top0).fill(C.grass);
+    for (let k = 0; k < cells; k++) {
+      if (k % 2 === 0) continue;
+      field.rect(courseX + startW + cellW * k, top0, cellW, grassBottom - top0).fill(C.grassAlt);
+    }
+    // 5칸마다 흰 표시 — 8m 밖에서 칸을 셀 때 눈이 짚는 자리 (경마장의 펄롱 표시)
+    for (let k = 5; k < cells; k += 5) {
+      field.rect(courseX + startW + cellW * k - Math.max(1, scale), top0,
+        Math.max(2, 2 * scale), grassBottom - top0).fill({ color: C.chalk, alpha: 0.42 });
+    }
+
+    // 흰 레인 경계선 — 잔디 위에서 줄을 가르는 유일한 흰색
+    const lineH = Math.max(1, Math.round(2 * scale));
+    for (let i = 0; i <= n; i++) {
+      const y = i === n ? grassBottom - lineH : (tops[i] as number);
+      field.rect(courseX, y, courseW, lineH).fill({ color: C.chalk, alpha: i === 0 || i === n ? 0.85 : 0.45 });
+    }
+
+    // START 기둥(왼쪽) — 흰 기준선. 여기가 0칸이다
+    field.rect(courseX, top0, startW, grassBottom - top0).fill(C.chalk);
+
+    // GOAL 체크무늬(오른쪽) — 외부 이미지 없이 사각형으로 짠다
+    const fx = courseX + courseW - finishW;
+    field.rect(fx, top0, finishW, grassBottom - top0).fill(C.laneDark);
+    const q = Math.round(11 * scale) || 4;
+    for (let r = 0; r * q < grassBottom - top0; r++) {
+      for (let c2 = 0; c2 * q < finishW; c2++) {
+        if ((r + c2) % 2) continue;
+        field.rect(fx + c2 * q, top0 + r * q,
+          Math.min(q, finishW - c2 * q), Math.min(q, grassBottom - top0 - r * q)).fill(0xeaf0f5);
+      }
+    }
+    // 빨간 골인선은 **말이 오는 쪽(왼쪽)** 모서리에 둔다 — 말이 먼저 닿는 선이다
+    const goalW = Math.max(2, 3 * scale);
+    field.rect(fx, top0, goalW, grassBottom - top0).fill(C.goal);
+
+    // 위·아래 울타리 — 가로대 두 줄 + 기둥
+    for (const y of [standsH, grassBottom]) {
+      field.rect(courseX, y, courseW, Math.max(1, Math.round(2 * scale))).fill(C.rail);
+      field.rect(courseX, y + fenceH - Math.max(1, Math.round(2 * scale)), courseW,
+        Math.max(1, Math.round(2 * scale))).fill({ color: C.rail, alpha: 0.7 });
+      for (let x = courseX; x < courseX + courseW; x += Math.round(64 * scale)) {
+        field.rect(x, y, Math.max(1, Math.round(2 * scale)), fenceH).fill({ color: C.rail, alpha: 0.8 });
+      }
+    }
+
+    // START · GOAL 글자와 깃발은 관중석 띠 안에. 잔디 위에 얹으면 말을 가린다
+    const label = (text: string, x: number, anchorX: number): void => {
+      const t = new Text({
+        text,
+        style: { fontFamily: FONT, fontSize: Math.round(19 * scale), fontWeight: '900', fill: C.rail }
+      });
+      t.anchor.set(anchorX, 0.5);
+      t.x = x; t.y = standsH / 2;
+      fieldText.addChild(t);
+    };
+    label('START', courseX + Math.round(10 * scale), 0);
+    label('🏁 GOAL', courseX + courseW - Math.round(10 * scale), 1);
+
+    // ── 레인 ──
     codes.forEach((code, i) => {
+      const h = hs[i] as number;
       const root = new Container();
-      root.y = i * laneH;
+      root.y = tops[i] as number;
 
-      const bg = new Graphics();
-      const top = Math.round((laneH - courseH) / 2);
-      bg.roundRect(courseX, top, courseW, courseH, 10 * scale).fill(C.lane);
-      // 칸 눈금 — 몇 칸 갔는지 눈으로 셀 수 있어야 한다 (05 §4-1).
-      // 출발선(오른쪽)에서 결승선(왼쪽) 쪽으로 센다
-      for (let k = 1; k < v.trackCells; k++) {
-        const x = xStart + (xGoal - xStart) * (k / v.trackCells);
-        bg.rect(x, top, Math.max(1, scale), courseH).fill({ color: C.grid, alpha: 0.9 });
-      }
-      // 결승선 체크무늬 — 외부 이미지 없이 사각형으로 짠다. **왼쪽 끝**이다
-      const fx = courseX;
-      bg.rect(fx, top, finishW, courseH).fill(C.laneDark);
-      const cell = Math.round(9 * scale) || 4;
-      for (let r = 0; r * cell < courseH; r++) {
-        for (let q = 0; q * cell < finishW; q++) {
-          if ((r + q) % 2) continue;
-          bg.rect(fx + q * cell, top + r * cell,
-            Math.min(cell, finishW - q * cell), Math.min(cell, courseH - r * cell)).fill(0xeaf0f5);
-        }
-      }
-      // 빨간 골인선은 **말이 오는 쪽(오른쪽)** 모서리에 둔다 — 말이 먼저 닿는 선이다
-      const goalW = Math.max(2, 3 * scale);
-      bg.rect(fx + finishW - goalW, top, goalW, courseH).fill(C.goal);
-      root.addChild(bg);
+      const pad = Math.round(8 * scale);
+      // 말이 지나는 구간: START 기둥 바로 오른쪽 → 체크무늬 안쪽.
+      // 20칸을 다 간 말은 체크무늬 위(= GOAL 뒤)에 선다 (§4-2 "GOAL 뒤에 서 있고")
+      const xStart = courseX + startW + pad;
+      const xGoal = courseX + courseW - Math.round(finishW * 0.35);
 
-      // 지나온 거리.
-      // ⚠️ 출발선(xStart, 오른쪽)에서 시작해 왼쪽으로 자란다. 트랙 오른쪽 끝에서 그리면
-      //    아직 한 칸도 못 간 말에게도 파란 막대가 붙어서, 8m 밖에서는 "이미 출발했다"로 읽힌다.
-      //    ⚠️ 폭만이 아니라 **x 도 매 프레임 옮긴다** (place 참조) — Pixi Sprite 는 왼쪽 위가
-      //    기준점이라, 오른쪽에 고정된 막대를 왼쪽으로 늘리려면 x 를 같이 당겨야 한다
+      // 지나온 거리 — 출발선(왼쪽)에서 말까지. 잔디가 밟혀 색이 바랜 자국이다.
+      // ⚠️ 흰색을 옅게 쓴다. 파란 막대를 얹으면 잔디 위에서 "물이 찼다"로 읽힌다
       const covered = new Sprite(Texture.WHITE);
-      covered.tint = C.run;
-      covered.alpha = 0.3;
+      covered.tint = 0xffffff;
+      covered.alpha = 0.16;
       covered.x = xStart;
-      covered.y = top + 2;
-      covered.height = courseH - 4;
+      covered.y = lineH + 1;
+      covered.height = Math.max(2, h - lineH * 2 - 2);
       covered.width = 0;
       root.addChild(covered);
 
+      // 골인한 말 뒤의 금색 후광. **등수가 아니다** — "이 말은 끝났다"뿐이다 (§4-1)
+      const halo = new Sprite(dotTex);
+      halo.anchor.set(0.5);
+      halo.tint = C.gold;
+      halo.alpha = 0;
+      halo.y = h / 2;
+      root.addChild(halo);
+
+      const horse = new Sprite(textureFor(v.emojis[code] || '🐎'));
+      horse.anchor.set(0.5);
+      // 이모지 1.6배 (3단계는 laneH*0.62 = 37px, 지금은 90*0.66 = 59px).
+      // ⚠️ **좌우 반전**해서 오른쪽(GOAL)을 보게 한다 — 대부분의 동물 이모지가 왼쪽을
+      //    보고 그려져 있어서, 반전하지 않으면 뒷걸음질치는 그림이 된다 (RENEWAL §1)
+      const k = (h * 0.66) / horse.texture.height;
+      horse.scale.set(-k, k);
+      horse.y = h / 2;
+      root.addChild(horse);
+
+      // 골인 플래시 — 레인 위에 얹는 금색 판. 평소엔 alpha 0 이라 아무것도 안 가린다
+      const flash = new Sprite(Texture.WHITE);
+      flash.tint = C.gold;
+      flash.x = courseX; flash.y = 0;
+      flash.width = courseW; flash.height = h;
+      flash.alpha = 0;
+      root.addChild(flash);
+
       // 레인 배지 — **색 + 숫자**. 색만으로 뜻을 전하지 않는다 (05 §2).
-      // ⚠️ 화면 **오른쪽 끝**이다 (출발선 쪽). 뒤집기 전 왼쪽 끝 배치를 그대로 거울에 비춘 것
-      const badge = Math.round(38 * scale);
+      // ⚠️ 화면 **왼쪽 끝**이다 (출발선 쪽)
+      const badge = Math.round(44 * scale);
       const silk = new Graphics()
-        .roundRect(width - badge, Math.round((laneH - badge) / 2), badge, badge, 9 * scale)
+        .roundRect(0, Math.round((h - badge) / 2), badge, badge, 10 * scale)
         .fill(silkOf(i));
       root.addChild(silk);
       const silkNo = new Text({
         text: String(i + 1),
-        style: { fontFamily: FONT, fontSize: Math.round(22 * scale), fontWeight: '900', fill: C.bg }
+        style: { fontFamily: FONT, fontSize: Math.round(25 * scale), fontWeight: '900', fill: C.bg }
       });
       silkNo.anchor.set(0.5);
-      silkNo.x = width - badge / 2;
-      silkNo.y = laneH / 2;
+      silkNo.x = badge / 2;
+      silkNo.y = h / 2;
       root.addChild(silkNo);
 
-      // 이름은 배지 왼쪽에 오른쪽 정렬 — 8줄의 이름 끝이 한 줄로 맞는다
+      // 이름은 배지 오른쪽에 왼쪽 정렬 — 8줄의 이름 머리가 한 줄로 맞는다
       const nameText = new Text({
         text: v.animals[code] || '',
-        style: { fontFamily: FONT, fontSize: Math.round(26 * scale), fontWeight: '700', fill: C.text }
+        style: { fontFamily: FONT, fontSize: Math.round(30 * scale), fontWeight: '700', fill: C.text }
       });
-      nameText.anchor.set(1, 0.5);
-      nameText.x = width - badge - Math.round(11 * scale);
-      nameText.y = laneH / 2;
+      nameText.anchor.set(0, 0.5);
+      nameText.x = badge + Math.round(12 * scale);
+      nameText.y = h / 2;
       root.addChild(nameText);
 
-      // 칸수는 화면 **왼쪽 끝**(결승선 옆). 왼쪽 정렬이라 체크무늬에서 떨어져 앉는다
+      // 칸수는 화면 **오른쪽 끝**(GOAL 옆). 왼쪽 정렬이라 체크무늬에서 떨어져 앉는다
       const posText = new Text({
         text: '',
-        style: { fontFamily: FONT, fontSize: Math.round(20 * scale), fontWeight: '800', fill: 0x6e8398 }
+        style: { fontFamily: FONT, fontSize: Math.round(23 * scale), fontWeight: '800', fill: 0x8fa3b5 }
       });
       posText.anchor.set(0, 0.5);
-      posText.x = 0;
-      posText.y = laneH / 2;
+      posText.x = courseX + courseW + GAP;
+      posText.y = h / 2;
       root.addChild(posText);
-
-      const horse = new Sprite(textureFor(v.emojis[code] || '🐎'));
-      horse.anchor.set(0.5);
-      horse.scale.set((laneH * 0.62) / horse.texture.height);
-      horse.y = laneH / 2;
-      root.addChild(horse);
-
-      // 골인 플래시 — 레인 위에 얹는 흰 판. 평소엔 alpha 0 이라 글자를 가리지 않는다
-      const flash = new Sprite(Texture.WHITE);
-      flash.tint = C.gold;
-      flash.x = courseX; flash.y = top;
-      flash.width = courseW; flash.height = courseH;
-      flash.alpha = 0;
-      root.addChild(flash);
 
       world.addChild(root);
       lanes.push({
-        root, covered, horse, posText, nameText, flash, code, index: i,
-        x0: xStart, x1: xGoal, w: 0,      // x0 > x1 — 말은 왼쪽으로 간다
+        root, covered, halo, horse, posText, nameText, flash, code, index: i,
+        h, mid: h / 2,
+        x0: xStart, x1: xGoal, w: xGoal - xStart,
         finished: false, dustDebt: 0
       });
+      halo.scale.set((h * 0.9) / 16);
     });
 
-    for (const l of lanes) l.w = l.x1 - l.x0;
-
-    const h = codes.length * laneH + Math.round(8 * scale);
-    app.renderer.resize(width, h);
-    app.canvas.style.height = h + 'px';
-    bigText.x = width / 2; bigText.y = h / 2 - 20 * scale;
-    subText.x = width / 2; subText.y = h / 2 + 60 * scale;
-    scrim.x = width / 2; scrim.y = h / 2;
+    app.renderer.resize(width, totalH);
+    app.canvas.style.height = totalH + 'px';
+    bigText.x = width / 2; bigText.y = totalH / 2 - 20 * scale;
+    subText.x = width / 2; subText.y = totalH / 2 + 62 * scale;
+    scrim.x = width / 2; scrim.y = totalH / 2;
     scrim.width = Math.min(width * 0.42, 620 * scale);
-    scrim.height = Math.round(240 * scale);
+    scrim.height = Math.round(250 * scale);
     bigText.style.fontSize = Math.round(120 * scale);
     subText.style.fontSize = Math.round(34 * scale);
   }
@@ -345,22 +437,23 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     }
     const s = p.s;
     if (s.parent !== lane.root) lane.root.addChild(s);
-    // ⚠️ 파티클은 글자보다 아래에 둔다 — 이름·칸수를 가리면 8m 가독성이 무너진다 (§11-1)
-    lane.root.setChildIndex(s, Math.min(2, lane.root.children.length - 1));
+    // ⚠️ 파티클은 말·글자보다 아래에 둔다 (레인 자식 0번이 covered 라 바로 그 위).
+    //    위로 올리면 이름·칸수를 가려 8m 가독성이 무너진다 (§11-1)
+    lane.root.setChildIndex(s, Math.min(1, lane.root.children.length - 1));
     s.x = x; s.y = y;
     s.visible = true;
-    // ⚠️ vx 는 **양수**다. 말이 왼쪽으로 달리므로 먼지·속도선은 오른쪽(뒤)으로 흩어진다.
+    // ⚠️ vx 는 **음수**다. 말이 오른쪽으로 달리므로 먼지·속도선은 왼쪽(뒤)으로 흩어진다.
     //    부호를 되돌리면 먼지가 말보다 앞서 날아가 "브레이크를 밟는" 그림이 된다
     if (kind === 'dust') {
-      s.tint = 0x8fa3b5;
+      s.tint = 0xc9d8b8;                                 // 잔디 위의 흙먼지
       s.scale.set((3 + Math.random() * 4) * scale / 8);
-      p.vx = (20 + Math.random() * 50) * scale;
+      p.vx = -(20 + Math.random() * 50) * scale;
       p.vy = (Math.random() - 0.5) * 40 * scale;
       p.max = 420 + Math.random() * 260;
     } else {
-      s.tint = C.run;
+      s.tint = 0xffffff;
       s.scale.set(1.4 * scale / 8, 0.5 * scale / 8);
-      p.vx = (220 + Math.random() * 140) * scale;
+      p.vx = -(220 + Math.random() * 140) * scale;
       p.vy = 0;
       p.max = 200 + Math.random() * 120;
     }
@@ -387,21 +480,23 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
 
   function place(l: Lane, cellPos: number, cells: number, moving: boolean, bob: number): void {
     const pct = Math.max(0, Math.min(1, cellPos / Math.max(1, cells)));
-    // x0 = 출발선(오른쪽), w = x1 - x0 < 0 이므로 pct 가 클수록 말이 왼쪽으로 간다
+    // x0 = 출발선(왼쪽), w > 0 이므로 pct 가 클수록 말이 오른쪽으로 간다
     l.horse.x = l.x0 + l.w * pct;
-    l.horse.y = laneH / 2 + bob;
-    // 지나온 거리 막대는 출발선(l.x0)에 오른쪽 끝을 붙인 채 말 쪽으로 자란다.
-    // ⚠️ Sprite 의 x 는 왼쪽 끝이라 폭만 늘리면 막대가 반대쪽(오른쪽)으로 뻗는다
-    l.covered.x = l.horse.x;
-    l.covered.width = Math.max(0, l.x0 - l.horse.x);
+    l.horse.y = l.mid + bob;
+    // 지나온 자국은 출발선(l.x0)에 왼쪽 끝을 붙인 채 말 쪽으로 자란다
+    l.covered.width = Math.max(0, l.horse.x - l.x0);
     const fin = cellPos >= cells - 1e-9;
-    l.posText.text = fin ? '골인' : `${Math.floor(cellPos)}/${cells}`;
-    l.posText.style.fill = fin ? C.gold : 0x6e8398;
+    // ⚠️ 등수가 아니다 — 골인 여부만 (§4-1). 정산 전에 순위를 그리면 게임이 끝난다
+    l.posText.text = fin ? '🏁 골인' : `${Math.floor(cellPos)}/${cells}`;
+    l.posText.style.fill = fin ? C.gold : 0x8fa3b5;
     l.nameText.style.fill = fin ? C.gold : C.text;
-    l.covered.tint = fin ? C.gold : C.run;
+    l.covered.tint = fin ? C.gold : 0xffffff;
+    l.covered.alpha = fin ? 0.3 : 0.16;
+    l.halo.alpha = fin ? 0.28 : 0;
+    l.halo.x = l.horse.x;
     if (fin && !l.finished && moving) {
       l.finished = true;
-      l.flash.alpha = 0.55;            // 골인 순간 번쩍 (등수는 안 보여준다 — §4-1)
+      l.flash.alpha = 0.5;             // 골인 순간 번쩍 (등수는 안 보여준다 — §4-1)
     }
     if (!fin) l.finished = false;
   }
@@ -416,7 +511,7 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     world.x = 0; world.y = 0;
     for (const l of lanes) {
       l.flash.alpha = 0;
-      l.finished = v.positions[l.code] >= v.trackCells;
+      l.finished = (v.positions[l.code] || 0) >= v.trackCells;
       place(l, v.positions[l.code] || 0, v.trackCells, false, 0);
     }
     app.render();
@@ -463,7 +558,7 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       const p = pos[l.code] ?? 0;
       const delta = (after[l.code] || 0) - (before[l.code] || 0);
       // 제자리 말도 몸은 들썩인다 — **위치는 그대로** (raceFrame RACE-ZERO)
-      const bob = running ? Math.sin((t * 1000 + l.index * 90) / 34) * (delta > 0 ? 4 : 1.6) * scale : 0;
+      const bob = running ? Math.sin((t * 1000 + l.index * 90) / 34) * (delta > 0 ? 5 : 2) * scale : 0;
       const wasX = l.horse.x;
       place(l, p, cells, true, bob);
       l.horse.rotation = running && delta > 0 ? Math.sin((t * 1000 + l.index * 90) / 34) * 0.09 : 0;
@@ -473,11 +568,11 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
         l.dustDebt += TUNING.dustPerSecond * (dt / 1000);
         while (l.dustDebt >= 1) {
           l.dustDebt -= 1;
-          spawn(l, l.horse.x + 12 * scale, laneH / 2 + 10 * scale, 'dust');   // 말 뒤 = 오른쪽
+          spawn(l, l.horse.x - 14 * scale, l.mid + 14 * scale, 'dust');   // 말 뒤 = 왼쪽
         }
         // 속도선은 **빨리 갈 때만**. 늘 나오면 누가 앞서는지 안 보인다
         if (speedPx > 90 * scale && Math.random() < 0.5) {
-          spawn(l, l.horse.x + 26 * scale, laneH / 2 - 6 * scale, 'speed');
+          spawn(l, l.horse.x - 30 * scale, l.mid - 8 * scale, 'speed');
         }
       }
       if (l.flash.alpha > 0) l.flash.alpha = Math.max(0, l.flash.alpha - dt / TUNING.flashMs);

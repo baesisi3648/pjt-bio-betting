@@ -1690,3 +1690,204 @@ entries:
     description: Refactor import-questions
     impact:
       - none
+  - date: "2026-09-06T22:21:30"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/audio.ts
+    description: Create audio in web
+    impact:
+      - none
+  - date: "2026-09-06T22:22:26"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/theme.ts
+    description: Add new functionality to theme in web
+    impact:
+      - none
+  - date: "2026-09-06T22:24:40"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Create stage in web
+    impact:
+      - "external dependency added: pixi.js"
+      - "internal dependency added: ../../game/config.ts, ../../game/views.ts, ../shared/race.ts (+more)"
+  - date: "2026-09-06T22:25:21"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher.html
+    description: Refactor teacher
+    impact:
+      - none
+  - date: "2026-09-06T22:31:25"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-06T22:32:29"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Refactor teacher
+    impact:
+      - none
+  - date: "2026-09-06T22:33:08"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Refactor teacher
+    impact:
+      - none
+  - date: "2026-09-06T22:33:21"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Refactor teacher
+    impact:
+      - none
+  - date: "2026-09-06T22:33:38"
+    type: fix
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Fix issue in teacher
+    impact:
+      - none
+  - date: "2026-09-06T22:33:58"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:34:12"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:34:34"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:34:48"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:35:16"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:35:25"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:35:31"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:35:52"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:36:00"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:36:05"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:36:20"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:36:26"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-06T22:36:35"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-06T22:36:51"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/team/mini.ts
+    description: Refactor mini
+    impact:
+      - none
+  - date: "2026-09-06T22:37:23"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/team/mini.ts
+    description: Add new functionality to mini in web
+    impact:
+      - none
+  - date: "2026-09-06T22:43:23"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/shared/audio.ts
+    description: Refactor audio
+    impact:
+      - none

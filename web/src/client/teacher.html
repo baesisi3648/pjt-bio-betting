@@ -117,41 +117,69 @@
   </div>
 </div>
 
-<!-- ══ S2 진행 화면 ══ -->
+<!-- ══ S2 진행 화면 — 5구획 (RENEWAL §4-2) ══
+     구획 1 헤더 · 구획 2 경마장 · 구획 3 동물 현황 · 구획 4 모둠 현황 · 구획 5 하단.
+     ⚠️ **모둠별 베팅 내역은 이 화면 어디에도 없다** (RENEWAL §1 결정표 — 기획안 구획 3·4의
+        "어느 모둠이 몇 코인"은 실수였다). 그게 보이면 토론이 망가진다 -->
 <div id="s2" class="hidden">
+
+  <!-- ══ 구획 1 — 헤더 ══ -->
   <div class="hdr">
-    <div><span id="p-cls" style="color:var(--muted)"></span> <span class="round" id="p-round"></span></div>
-    <div class="timer num" id="p-timer"></div>
+    <div class="hd-name">🐆 애니멀 더비 <span class="hd-room" id="p-room"></span></div>
+    <!-- 라운드 진행표 ① ② … ⑩ — 지난 라운드는 채우고 지금은 강조한다.
+         ⚠️ 칸 수는 ROUNDS(10) 고정이다. lastRound(9|10)로 그리면 안 된다 —
+            그건 3등이 언제 들어오는지를 TV 로 알려주는 것이다 (main.ts drawRounds 주석) -->
+    <div class="rounds" id="p-rounds"></div>
+    <div class="hd-right">
+      <div class="timer num" id="p-timer"></div>
+      <button class="hdr-btn" id="btn-pause">⏸ 일시정지</button>
+      <!-- 조기 종료 (MIGRATION §8-3). 문제·토론·베팅에서만 보인다 — 대기·경주 중에는
+           감춘다(비활성이 아니라). 경주 20초는 학생이 결과를 보는 시간이라 넘길 것이 아니다 -->
+      <button class="hdr-btn skip hidden" id="btn-skip">⏩ 빠른 진행</button>
+      <!-- 소리는 교사 화면만 (RENEWAL §4-4). 패널 마크업은 shared/audio.ts 가 만든다 -->
+      <button class="hdr-btn sound" id="btn-sound" title="소리">🎵</button>
+    </div>
   </div>
-  <div class="card">
-    <!-- PixiJS 경주 무대 (teacher/stage.ts). 켜지면 아래 #track 을 숨긴다.
-         ⚠️ reduced-motion 이거나 WebGL 이 없으면 무대는 안 만들어지고 #track 이 그대로 남는다.
-            어느 쪽이든 게임은 돈다 (MIGRATION §11-1) -->
+  <!-- 사기 라운드가 켜진 판에만. 어느 라운드인지는 정산 때까지 서버도 안 알려준다 -->
+  <div id="fraud-badge" class="fraud-badge hidden">🎭 사기 라운드 ON</div>
+
+  <!-- ══ 구획 2 — 경마장 ══
+       PixiJS 경주 무대 (teacher/stage.ts). 켜지면 아래 #track 을 숨긴다.
+       ⚠️ reduced-motion 이거나 WebGL 이 없으면 무대는 안 만들어지고 #track 이 그대로 남는다.
+          **둘은 같은 방향(좌→우)·같은 칸수여야 한다** — 어느 쪽이든 게임은 돈다 (§11-1) -->
+  <div class="card track-card">
     <div id="race-stage" class="hidden"></div>
     <div id="phase-note" class="phase-big hidden"></div>
     <div id="track"></div>
   </div>
-  <div class="two">
-    <div class="card"><h2>💰 배당률</h2>
+
+  <!-- ══ 구획 3 — 동물 현황 (한 줄 8카드) ══ -->
+  <div class="card">
+    <div class="sect-head">
+      <h2>🐾 동물 현황</h2>
       <!-- 지금 걸린 코인 총합 — 베팅 단계에만 강조된다 (MIGRATION §11-3).
            어느 모둠이 걸었는지는 절대 표시하지 않는다 (05 §4-3) -->
       <div id="tote-total"><span class="lbl">지금 걸린 코인 총합</span><span class="n num" id="tote-total-n">0</span></div>
-      <table class="tote"><tbody id="odds"></tbody></table></div>
-    <div class="card"><h2>모둠 현황</h2><table><tbody id="prog"></tbody></table></div>
+    </div>
+    <div class="acards" id="odds"></div>
   </div>
+
+  <!-- ══ 구획 4 — 모둠 현황 (가로 카드) ══
+       제출 여부와 남은 코인만. **정답 여부도, 어느 동물에 걸었는지도 없다** -->
+  <div class="card">
+    <h2>👥 모둠 현황</h2>
+    <div class="tcards" id="prog"></div>
+  </div>
+
+  <!-- ══ 구획 5 — 하단 ══ -->
   <div class="card controls">
-    <button class="btn-red" id="btn-round">🎲 라운드 시작</button>
-    <button class="btn-pause" id="btn-pause">⏸ 일시정지</button>
-    <!-- 조기 종료 (MIGRATION §8-3). 문제·토론·베팅에서만 보인다 — 대기·경주 중에는
-         감춘다(비활성이 아니라). 대기 중 이 자리는 '라운드 시작'의 것이고,
-         경주 20초는 학생이 결과를 보는 시간이라 넘길 것이 아니다 -->
-    <button class="btn-skip hidden" id="btn-skip">지금 넘어가기 ▶</button>
+    <button class="btn-red" id="btn-round">▶ ROUND 1 시작</button>
     <!-- 모든 모둠이 끝나면 서버가 마감을 당긴다. 그 사실을 글자로 적는 자리 -->
     <span class="skip-note hidden" id="skip-note"></span>
     <span style="flex:1"></span>
-    <button class="btn-small" id="btn-handout">학생 주소·암호 다시 보기</button>
+    <button class="btn-small" id="btn-handout">학생 주소·암호</button>
     <button class="btn-small" id="btn-reveal">정답 순위 보기</button>
-    <button class="btn-small" id="btn-finalize">정산하기</button>
+    <button class="btn-gold" id="btn-finalize">🏁 결과 확인</button>
   </div>
   <div id="reveal" class="reveal hidden"></div>
 </div>

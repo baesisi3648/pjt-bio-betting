@@ -39,14 +39,30 @@
  *
  * 6. **배당판**은 다시 그리지 않고 **고쳐 쓴다.** 트랙 레인과 같은 이유다 —
  *    매번 innerHTML 로 갈면 굴러가던 숫자와 날아오던 칩이 매 푸시마다 처음으로 돌아간다.
+ *
+ * ── 4단계 진행 화면 (RENEWAL §4-2) ──
+ *
+ * 7. S2 는 **5구획**이다: 헤더(방 제목·라운드 진행표·타이머·조작) · 경마장 · 동물 현황
+ *    8카드 · 모둠 현황 · 하단. `render()` 가 구획 순서대로 내려간다.
+ *
+ * 8. **모둠별 베팅 내역은 이 화면 어디에도 없다** (RENEWAL §1 결정표 — 기획안 구획 3·4의
+ *    "어느 모둠이 몇 코인"은 실수였다). 모둠 카드에는 제출/확정 여부와 남은 코인만 있고,
+ *    문제의 **정답 여부도 없다**. 그게 보이면 토론이 망가진다.
+ *
+ * 9. **소리는 이 화면만** (`shared/audio.ts`, §4-4). 폰은 조용하다. 브라우저가 사용자
+ *    동작 전 자동 재생을 막으므로 첫 클릭에 BGM 을 켠다 — 실패하면 다음 클릭에 다시.
+ *    ⚠️ 소리는 `prefers-reduced-motion` 과 무관하다. 끄는 것은 사용자의 🔇 뿐이다.
  */
 
+import { ROUNDS } from '../../game/config.ts';
 import type { AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
+import { audioInit, audioPanel, audioScene, audioTick, audioUnlock, sfx } from '../shared/audio.ts';
 import { ServerClock } from '../shared/clock.ts';
 import { FATAL, HEADER_UNSAFE_MSG, api, handle, headerSafe, hostOp, isOk } from '../shared/gateway.ts';
 import { pwStore } from '../shared/pw.ts';
 import { qrSvg } from '../shared/qr.ts';
+import { COUNTDOWN_END } from '../shared/race.ts';
 import { GameSocket } from '../shared/socket.ts';
 import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
 import type { RaceStage } from './stage.ts';
@@ -519,26 +535,26 @@ const PHASE_KO: Record<string, string> = {
 
 function render(d: TeacherView): void {
   if (d.isOver) { showResult(d); return; }
-  // 1단계 리뉴얼에서 뷰 이름만 바뀌었다 (className→roomTitle, unit→setName).
-  // 화면 문구·배치는 3·4단계에서 손댄다 (RENEWAL §5)
   fraudOn = !!d.fraudEnabled;
-  $('p-cls').textContent = `애니멀 더비 · ${d.roomTitle}`;
-  $('p-round').textContent = `${d.round}라운드`;
+
+  // ── 구획 1 헤더 ──
+  $('p-room').textContent = d.roomTitle;
+  drawRounds(d);
+  // 사기 라운드가 켜진 판이라는 사실만. **어느 라운드인지는 서버도 정산 전엔 안 준다** (§2-3)
+  $('fraud-badge').classList.toggle('hidden', !fraudOn);
   $('ver').textContent = '배포 ' + d.deployVersion;
 
+  // ── 구획 2·3·4 ──
   const codes = Object.keys(d.animals) as AnimalCode[];
   drawTrack(d, codes);
   drawTote(d, codes);
+  drawTeams(d);
 
-  $('prog').innerHTML = d.teams.map((t) =>
-    `<tr><td>${esc(teamLabel(t.no, t.name))}</td>` +
-    `<td class="${t.answered ? 'ok' : 'wait'}">${t.answered ? '✅ 제출' : '⏳ 푸는중'}</td>` +
-    `<td class="${t.betLocked ? 'ok' : 'wait'}">${t.betLocked ? '💰 확정' : '⏳'}</td></tr>`).join('');
-
+  // ── 구획 1·5 조작 ──
   const waiting = d.phase === 'waiting';
   const next = nextRoundNo(d);
   $('btn-round').classList.toggle('hidden', !waiting);
-  $('btn-round').textContent = `🎲 ${next}라운드 시작`;
+  $('btn-round').textContent = `▶ ROUND ${next} 시작`;
   $('btn-pause').textContent = d.phase === 'paused' ? '▶ 이어하기' : '⏸ 일시정지';
   $('btn-pause').classList.toggle('hidden', waiting);
 
@@ -577,6 +593,52 @@ function nextRoundNo(d: TeacherView): number {
   return d.roundStarted ? d.round + 1 : d.round;
 }
 
+/* ── 구획 1 — 라운드 진행표 ① ② … ⑩ ── */
+
+/** ①(U+2460) 부터. 10 은 ⑩ 하나로 그려진다 — 두 글자 '10' 보다 8m 밖에서 낫다 */
+function circled(n: number): string {
+  return n >= 1 && n <= 20 ? String.fromCharCode(0x2460 + n - 1) : String(n);
+}
+
+/**
+ * 지난 라운드는 채우고 지금은 강조한다.
+ *
+ * ⚠️ 칸 수는 **`ROUNDS`(10) 고정**이다. `d.lastRound`(9 또는 10)로 그리면 안 된다 —
+ *    lastRound 는 3등이 골인하는 라운드라 교사 뷰에만 담기지만(views.ts), 이 화면은
+ *    **TV 에 그대로 뜬다.** 진행표가 9칸이면 학생이 "9라운드에 끝난다"를 1라운드에
+ *    알아 버린다. 정답을 화면에서 감추는 것과 같은 등급의 일이다 (MIGRATION §4-1).
+ * ⚠️ `ROUNDS` 를 여기 10 으로 박아 두지 않는다 — '설정'의 트랙칸수를 화면이 10 으로
+ *    박아 두어 조용히 거짓말하던 함정과 같다 (MIGRATION §5 trackCells).
+ */
+let roundsKey = '';
+
+function drawRounds(d: TeacherView): void {
+  const now = d.roundStarted ? d.round : d.round - 1;   // 아직 시작 안 한 라운드는 '지금'이 아니다
+  const key = `${now}|${d.round}|${d.roundStarted}`;
+  if (key === roundsKey) return;
+  roundsKey = key;
+  let h = '';
+  for (let r = 1; r <= ROUNDS; r++) {
+    const cls = r < d.round || (r === d.round && d.roundStarted) ? (r === d.round ? 'now' : 'done') : '';
+    h += `<i class="${cls}">${circled(r)}</i>`;
+  }
+  $('p-rounds').innerHTML = h;
+}
+
+/* ── 구획 4 — 모둠 현황 (가로 카드) ──
+   ⚠️ **정답 여부는 없다.** 제출했는지만 보인다 (RENEWAL §4-2 구획 4) — 맞힌 모둠이
+      누구인지 TV 에 뜨면 힌트의 값어치가 교실 전체에 새어 나간다.
+   ⚠️ **어느 동물에 걸었는지도 없다.** 남은 코인만 (RENEWAL §1 결정표) */
+function drawTeams(d: TeacherView): void {
+  $('prog').innerHTML = d.teams.map((t) =>
+    '<div class="tcard">' +
+      `<span class="tc-name">${esc(teamLabel(t.no, t.name))}</span>` +
+      `<span class="tc-st ${t.answered ? 'ok' : 'wait'}">${t.answered ? '✅ 제출' : '⏳ 풀이 중'}</span>` +
+      `<span class="tc-st ${t.betLocked ? 'ok' : 'wait'}">${t.betLocked ? '💰 확정' : '⏳ 베팅'}</span>` +
+      `<span class="tc-coins num">${t.coins}<span class="u">코인</span></span>` +
+    '</div>').join('');
+}
+
 /** 타이머가 튄 것을 알아보기 위해 지난 초를 기억한다 (아래 tick 주석) */
 let prevLeft: number | null = null;
 let prevPhase = '';
@@ -606,6 +668,36 @@ function tick(): void {
   prevLeft = left;
 
   skipNote(d, left);
+  sound(d, left);
+}
+
+/**
+ * 소리 (RENEWAL §4-4 표). **교사 화면만** — 폰은 조용하다.
+ *
+ * ⚠️ 여기는 무대 rAF 가 아니라 **1초 tick** 안이다. reduced-motion 이면 무대가 아예
+ *    만들어지지 않는데(ensureStage), 소리는 그것과 무관하게 나야 하기 때문이다.
+ *    출발 신호만은 초 단위로는 늦어서 `clock.elapsed()` 로 다시 잰다.
+ * ⚠️ 같은 소리를 두 번 내지 않으려면 **라운드를 기억**해야 한다. 자동 단축으로 상태가
+ *    자주 푸시되는 단계라, 조건만 보고 내면 초마다 주사위가 굴러간다.
+ */
+let dicedRound = -1;
+
+function sound(d: TeacherView, left: number | null): void {
+  audioScene(d.phase);
+
+  // 출발 카운트다운이 0 이 되는 순간 — 게이트가 열린다 (race.ts COUNTDOWN_END)
+  if (d.raceMoves) {
+    const t = clock.elapsed(d);
+    if (t != null && t >= COUNTDOWN_END && dicedRound !== d.round) {
+      dicedRound = d.round;
+      sfx('dice');
+    }
+  } else if (d.phase === 'waiting') {
+    dicedRound = -1;            // 다음 라운드를 위해 되돌린다 (이어하기로 들어온 판도 여기서 풀린다)
+  }
+
+  // 마지막 10초 초침 — 문제·베팅만. 토론은 조용해야 한다 (MIGRATION §1)
+  audioTick((d.phase === 'quiz' || d.phase === 'betting') && left != null && left <= 10 && left > 0);
 }
 
 /**
@@ -640,18 +732,20 @@ function skipNote(d: TeacherView, left: number | null): void {
     : '✅ 모둠이 다 끝났어요';
 }
 
-/* ── 트랙 그리기 ──
-   ⚠️ 되돌리면 안 되는 곳: 레인 DOM은 판이 바뀔 때만 짓고, 그 뒤엔 right 값만 만진다.
+/* ── 트랙 그리기 (CSS 폴백) ──
+   ⚠️ 되돌리면 안 되는 곳: 레인 DOM은 판이 바뀔 때만 짓고, 그 뒤엔 left 값만 만진다.
       매번 innerHTML로 갈아끼우면 요소가 새로 생겨서 말이 순간이동한다.
 
-   ⚠️ **진행 방향은 오른쪽 → 왼쪽이다** (출발선 오른쪽 · 결승선 왼쪽). 동물 이모지가
-      대부분 왼쪽을 보고 있어서, 반대로 두면 말이 뒷걸음질치는 그림이 된다 (사용자 결정).
-      그래서 말은 `left` 가 아니라 **`right` 퍼센트**로 민다 — pctOf() 는 그대로
+   ⚠️ **진행 방향은 왼쪽 → 오른쪽이다** (START 왼쪽 · GOAL 오른쪽 — RENEWAL §1·§4-2).
+      3단계까지는 반대였고, 그 이유는 "동물 이모지가 대부분 왼쪽을 본다" 였다.
+      4단계에서 **이모지를 `scaleX(-1)` 로 반전**하기로 정해 그 이유가 사라졌다.
+      그래서 말은 `right` 가 아니라 **`left` 퍼센트**로 민다 — pctOf() 는 그대로
       "출발선에서 얼마나 갔나"를 돌려주고, 그 값을 어느 쪽 끝에서 재느냐만 다르다.
-      되돌리려면 teacher.css · stage.ts · team/mini.ts 를 **동시에** 되돌릴 것.
+      ⚠️ teacher.css · stage.ts · team/mini.ts 를 **동시에** 되돌릴 것. 하나만 되돌리면
+         reduced-motion 폴백에서 TV 와 폰이 반대로 달린다 (MIGRATION §11-2).
 
-   레인 안의 순서도 뒤집혔다: 칸수(n/10) → 트랙 → 이름 → 배지.
-   뒤집기 전과 **같은 짝**을 지킨 것이다 (이름은 출발선 옆, 칸수는 결승선 옆). */
+   레인 안의 순서: 배지·이름 → 트랙 → 칸수(n/20).
+   이름이 출발선 옆·칸수가 결승선 옆인 짝은 방향을 뒤집기 전과 같다. */
 const SILK = 8;
 let trackKey: string | null = null;
 let wasFinished: Record<string, boolean> = {};
@@ -659,27 +753,25 @@ let wasFinished: Record<string, boolean> = {};
 interface Runner extends HTMLElement { _pct?: number; _t?: number }
 
 function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
-  const key = codes.join(',');
+  const key = codes.join(',') + '|' + d.trackCells;
   if (trackKey !== key) {
     $('track').innerHTML = codes.map((c, i) => {
       const pct = pctOf(d.positions[c], d.trackCells);
-      // 레인의 flex 자식 순서 = 화면 순서 (칸수 → 트랙 → 이름 → 배지).
-      // row-reverse 로 뒤집지 않은 이유는, 이 HTML 을 읽는 사람이 "보이는 순서"를
-      // 그대로 볼 수 있게 하기 위해서다.
-      // ⚠️ 반대로 `.course` **안쪽** 순서는 건드리지 않는다 — 셋 다 absolute 라
-      //    DOM 순서가 곧 겹치는 순서다. finish 를 앞으로 옮기면 골인한 말이 체크무늬
-      //    **위**로 올라와, 뒤집기 전과 다른 그림이 된다 (이번 변경은 방향만 바꾼다)
+      // 레인의 flex 자식 순서 = 화면 순서 (배지·이름 → 트랙 → 칸수).
+      // ⚠️ `.course` **안쪽** 순서는 겹치는 순서다 (셋 다 absolute). finish 를 앞으로
+      //    옮기면 골인한 말이 체크무늬 **아래**로 숨는다
       return `<div class="lane" id="ln-${c}">` +
-        `<div class="lane-pos num" id="lp-${c}"></div>` +
+        `<div class="lane-tag"><span class="silk s${i % SILK}">${i + 1}</span>` +
+          `<span class="lane-name">${esc(d.animals[c])}</span></div>` +
         '<div class="course">' +
+          '<div class="start"></div>' +
           `<div class="covered" id="cv-${c}" style="width:${coveredW(pct)}"></div>` +
-          `<div class="runway"><div class="runner" id="rn-${c}" style="right:${pct}%">` +
+          `<div class="runway"><div class="runner" id="rn-${c}" style="left:${pct}%">` +
             `<div class="trail"></div><div class="horse">${d.emojis[c] || '🐎'}</div>` +
           '</div></div>' +
           '<div class="finish"></div>' +
         '</div>' +
-        `<div class="lane-tag"><span class="lane-name">${esc(d.animals[c])}</span>` +
-          `<span class="silk s${i % SILK}">${i + 1}</span></div></div>`;
+        `<div class="lane-pos num" id="lp-${c}"></div></div>`;
     }).join('');
     trackKey = key; wasFinished = {};   // 이어하기로 들어온 판은 처음 위치에서 시작 — 질주 연출 없음
   }
@@ -696,12 +788,13 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
     if (!runner || !lane) return;
 
     const moved = runner._pct !== undefined && pct > runner._pct;
-    // 출발선(오른쪽)에서 잰다 — pct 가 커질수록 말이 왼쪽 결승선에 가까워진다
-    runner.style.right = pct + '%';
+    // 출발선(왼쪽)에서 잰다 — pct 가 커질수록 말이 오른쪽 GOAL 에 가까워진다
+    runner.style.left = pct + '%';
     const cv = maybe('cv-' + c);
     if (cv) cv.style.width = coveredW(pct);
     const lp = maybe('lp-' + c);
-    if (lp) lp.textContent = fin ? '골인' : `${Math.max(0, raw)}/${cells}`;
+    // ⚠️ 등수가 아니라 골인 여부만 (§4-1). 정산 전에 순위를 그리면 게임이 끝난다
+    if (lp) lp.textContent = fin ? '🏁 골인' : `${Math.max(0, raw)}/${cells}`;
     lane.classList.toggle('finished', fin);
 
     if (moved) {                       // 달리는 동안만 다리를 움직인다
@@ -723,9 +816,9 @@ function pctOf(pos: number, cells: number): number {
   return Math.max(0, Math.min(n, pos || 0)) / n * 100;
 }
 
-/* 지나온 거리 막대는 말과 끝이 맞아야 한다.
-   말은 runway(결승선 쪽 24px · 출발선 쪽 32px 들여쓴 칸) 기준이고 막대는 course 전체
-   기준이라, 그 차이(합 56px)를 여기서 맞춘다. 막대는 출발선(오른쪽)에 붙어 왼쪽으로 자란다 */
+/* 지나온 자국은 말과 끝이 맞아야 한다.
+   말은 runway(출발선 쪽 32px · 결승선 쪽 24px 들여쓴 칸) 기준이고 막대는 course 전체
+   기준이라, 그 차이(합 56px)를 여기서 맞춘다. 막대는 출발선(왼쪽)에 붙어 오른쪽으로 자란다 */
 function coveredW(pct: number): string { return `calc((100% - 56px) * ${pct / 100})`; }
 
 /* 이름을 비우면 서버가 '1모둠'으로 채운다(room.ts). 거기에 번호를 또 붙이면 '1모둠 1모둠'이 된다 */
@@ -788,6 +881,26 @@ function rollTick(now: number): void {
   if (rolls.size) rollRaf = requestAnimationFrame(rollTick);
 }
 
+/**
+ * **현재 위치 기준** 순위 (RENEWAL §4-2 구획 3). 정산 전 최종 순위가 아니다.
+ *
+ * ⚠️ 동률은 **공동 순위**다 (RENEWAL §1 결정표). 위치가 같은데 순서를 매기면
+ *    화면이 서버의 tie-break(truth 순)를 그대로 보여주게 되고, 그건 정답의 일부다.
+ * ⚠️ 골인한 동물은 순위 대신 '🏁 골인'이다 — 정산 전에는 등수를 그리지 않는다 (§4-1).
+ */
+function rankText(d: TeacherView, c: AnimalCode, codes: AnimalCode[]): string {
+  const pos = d.positions[c] || 0;
+  if (pos >= d.trackCells) return '🏁 골인';
+  let ahead = 0, tied = 0;
+  for (const o of codes) {
+    const p = d.positions[o] || 0;
+    if (p > pos) ahead++;
+    else if (p === pos && o !== c) tied++;
+  }
+  const r = ahead + 1;
+  return tied > 0 ? `<span class="tie">공동</span>${r}위` : `${r}위`;
+}
+
 function drawTote(d: TeacherView, codes: AnimalCode[]): void {
   let total = 0;
   const bets: Partial<Record<AnimalCode, number>> = {};
@@ -796,22 +909,40 @@ function drawTote(d: TeacherView, codes: AnimalCode[]): void {
   const key = codes.join(',');
   const fresh = toteKey !== key;
   if (fresh) {
+    // 한 줄 8카드. ⚠️ **인기순으로 정렬하지 않는다** — 줄이 바뀌면 눈이 못 따라간다 (05 §4-2).
+    // ⚠️ 이모지는 트랙의 말과 같은 방향을 보게 CSS 가 scaleX(-1) 한다 (.ac-emoji)
     $('odds').innerHTML = codes.map((c, i) =>
-      `<tr id="tr-${c}">` +
-      `<td class="t-silk"><span class="silk s${i % SILK}">${i + 1}</span></td>` +
-      `<td class="t-name">${d.emojis[c] || ''} ${esc(d.animals[c])}</td>` +
-      '<td><div class="pool-wrap">' +
-        `<div class="pool-fill" id="pf-${c}"></div></div>` +
-        `<div class="tchips" id="ch-${c}"></div></td>` +
-      `<td class="t-coins num"><span id="tc-${c}">0</span><span class="u">코인</span></td>` +
-      '<td class="t-odds">' +
-        `<span class="odds num" id="to-${c}">${d.odds[c].toFixed(2)}배</span>` +
-        `<span class="delta" id="td-${c}"></span></td></tr>`).join('');
+      `<div class="acard" id="tr-${c}">` +
+        '<div class="ac-top">' +
+          `<span class="silk s${i % SILK}">${i + 1}</span>` +
+          `<span class="ac-emoji">${d.emojis[c] || '🐎'}</span>` +
+          `<span class="ac-name">${esc(d.animals[c])}</span>` +
+        '</div>' +
+        '<div class="ac-mid">' +
+          `<span class="ac-rank" id="ar-${c}"></span>` +
+          `<span><span class="odds num" id="to-${c}">${d.odds[c].toFixed(2)}배</span>` +
+          `<span class="delta" id="td-${c}"></span></span>` +
+        '</div>' +
+        `<div class="pool-wrap"><div class="pool-fill" id="pf-${c}"></div></div>` +
+        `<div class="ac-foot"><span class="tchips" id="ch-${c}"></span>` +
+          `<span class="t-coins num"><span id="tc-${c}">0</span><span class="u">코인</span></span></div>` +
+      '</div>').join('');
     toteKey = key;
     prevBets = {};
     prevTotal = null;
     rolls.clear();
   }
+
+  codes.forEach((c) => {
+    const fin = (d.positions[c] || 0) >= d.trackCells;
+    const rk = maybe('ar-' + c);
+    if (rk) {
+      rk.innerHTML = rankText(d, c, codes);
+      rk.className = 'ac-rank' + (fin ? ' fin' : '');
+    }
+    const card = maybe('tr-' + c);
+    if (card) card.classList.toggle('fin', fin);
+  });
 
   codes.forEach((c) => {
     const now = d.odds[c];
@@ -845,6 +976,9 @@ function drawTote(d: TeacherView, codes: AnimalCode[]): void {
   // 카드 위의 "지금 걸린 코인 총합" — 베팅 단계에만 강조한다
   const box = $('tote-total');
   box.classList.toggle('live', d.phase === 'betting');
+  // 베팅이 확정돼 판돈이 늘어난 순간 동전 소리 (RENEWAL §4-4 — 칩이 날아올 때).
+  // ⚠️ 총합이 **늘었을 때만**이다. 판이 바뀌어 0 으로 돌아갈 때도 울리면 잡음이 된다
+  if (prevTotal != null && total > prevTotal) sfx('coin');
   roll('tote-total-n', prevTotal == null ? total : prevTotal, total, 0, '');
   prevTotal = total;
 
@@ -943,8 +1077,8 @@ function askReveal(): void {
 
 function askFinalize(): void {
   const msg = (LAST && LAST.round < LAST.lastRound)
-    ? '아직 3등이 안 들어왔어요.\n그래도 정산할까요?'
-    : '정산을 시작할까요?\n모둠 화면도 결과로 바뀝니다.';
+    ? '아직 3등이 안 들어왔어요.\n그래도 결과를 확인할까요?'
+    : '결과 확인(정산)을 시작할까요?\n모둠 화면도 결과로 바뀝니다.';
   confirmBox(msg, () => { void host('finalize'); });
 }
 
@@ -1002,6 +1136,7 @@ function nextStep(): void {
           `<div class="nm">${rank}등 · ${esc(d.animals[c])}</div></div>` +
       '</div>' +
       `<div class="sofar">${sofar}</div>`;
+    if (rank === 1) sfx('goldenKey');       // 1등이 밝혀지는 순간 (RENEWAL §4-4)
     $('r-next').textContent = step < 3 ? '다음 순위 공개' : '모둠별 계산 보기';
     return;
   }
@@ -1032,9 +1167,27 @@ function nextStep(): void {
     `<span style="color:var(--gold)">${w.finalCoins}코인</span></div><table><tbody>` +
     list.slice(1).map((s) =>
       `<tr><td>${s.rank}위</td><td>${esc(s.teamName)}</td><td class="num">${s.finalCoins}코인</td></tr>`).join('') +
-    '</tbody></table></div>';
+    '</tbody></table></div>' + fraudHtml(d);
   $('r-next').classList.add('hidden');
+  sfx('zooBuild');                            // 우승 (RENEWAL §4-4)
   confetti();
+}
+
+/**
+ * "🎭 N라운드 힌트는 거짓이었습니다" — 드럼롤이 **다 끝난 뒤에만** (RENEWAL §1 결정표).
+ *
+ * ⚠️ `fraudRound` 는 정산 전에는 응답에 아예 없다 (views.ts — truth 와 같은 등급의 비밀).
+ *    그러니 여기서 `d.fraudRound` 가 값을 가졌다는 것 자체가 "정산이 끝났다"는 뜻이다.
+ *    화면이 감추는 게 아니라 서버가 안 보내는 것이고, 그 순서를 뒤집지 말 것.
+ * ⚠️ 스위치를 안 켠 판에서는 null 이라 아무것도 안 그린다 — "거짓 라운드 없음"이라고
+ *    적으면, 켜고도 아직 정산 전인 판과 구별이 안 된다.
+ */
+function fraudHtml(d: TeacherView): string {
+  if (!d.fraudRound) return '';
+  return '<div class="fraud-reveal">' +
+    `<div class="fr-big">🎭 ${d.fraudRound}라운드 힌트는 거짓이었습니다</div>` +
+    '<div class="fr-sub">그 라운드에 받은 힌트 3개는 모두 사실이 아니었습니다. ' +
+    '나머지 라운드의 힌트는 전부 참이었습니다.</div></div>';
 }
 
 /**
@@ -1101,6 +1254,15 @@ function wire(): void {
   $('btn-round').addEventListener('click', nextRound);
   $('btn-pause').addEventListener('click', togglePause);
   $('btn-skip').addEventListener('click', () => { void skipPhase(); });
+
+  /* 소리 (RENEWAL §4-4). **교사 화면만.**
+     ⚠️ 브라우저는 사용자 동작 전에 소리를 못 낸다. 그래서 **아무 클릭에나** 켜 본다 —
+        캡처 단계에서 듣는 이유는, 확인 대화상자처럼 이벤트를 멈추는 처리기가 사이에
+        있어도 이건 지나가야 하기 때문이다. 막히면 조용히 실패하고 다음 클릭에 다시 한다
+        (audio.ts audioUnlock). setTimeout 으로 미루면 "사용자 동작"으로 안 쳐서 영영 막힌다. */
+  audioInit();
+  audioPanel($('btn-sound'));
+  document.addEventListener('click', () => audioUnlock(), true);
   $('btn-handout').addEventListener('click', showHandout);
   $('btn-reveal').addEventListener('click', askReveal);
   $('btn-finalize').addEventListener('click', askFinalize);
