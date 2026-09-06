@@ -81,11 +81,14 @@ MIGRATION §4-1(정답 비공개 — `fraudRound` 포함), §4-2, §4-4~§4-8 �
 
 ## 3. 문제은행
 
-### 3-1. D1
+### 3-1. D1 ✅ (2단계 완료)
 
-- `questions`: `unit` → `set_name`(RENAME COLUMN). `level` 값 '중간' → '보통' (UPDATE). 기존 54문항은 세트 이름 = 예전 단원 이름 그대로
-- 세트 목록 = `SELECT DISTINCT set_name`. 방 만들 때 세트 하나 또는 전체
-- `settings` 기본값: moveSeconds 15, quizSeconds 40, discussSeconds 90, betSeconds 45, trackCells 20, `rounds` 10, `fraudEnabled` 1 (마이그레이션 `0005_renewal.sql`)
+- `questions`: `unit` → `set_name`(RENAME COLUMN, `migrations/0006_sets.sql`). `level` 값 '중간' → '보통'은 `0005` 가 했다. 기존 54문항은 세트 이름 = 예전 단원 이름 그대로 (0006 에 UPDATE 가 한 줄도 없다 — 이름만 바꾸고 값은 안 옮긴다)
+- 인덱스도 `questions_unit` → `questions_set (set_name, level)`. `games.unit` → `set_name` 도 같이
+- 세트 목록 = `SELECT set_name, level, COUNT(*) … GROUP BY set_name, level ORDER BY MIN(id)` 한 번 (문제은행에 들어온 순서를 지킨다 — 이름순으로 하면 문항 하나 고칠 때마다 드롭다운 순서가 뒤바뀐다)
+- 방 만들 때 세트 하나 또는 **전체**. 전체면 `prepareSet(null)` 이 WHERE 없이 읽고, `games.set_name` 에는 `'(전체)'` 가 적힌다 (`bank.ts` 의 `ALL_SETS`)
+- 문항 부족 경고 기준: `LIMITS.minHintsPerLevel`(6) → **`LIMITS.minQuestionsPerLevel`(10)**. 10인 이유는 라운드가 10개라서다 — 한 모둠이 10라운드 내내 같은 난이도를 고르면 그 난이도 10문항을 다 쓴다
+- `settings` 기본값: moveSeconds 15, quizSeconds 40, discussSeconds 90, betSeconds 45, trackCells 20 (`0005`). `rounds` 는 설정에 두지 않는다 (`config.ts ROUNDS` = 10 고정), `fraudEnabled` 는 방마다 스위치라 설정이 아니다
 
 ### 3-2. JSON 형식 (애니멀 더비 공식)
 
@@ -108,9 +111,54 @@ MIGRATION §4-1(정답 비공개 — `fraudRound` 포함), §4-2, §4-4~§4-8 �
 - 가져오기: 파일을 읽어 **요약(총·난이도별 개수, 오류 줄)** 을 먼저 보여주고 → **기존 세트에 추가 / 같은 이름 세트 교체 / 전체 교체** 중 선택. 형식 오류는 줄 번호와 이유
 - 내보내기: 세트 하나 또는 전체를 위 형식으로. 파일명 `애니멀더비_{세트}_{날짜}.json`
 
-### 3-3. 관리 화면
+**구현 (`src/server/portable.ts` — 런타임을 모르는 순수 함수라 게이트가 그대로 돈다)**
 
-기존 `/admin` 유지 + 상단 `+ 새 문제` · `JSON 가져오기` · `JSON 내보내기`, 세트 선택, 난이도 이름 '보통'. 동물·설정 탭 그대로 (설정에 `rounds`·`fraudEnabled` 추가).
+- 검사 순서(먼저 걸리는 하나만 사유로 준다): `type` ≠ `multiple_choice` → `question` 빈칸 → `choices` 4개·빈칸 없음 → `answer` 1~4 → `difficulty`
+- `difficulty` 는 `easy|medium|hard`. **한국어('쉬움·보통·어려움')도 받는다** — 손으로 만든 파일이 대부분이다. 대응은 `LEVELS` 와 **자리(index)** 로 묶여 있어서 난이도 이름이 또 바뀌어도 따라간다
+- `id` 는 내보낼 때 `q001` 식으로 붙이고 **가져올 때 무시한다.** 되받아 쓰면 "이미 있는 문항을 덮어쓸지" 라는 규칙이 하나 더 는다
+- 잘못된 문항은 **건너뛰고** `errors[{index, reason}]` 로 모은다 (`index` 는 0부터, 화면이 +1 해서 "3번째 문항"). 파일 자체가 형식이 아닐 때(`questions` 가 배열이 아님)만 통째로 거절
+- **유효한 문항이 0개면 `BAD_REQUEST` 로 막는다.** 안 막으면 `replaceAll` 이 문제은행을 비우고 끝난다
+- 쓰기는 **D1 `batch` 한 번**(지우기 + 넣기). 두 번의 왕복으로 나누면 사이에 실패했을 때 은행이 빈 채로 남는다
+- ⚠️ **전체 내보내기는 세트 경계를 잃는다.** 형식에 문항별 세트 칸이 없어서 한 파일의 `title` 이 `(전체)` 하나다. 세트를 지키려면 세트마다 한 번씩 내보낸다 (임의 결정 — 형식을 §3-2 그대로 두는 쪽을 골랐다)
+
+### 3-3. 관리 화면 ✅ (2단계 완료)
+
+`/admin` 그대로. 제목만 **"애니멀 더비 — 문제 관리자"**, '단원' → '문제 세트'.
+
+- 상단 툴바: 세트 선택(— 전체 — / 각 세트) · `이름 바꾸기` · `세트 삭제` · `📥 JSON 가져오기` · `📤 JSON 내보내기` · `＋ 새 문제`
+- 가져오기: `<input type=file accept=.json>` → 읽어서 `/import/preview` → **요약 카드**(파일명, 세트 이름, 총 N, 난이도별 알약 3개, 오류 목록 "3번째 문항: 보기 2개가 비어 있어요") → `기존 문제에 추가` / `같은 이름 세트 교체` / `전체 교체`(빨강 + 확인 대화) → 토스트 + 목록·건강 표 갱신
+- 내보내기: **`<a href>` 가 아니라 `fetch`.** 그 파일에는 정답이 전부 들어 있어 관리자 헤더가 필요하고, 링크에는 헤더를 실을 수 없다. 받아서 `Blob` → `URL.createObjectURL` → 클릭. 파일 이름은 서버가 `content-disposition: filename*=UTF-8''…` 로 준다 (화면이 이름 규칙을 따로 갖지 않게)
+- 건강 표: 세트별 쉬움/보통/어려움 개수, **10 미만이면 노란색 + ⚠️**, 각주 "난이도마다 10문항 이상이면 10라운드 동안 같은 문제가 안 나옵니다"
+  - ⚠️ 표 아래 문장으로는 **문항 부족을 반복하지 않는다** (`summary` 가 `prep.skipped` 만 보낸다). 세트마다 세 줄씩 쌓이면 정작 읽어야 할 "12번 문항은 난이도가 이상해서 안 쓰입니다" 가 묻힌다
+- 상단 고정 안내문("여기서 고친 것은 새로 만드는 방부터")은 그대로. 동물·설정 탭도 그대로
+
+### 3-4. 라우트 (2단계에서 생기거나 바뀐 것)
+
+**인증 없음**
+
+| 경로 | 응답 `data` |
+|---|---|
+| `GET /api/sets` | `{sets:[{name, total, byLevel}]}` — **개수만.** 문제도 정답도 없다 (게이트 `LEAK-ADMIN`) |
+| `GET /api/units` | `{units:[이름…], recent, recentError}` — **이름 그대로 둔다.** 교사 화면이 이 이름으로 읽고 있고 그 화면은 3단계 몫이다. `/api/sets` 와 같은 목록 |
+| `GET /api/prepare?set=X` | `{blocking, warnings, units, sets}`. `?unit=` 도 받는다. **비면 전체 은행**(예전에는 빈 결과였다) |
+| `POST /api/game` | `setName`(또는 `unit`)이 없거나 `''` 면 **전체 은행**. `games.set_name` 에는 세트 이름 또는 `'(전체)'` |
+
+**관리자 (`X-Admin-Password` 를 매 호출)** — 전부 `router.ts` 의 `adminDenied` 를 지난다
+
+| 경로 | 입력 | 응답 `data` |
+|---|---|---|
+| `GET /api/admin/questions?set=X` | `set` 없으면 전부 | `{questions[], sets[]}` (열쇠가 `units` → `sets`, 문항의 `unit` → `setName`) |
+| `POST`·`PUT`·`DELETE /api/admin/questions[/:id]` | `{setName, level, text, choices[4], answer, explanation}` | 전과 같음 |
+| `PUT /api/admin/sets/:name` | `{name}` | `{sets, affected}` · 없는 세트 `NOT_FOUND` · 빈 이름·**이미 있는 이름** `BAD_REQUEST` |
+| `DELETE /api/admin/sets/:name` | — | `{sets, affected}` |
+| `GET /api/admin/export?set=X` | `set` 없으면 전체 | **봉투가 아니라 파일** — `application/json; charset=utf-8` + `content-disposition: attachment; filename*=UTF-8''…` |
+| `POST /api/admin/import/preview` | `{json, setName?}` | `{title, total, byDifficulty:{easy,medium,hard}, errors:[{index,reason}], existingSet}` · **아무것도 저장하지 않는다** |
+| `POST /api/admin/import` | `{json, mode:'append'\|'replaceSet'\|'replaceAll', setName?}` | `{setName, inserted, skipped, summary}` · 유효 0건이면 `BAD_REQUEST` |
+| `GET /api/admin/summary` | — | `{sets:[{setName, counts, total, blocking, warnings}], levels, minPerLevel, animals}` (`units` → `sets`, `unit` → `setName`, `minPerLevel` = 10) |
+
+⚠️ **봉투가 아닌 응답은 내보내기 하나뿐이다.** `ApiResponse.raw` 라는 탈출구를 하나 두고 `index.ts` 가 그대로 흘려보낸다 — 봉투로 감싸면 저장된 파일이 §3-2 형식이 아니게 되어 다시 못 가져온다. 그 갈래는 **`adminDenied` 뒤에** 있다 (앞에 두면 그 파일만 인증 없이 나간다 — 게이트 `EXP2`).
+
+**게이트** (`test/admin.ts` 17개): `ADM1`~`ADM6` · `IMP1`~`IMP4` · `EXP1`·`EXP2` · `SET1`·`SET2` · `WARN10` · `LEAK-ADMIN` · `ADM-GAME`
 
 ---
 
@@ -165,7 +213,7 @@ MIGRATION §4-1(정답 비공개 — `fraudRound` 포함), §4-2, §4-4~§4-8 �
 ## 5. 단계 (각 단계 끝에 게이트 전부 통과 · 검토 · 커밋 · push = 자동 배포)
 
 1. **규칙** — `planRace` 20칸/10R 생성기, 30힌트 + 사기 라운드, 상태 필드, 뷰. `parity.ts` 삭제, `gates.ts`·`room.ts` 게이트 갱신 + 새 게이트(RACE-GEN·FRAUD·HINT-30). 시간 기본값
-2. **문제은행** — D1 마이그레이션(세트·보통·설정), JSON 가져오기/내보내기 API + 관리 화면, 세트 선택
+2. ~~**문제은행**~~ ✅ — D1 마이그레이션(`0006_sets.sql`), JSON 가져오기/내보내기 API + 관리 화면, 세트 API (§3-4). **세트 선택 UI 는 3단계(교사 첫 화면)** 몫이고, 여기서는 API 와 `/api/game` 만 준비했다
 3. **첫 화면·브랜딩** — 이름·문구·방 제목·세트·사기 스위치·문제 관리자 링크. 학생 접속 화면
 4. **진행 화면** — 5구획, 좌→우 20칸 잔디 무대, 큰 반전 이모지, 8카드, 모둠 카드, 라운드 진행표. 폰 미니 트랙. **BGM·효과음 (§4-4)**
 5. **마무리** — 정산에 거짓 라운드 공개, `/guide`·bae-lab 갱신, MIGRATION §11 등 문서 정합

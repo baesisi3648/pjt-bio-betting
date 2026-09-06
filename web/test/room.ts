@@ -30,7 +30,7 @@ const QUESTIONS: Question[] = [];
   for (const lv of LEVELS) {
     for (let i = 1; i <= ROUNDS; i++) {
       QUESTIONS.push({
-        id: id++, unit: '유전', level: lv, text: `${lv} 문제 ${i}`,
+        id: id++, setName: '유전', level: lv, text: `${lv} 문제 ${i}`,
         choices: ['ㄱ', 'ㄴ', 'ㄷ', 'ㄹ'], answer: (i % 4) + 1, explanation: '해설'
       });
     }

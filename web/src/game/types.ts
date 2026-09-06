@@ -40,7 +40,8 @@ export type Bets = Partial<Record<AnimalCode, number>>;
 
 export interface Question {
   id: number;
-  unit: string;
+  /** 이 문항이 속한 **문제 세트** 이름 (RENEWAL §3-1. 예전 이름은 unit) */
+  setName: string;
   level: Level;
   text: string;
   choices: string[];

@@ -24,7 +24,8 @@ import { DEPLOY_VERSION } from '../game/config.ts';
 import { makeCode } from '../game/rules.ts';
 import { err, ok } from '../do/room.ts';
 import type { Envelope, Err } from '../do/room.ts';
-import { adminRoute } from './admin.ts';
+import { adminRoute, isRaw } from './admin.ts';
+import { ALL_SETS } from './bank.ts';
 import type { ApiRequest, ApiResponse, Ports, RecentGame } from './ports.ts';
 
 // ────────────────────────────────────────────────────────────
@@ -115,6 +116,7 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
   // ── 인증 없음 ──────────────────────────────────────
   if (path === '/api/version') return reply(ok({ v: DEPLOY_VERSION }));
   if (path === '/api/units') return unitsRoute(ports);
+  if (path === '/api/sets') return setsRoute(ports);
   if (path === '/api/prepare') return prepareRoute(req, ports);
 
   // ── 관리자 비밀번호 필요 ──
@@ -187,7 +189,12 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
   if (path.startsWith('/api/admin/')) {
     const denied = adminDenied(req, ports);
     if (denied) return denied;
-    return reply(await adminRoute(req, ports, path, method, body));
+    const res = await adminRoute(req, ports, path, method, body);
+    // JSON 내보내기만 봉투가 아니라 **파일**로 나간다 (ports.ts RawResponse 주석).
+    // ⚠️ 이 갈래가 `adminDenied` **뒤에** 있다. 앞에 두면 그 파일 하나만 인증 없이 나간다 —
+    //    그리고 그 파일에는 정답과 해설이 전부 들어 있다 (게이트 EXP2)
+    if (isRaw(res)) return { status: 200, body: ok({}), raw: res.raw };
+    return reply(res);
   }
 
   return fail('NOT_FOUND');
@@ -227,22 +234,25 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
   //    교사 화면은 4단계에서야 새 이름으로 바뀐다 — 그때까지 옛 이름을 보낸다.
   //    이 한 줄이 없으면 리뉴얼 1단계를 배포하는 순간 판이 하나도 안 만들어진다
   const roomTitle = String(body.roomTitle ?? body.className ?? '').trim();
-  // 문제 세트 이름. D1 열 이름(`questions.unit`)은 2단계에서 바꾼다 (RENEWAL §3-1)
-  const unit = String(body.setName ?? body.unit ?? '').trim();
+  /**
+   * 문제 세트 이름. **비었거나 없으면 전체 은행**이다 (RENEWAL §1 — 첫 화면에서
+   * '전체'를 고를 수 있다). 그래서 여기서 거절하지 않는다 — 예전에는
+   * "문제 세트를 골라주세요" 로 막았고, 그게 '전체'를 못 고르게 하던 줄이었다.
+   */
+  const setName = String(body.setName ?? body.unit ?? '').trim() || null;
   const teamCount = Math.floor(Number(body.teamCount));
   const teamNames = Array.isArray(body.teamNames) ? body.teamNames.map((x) => String(x ?? '')) : undefined;
   // 사기 라운드 스위치는 **기본이 켬**이다 (RENEWAL §1). 안 보내면 켜진 판이 만들어진다
   const fraudEnabled = body.fraudEnabled === undefined ? true : !!body.fraudEnabled;
 
   if (!roomTitle) return fail('BAD_REQUEST', '방 제목을 넣어주세요');
-  if (!unit) return fail('BAD_REQUEST', '문제 세트를 골라주세요');
   if (!(teamCount >= 1 && teamCount <= MAX_TEAMS)) {
     return fail('BAD_REQUEST', `모둠 수는 1~${MAX_TEAMS} 사이여야 해요`);
   }
 
   // ⚠️ 문제은행 검사가 **판 만들기 앞에** 있다. 이 순서를 되돌리면 문항이 모자란 판이
   //    만들어지고, 수업 중 라운드가 넘어가는 순간에야 그걸 알게 된다 (validateSheets)
-  const prep = await ports.db.prepareUnit(unit);
+  const prep = await ports.db.prepareSet(setName);
   if (prep.blocking.length) return fail('SHEET_INVALID', prep.blocking.join('\n'));
 
   const rng = ports.rng;
@@ -254,7 +264,7 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
     if (await ports.db.hasGame(code)) { lastErr = err('GAME_EXISTS'); continue; }
 
     const res = await ports.room(code).op('create', [
-      { code, roomTitle, setName: unit, fraudEnabled, teamCount, teamNames, warnings: prep.warnings },
+      { code, roomTitle, setName, fraudEnabled, teamCount, teamNames, warnings: prep.warnings },
       prep.questions, prep.animals, prep.settings
     ]);
 
@@ -263,8 +273,11 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
     if (!res.ok) return reply(res);
 
     // 목록('이어하기')용 한 줄. ⚠️ 상태 자체는 DO 에 있다 — 이 표는 목록일 뿐이다 (§7 3단계)
-    // D1 `games` 표의 열 이름은 그대로다 (class_name·unit). 문제은행 이름 바꾸기는 2단계
-    await ports.db.addGame({ code, className: roomTitle, unit, createdAt: ports.now() });
+    // ⚠️ 전체 은행으로 만든 판에는 '(전체)' 를 적는다. 빈 칸으로 두면 '이어하기' 표의
+    //    그 줄만 세트 칸이 비어서, 목록을 보는 사람이 데이터가 깨진 줄로 읽는다
+    await ports.db.addGame({
+      code, className: roomTitle, unit: setName ?? ALL_SETS, createdAt: ports.now()
+    });
 
     return reply(ok({ ...(res.data as object), studentUrl: studentUrlOf(req) }));
   }
@@ -276,28 +289,52 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
 // 목록 · 미리보기
 // ────────────────────────────────────────────────────────────
 
+/**
+ * 문제 세트 목록 + '이어하기'.
+ *
+ * ⚠️ **이름이 `/api/units` 인 채로 남아 있고, 응답의 열쇠도 `units` 다.**
+ *    2단계에서 단원이 문제 세트가 됐지만(RENEWAL §3-1) 교사 화면은 3단계 몫이라,
+ *    여기서 이름을 바꾸면 **지금 배포된 교사 화면의 드롭다운이 통째로 빈다.**
+ *    같은 데이터를 `/api/sets` 로도 내보내고, 3단계에서 교사 화면과 **함께** 옮긴다.
+ */
 async function unitsRoute(ports: Ports): Promise<ApiResponse> {
-  // ⚠️ 최근 판 목록이 실패해도 단원 목록은 살아야 한다. 앱스 스크립트판은 여기서 터지면
+  // ⚠️ 최근 판 목록이 실패해도 세트 목록은 살아야 한다. 앱스 스크립트판은 여기서 터지면
   //    드롭다운이 통째로 비었고 화면에는 아무 표시도 안 났다 (gwListUnits)
   let recent: RecentGame[] = [];
   let recentError: string | null = null;
   try { recent = await ports.db.recentGames(10); }
   catch (e) { recentError = (e as Error).message; }
 
-  return reply(ok({ units: await ports.db.listUnits(), recent, recentError }));
+  const sets = await ports.db.listSets();
+  return reply(ok({ units: sets.map((s) => s.name), recent, recentError }));
+}
+
+/**
+ * 문제 세트 목록 — 이름·총 개수·난이도별 개수 (RENEWAL §4-1).
+ *
+ * ⚠️ **인증이 없다.** 그래서 개수만 나간다 — 문제 내용도 정답도 없다.
+ *    여기에 문항을 얹는 순간 주소 하나로 문제은행이 샌다 (게이트 LEAK-ADMIN).
+ */
+async function setsRoute(ports: Ports): Promise<ApiResponse> {
+  return reply(ok({ sets: await ports.db.listSets() }));
 }
 
 /** 판을 만들기 전 문제은행을 미리 본다 (apps-script 의 gwPrepare) */
 async function prepareRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> {
-  const unit = String(req.query.unit ?? '').trim();
-  const units = await ports.db.listUnits();
-  if (!unit) return reply(ok({ blocking: [], warnings: [], units }));
-  const prep = await ports.db.prepareUnit(unit);
+  // `?set=` 이 정본이고 `?unit=` 도 받는다 — 교사 화면은 3단계까지 옛 이름을 보낸다
+  const asked = String(req.query.set ?? req.query.unit ?? '').trim();
+  const sets = await ports.db.listSets();
+  const units = sets.map((s) => s.name);
+  // ⚠️ 빈 값은 '아직 안 골랐다'가 아니라 **전체 은행**이다 (RENEWAL §1).
+  //    예전에는 여기서 빈 결과를 돌려줬는데, 그러면 '전체'를 고른 선생님이
+  //    문항이 모자란지 어떤지를 판을 만들고 나서야 알게 된다
+  const prep = await ports.db.prepareSet(asked || null);
   return reply(ok({
     blocking: prep.blocking,
-    // 미리보기에서만 설정 경고를 합친다 (PreparedUnit.settingWarnings 주석)
+    // 미리보기에서만 설정 경고를 합친다 (PreparedSet.settingWarnings 주석)
     warnings: [...prep.warnings, ...prep.settingWarnings],
-    units
+    units,
+    sets
   }));
 }
 

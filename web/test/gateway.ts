@@ -2,7 +2,7 @@
  * gateway.ts — 게이트웨이(HTTP 라우트 + 인증) 게이트.
  *
  * 라우터를 **인메모리 포트**로 돌린다. RoomPort 뒤에는 진짜 `Room` 이 있고,
- * DbPort 뒤에는 진짜 `validateUnit` 이 있다. workerd 도 D1 도 띄우지 않는다 —
+ * DbPort 뒤에는 진짜 `validateSet` 이 있다. workerd 도 D1 도 띄우지 않는다 —
  * 그게 라우터가 `env` 대신 ports.ts 만 보게 만든 이유다 (MIGRATION §9-3).
  *
  * 게이트 이름은 앱스 스크립트판(test/simulate-game.js)에서 그대로 이어받았다.
@@ -18,7 +18,7 @@
 import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES } from '../src/game/config.ts';
 import type { AnimalCode } from '../src/game/config.ts';
 import { THROTTLE } from '../src/do/ops.ts';
-import { validateUnit } from '../src/server/bank.ts';
+import { validateSet } from '../src/server/bank.ts';
 import type { ApiResponse, RecentGame } from '../src/server/ports.ts';
 import {
   Net, ORIGIN, admin, allKeys, answerOf, createGates, dataOf, errOf, host, open, pin
@@ -226,8 +226,8 @@ await gate('SEC13', 'DO 의 op 는 공개 경로에 없다 — 판 생성은 /ap
   // 어떤 경로로도 방이 만들어지지 않았다
   const noRoom = !net.rooms.get('XXXX') || net.rooms.get('XXXX')!.room.raw() === null;
 
-  // 그리고 유일한 생성 경로는 D1 문제은행을 거친다 — 없는 단원으로는 판이 안 만들어진다
-  const noUnit = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: 'A', unit: '없는단원', teamCount: 2 } });
+  // 그리고 유일한 생성 경로는 D1 문제은행을 거친다 — 없는 세트로는 판이 안 만들어진다
+  const noUnit = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { className: 'A', unit: '없는세트', teamCount: 2 } });
   // 만들어진 판의 문항은 D1 에서 온 것이다 (문항 내용이 상태에 굳어 있다 — §4-6)
   const g = await open(net, '유전', 2);
   const st = net.state(g.code);
@@ -238,7 +238,7 @@ await gate('SEC13', 'DO 의 op 는 공개 경로에 없다 — 판 생성은 /ap
   return {
     ok: codes.every((c) => c === 'NOT_FOUND') && noRoom && errOf(noUnit) === 'SHEET_INVALID' && fromDb,
     detail: `${tried.length}가지 경로 전부 ${codes.join('/')} · 방 미생성 ${noRoom} · ` +
-            `없는 단원 ${errOf(noUnit)} · 배정 문항 ${Object.keys(st.questionById).length}개 전부 D1 출처`
+            `없는 세트 ${errOf(noUnit)} · 배정 문항 ${Object.keys(st.questionById).length}개 전부 D1 출처`
   };
 });
 
@@ -450,7 +450,7 @@ await gate('GW2', '생성 응답에 studentUrl·warnings, D1 games 에 한 줄',
 
   return {
     ok: res.body.ok && d.studentUrl === ORIGIN + '/' && warnings.length === 1 &&
-        warnings[0]!.includes('어려움 3/6') && teams.length === 5 &&
+        warnings[0]!.includes('어려움 3/10') && teams.length === 5 &&
         teams[0]!.name === '가' && teams[2]!.name === '3모둠' &&
         net.db.games.length === 1 && row!.code === d.code && row!.className === '2학년 5반' &&
         row!.unit === '항상성' && row!.createdAt === net.clock.now && row!.isOver === false &&
@@ -478,12 +478,12 @@ await gate('GW3', '판 코드가 겹치면 다시 뽑아 성공한다', async ()
   await net.db.addGame({ code: 'AAAA', className: '앞반', unit: '유전', createdAt: net.clock.now - 1000 });
   const bbbb = net.roomOf('BBBB');
   bbbb.room.create({ code: 'BBBB', roomTitle: '앞반', setName: '유전', teamCount: 2 },
-    validateUnit('유전', net.db.questions.filter((q) => q.unit === '유전'), net.db.animals, net.db.settings).questions,
+    validateSet('유전', net.db.questions.filter((q) => q.set_name === '유전'), net.db.animals, net.db.settings).questions,
     { names: {} as Record<AnimalCode, string>, emojis: {} as Record<AnimalCode, string> });
 
   const res = await net.call('POST', '/api/game', { headers: admin(net.adminPassword!), body: { roomTitle: '뒷반', unit: '유전', teamCount: 2 } });
   const code = String(dataOf(res).code);
-  // 앞 판을 덮어쓰지 않았다 (D1 games 표의 열 이름은 아직 class_name 이다 — 2단계에서 바꾼다)
+  // 앞 판을 덮어쓰지 않았다 (RecentGame 의 열쇠 이름은 아직 className 이다 — ports.ts 주석)
   const kept = net.db.games.find((x) => x.code === 'AAAA')!.className === '앞반' &&
                net.state('BBBB').roomTitle === '앞반';
 
@@ -544,7 +544,7 @@ await gate('GW5', '없는 판·없는 주소·깨진 본문에도 봉투로 답�
   };
 });
 
-await gate('GW6', '최근 판 목록이 터져도 단원 목록은 살아 있다', async () => {
+await gate('GW6', '최근 판 목록이 터져도 세트 목록은 살아 있다', async () => {
   const net = new Net();
   await open(net, '유전', 2);
   net.db.recentThrows = true;
@@ -553,7 +553,7 @@ await gate('GW6', '최근 판 목록이 터져도 단원 목록은 살아 있다
   return {
     ok: r.body.ok && (d.units as string[]).length === 2 && (d.recent as unknown[]).length === 0 &&
         typeof d.recentError === 'string',
-    detail: `단원 ${(d.units as string[]).join(',')} · 최근 판 0줄 + recentError "${String(d.recentError)}"`
+    detail: `세트 ${(d.units as string[]).join(',')} · 최근 판 0줄 + recentError "${String(d.recentError)}"`
   };
 });
 

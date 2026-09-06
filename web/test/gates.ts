@@ -487,7 +487,7 @@ gate('M6b', '시드가 0이어도 배당률이 NaN 이 되지 않는다', () => 
 
 gate('D5b', `문항이 모자라면 순환 재사용 (${ROUNDS}라운드 분을 배정한다)`, () => {
   const q = (id: number, level: Level): Question =>
-    ({ id, unit: 'X', level, text: 't', choices: ['1', '2', '3', '4'], answer: 1, explanation: '' });
+    ({ id, setName: 'X', level, text: 't', choices: ['1', '2', '3', '4'], answer: 1, explanation: '' });
   const plan = planQuestions({ '쉬움': [q(1, '쉬움'), q(2, '쉬움')] }, ROUNDS, () => 0);
   const seq = Array.from({ length: ROUNDS }, (_, i) => plan[i + 1]!['쉬움']);
   const cycles = seq.every((v, i) => v === seq[i % 2]);

@@ -144,6 +144,10 @@ lines.push('', `-- ── 문항 ${bank.length}개 ──`);
 for (const [unit, count] of byUnit) lines.push(`--   ${unit} ${count}문항`);
 lines.push('');
 
+// ⚠️ 열 이름이 `unit` 인 것은 **맞다.** 이 파일이 만드는 것은 `0002_seed.sql` 이고,
+//    그건 `0006_sets.sql`(unit → set_name RENAME) **앞에서** 돈다. `set_name` 으로
+//    고치면 마이그레이션을 처음부터 다시 도는 새 배포에서 0002 가 없는 열에 넣으려다 죽는다.
+//    ('단원' 이라는 말도 그대로 둔다 — 이 시드의 출처가 apps-script 의 단원이다)
 bank.forEach((r, i) => {
   const [unit, level, text, c1, c2, c3, c4, answer, explanation] = r;
   lines.push(

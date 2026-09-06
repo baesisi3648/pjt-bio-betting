@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>와일드 더비 — 문제은행 관리</title>
+<title>애니멀 더비 — 문제 관리자</title>
 <!-- ⚠️ 외부 글꼴·CDN 링크를 넣지 마세요. 학교망에서 막히면 수업이 멈춥니다 -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="./shared/base.css">
@@ -16,8 +16,8 @@
      ⚠️ 이 화면 자체에는 비밀이 없습니다. 지키는 것은 이 HTML 이 아니라 /api/admin/* 이고,
         서버는 **매 호출** 비밀번호를 확인합니다 (MIGRATION §10 — 세션·쿠키·토큰 없음) -->
 <div id="login" class="card gate">
-  <h1>🗂 문제은행 관리</h1>
-  <p class="lead">문제·동물·설정을 고치는 화면입니다. 수업 중에 쓰는 화면이 아닙니다.</p>
+  <h1>🗂 문제 관리자</h1>
+  <p class="lead">문제 세트·동물·설정을 고치는 화면입니다. 수업 중에 쓰는 화면이 아닙니다.</p>
   <label for="pw">관리자 비밀번호</label>
   <input id="pw" type="password" autocomplete="current-password">
   <button class="primary" id="btn-login">들어가기</button>
@@ -28,7 +28,7 @@
 <!-- ══ 본문 ══ -->
 <div id="app" class="hidden">
   <div class="topbar">
-    <h1>🗂 문제은행 관리</h1>
+    <h1>🗂 애니멀 더비 — 문제 관리자</h1>
     <div class="topbar-r">
       <a href="/teacher">← 교사 화면</a>
       <button class="btn-small" id="btn-logout">비밀번호 지우기</button>
@@ -37,8 +37,8 @@
 
   <!-- ⚠️ 이 문장을 지우지 마세요. 문항은 판을 만들 때 내용까지 굳습니다 (MIGRATION §4-6).
        없으면 "고쳤는데 왜 옛날 문제가 나오냐"는 질문이 반드시 나옵니다 -->
-  <div class="notice">⏱ 여기서 고친 것은 <b>새로 만드는 판</b>부터 적용됩니다.
-    이미 만든 판은 만들 때의 문제를 그대로 씁니다.</div>
+  <div class="notice">⏱ 여기서 고친 것은 <b>새로 만드는 방</b>부터 적용됩니다.
+    이미 만든 방은 만들 때의 문제를 그대로 씁니다.</div>
 
   <div class="card">
     <h2>문제은행 상태</h2>
@@ -54,12 +54,42 @@
   <!-- ── 문제 ── -->
   <div id="pane-q">
     <div class="card">
-      <div class="row">
-        <label for="q-unit" class="inline">단원</label>
-        <select id="q-unit" class="w-mid"></select>
+      <!-- 상단 툴바 (RENEWAL §3-3) -->
+      <div class="row toolbar">
+        <label for="q-set" class="inline">문제 세트</label>
+        <select id="q-set" class="w-mid"></select>
+        <button class="btn-quiet small" id="btn-rename">이름 바꾸기</button>
+        <button class="btn-quiet small" id="btn-delset">세트 삭제</button>
         <span class="grow"></span>
+        <button class="btn-quiet small" id="btn-import">📥 JSON 가져오기</button>
+        <button class="btn-quiet small" id="btn-export">📤 JSON 내보내기</button>
         <button class="primary small" id="btn-new">＋ 새 문제</button>
       </div>
+
+      <!-- 세트 이름 바꾸기 — 브라우저 prompt() 를 쓰지 않습니다 (shared/ui.ts 주석) -->
+      <div class="row gap hidden" id="rename-row">
+        <input id="f-setname" class="w-mid" placeholder="새 세트 이름">
+        <button class="primary small" id="btn-rename-ok">이름 바꾸기</button>
+        <button class="btn-quiet small" id="btn-rename-cancel">취소</button>
+      </div>
+
+      <!-- ⚠️ 파일 입력은 화면에 두되 눈에는 안 보입니다. 버튼이 이걸 대신 누릅니다 —
+           input[type=file] 은 브라우저마다 생김새를 못 맞춥니다 -->
+      <input type="file" id="f-file" accept=".json,application/json" class="offscreen">
+
+      <!-- 가져오기 요약 카드 (RENEWAL §3-2) -->
+      <div class="imp hidden" id="imp-panel">
+        <div id="imp-summary"></div>
+        <div class="row gap">
+          <button class="primary" id="btn-imp-append">기존 문제에 추가</button>
+          <button class="btn-quiet" id="btn-imp-set">같은 이름 세트 교체</button>
+          <span class="grow"></span>
+          <!-- ⚠️ 빨간 버튼 + 확인 대화. 문제은행 전체를 지우는 유일한 버튼입니다 -->
+          <button class="btn-red" id="btn-imp-all">전체 교체</button>
+          <button class="btn-small" id="btn-imp-cancel">취소</button>
+        </div>
+      </div>
+
       <table class="qlist">
         <thead><tr><th class="w-id">번호</th><th class="w-lv">난이도</th><th>문제</th><th class="w-ans">정답</th></tr></thead>
         <tbody id="q-list"></tbody>
@@ -70,9 +100,9 @@
       <h2 id="q-form-title">문제 고치기</h2>
       <div class="grid2">
         <div>
-          <label for="f-unit">단원</label>
-          <select id="f-unit"></select>
-          <input id="f-newunit" class="hidden" placeholder="새 단원 이름">
+          <label for="f-set">문제 세트</label>
+          <select id="f-set"></select>
+          <input id="f-newset" class="hidden" placeholder="새 세트 이름">
         </div>
         <div>
           <label for="f-level">난이도</label>

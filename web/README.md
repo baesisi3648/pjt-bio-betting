@@ -46,19 +46,24 @@
       `shared/race.ts` 안무 하나를 같이 써서 같은 경주를 본다. 라이브 배당판·정산 드럼롤·칩 날리기 (MIGRATION §11)
 - [x] **문제은행 관리 화면** — `src/server/admin.ts` + `src/client/admin.html`·`admin/` (`/admin`).
       시트의 '문제'·'동물'·'설정' 탭과 메뉴의 '시트 상태 확인'(`validateSheets`)을 대신합니다.
-      인증은 관리자 비밀번호 하나 (`ADMIN_PASSWORD`), **매 호출 확인**. 게이트 `test/admin.ts` 8개
+      인증은 관리자 비밀번호 하나 (`ADMIN_PASSWORD`), **매 호출 확인**. 게이트 `test/admin.ts`
 - [x] **리뉴얼 1단계 — 규칙 엔진** (`RENEWAL.md` §5-1). 20칸 **10라운드** 경주 생성기
       (선두 2회 이상 교체 · 1위는 4라운드 이후에 첫 선두), 라운드×난이도로 짝지은 **힌트 30개**,
       **사기 라운드**(2~4 중 하나의 힌트 3개가 거짓), 골인 동물 베팅 금지(`BET_FINISHED`),
       난이도 '중간'→'보통', 시간 기본값 15/40/90/45초. `migrations/0005_renewal_levels.sql`
-- [ ] 리뉴얼 2단계 — 문제은행(세트·JSON 가져오기/내보내기)
+- [x] **리뉴얼 2단계 — 문제은행** (`RENEWAL.md` §3). '단원' → **문제 세트**
+      (`migrations/0006_sets.sql` 이 `questions.unit`·`games.unit` 을 `set_name` 으로 RENAME —
+      값은 그대로라 예전 단원 이름이 곧 세트 이름), **JSON 가져오기/내보내기**(§3-2 자체 형식,
+      미리보기 → 추가·같은 이름 교체·전체 교체), 세트 이름 바꾸기·삭제,
+      **세트 없이 = 전체 은행**으로 방 만들기, 문항 부족 기준 6 → **10**(라운드가 10개다).
+      관리 화면은 `/admin` 그대로, 라우트 표는 아래 §3. 게이트 `test/admin.ts` 17개
 - [ ] 리뉴얼 3~5단계 — 첫 화면·진행 화면·소리·마무리
 - [ ] 배포
 
 ## 돌려보기
 
 ```bash
-npm test         # 타입 검사 3벌 + 규칙 27 + 방 코어 46 + 게이트웨이 26 + 관리 8 + QR 10 + 경주 9 = 126
+npm test         # 타입 검사 3벌 + 규칙 27 + 방 코어 46 + 게이트웨이 26 + 관리 17 + QR 10 + 경주 9 = 135
 npm run room     # 방 코어만
 npm run gateway  # 게이트웨이(HTTP 라우트 · 인증)만
 npm run admin    # 문제은행 관리 라우트만
@@ -73,7 +78,7 @@ npm run seed     # apps-script/ 를 읽어 migrations/0002_seed.sql 을 다시 �
 **실제로 띄워보기** (로컬)
 
 ```bash
-npx wrangler d1 migrations apply wilde-derby --local
+npx wrangler d1 migrations apply wilde-derby --local    # 0006 이 unit → set_name 을 바꿉니다
 npm run dev                    # = npm run build && wrangler dev
                                #   ⚠️ dist/client 이 없으면 wrangler 가 뜨지 않는다
 open http://localhost:8787/            # 학생 화면
@@ -82,9 +87,17 @@ open http://localhost:8787/admin       # 문제은행 관리 (관리자 비밀�
 curl localhost:8787/api/version
 curl -X POST -H 'content-type: application/json' \
      -H 'X-Admin-Password: <ADMIN_PASSWORD>' \
-     -d '{"className":"2학년 3반","unit":"유전","teamCount":6}' \
+     -d '{"roomTitle":"2학년 3반","setName":"유전","teamCount":6}' \
      localhost:8787/api/game
+# setName 을 빼거나 "" 로 보내면 **전체 은행**으로 만들어집니다 (RENEWAL §1)
+
+curl localhost:8787/api/sets                                    # 세트 목록 (인증 없음, 개수만)
+curl -H 'X-Admin-Password: <PW>' 'localhost:8787/api/admin/export?set=유전' -OJ   # JSON 내보내기
 ```
+
+⚠️ **JSON 내보내기는 `<a href>` 로 열 수 없습니다.** 그 파일에는 정답과 해설이 전부 들어
+있어서 관리자 비밀번호를 요구하고, 링크에는 헤더를 실을 수 없습니다. 관리 화면은 `fetch` 로
+받아 `Blob` 으로 저장합니다 (게이트 `EXP2`).
 
 관리자 비밀번호(`ADMIN_PASSWORD`)를 넣어야 열리는 경로:
 `POST /api/game`(**판 만들기**), `POST /api/admin/host-key`(교사 열쇠 되찾기),
@@ -194,7 +207,7 @@ src/client/
 npm run build && grep -l "api/admin/questions" dist/client/assets/*.js   # admin-*.js 만 나와야 합니다
 ```
 
-**관리 화면은 상수를 박아 두지 않습니다.** 난이도·설정 범위·동물 코드는 전부 서버 응답에
+**관리 화면은 상수를 박아 두지 않습니다.** 난이도·설정 범위·동물 코드·세트 목록은 전부 서버 응답에
 실려 옵니다. 화면에 박으면 `src/game/config.ts` 를 고친 날 화면만 옛 값을 안내합니다 —
 '설정의 트랙칸수를 12로 바꿔도 조용히 10칸'이었던 그 함정과 같은 종류입니다.
 

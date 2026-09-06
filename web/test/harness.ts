@@ -20,12 +20,12 @@ import { Room } from '../src/do/room.ts';
 import type { Envelope, GameEvent } from '../src/do/room.ts';
 import { RoomOps } from '../src/do/ops.ts';
 import type { ThrottleState } from '../src/do/ops.ts';
-import { validateUnit } from '../src/server/bank.ts';
+import { validateSet } from '../src/server/bank.ts';
 import type { AnimalRow, QuestionRow, SettingRow } from '../src/server/bank.ts';
 import { handle } from '../src/server/router.ts';
 import type {
-  AdminAnimal, AdminQuestion, AdminSetting, ApiResponse, DbPort, Ports,
-  PreparedUnit, QuestionDraft, RecentGame, RoomPort
+  AdminAnimal, AdminQuestion, AdminSetting, ApiResponse, DbPort, ImportMode, Ports,
+  PreparedSet, QuestionDraft, RecentGame, RoomPort, SetInfo
 } from '../src/server/ports.ts';
 
 export const ORIGIN = 'https://derby.example.workers.dev';
@@ -34,24 +34,31 @@ export const ORIGIN = 'https://derby.example.workers.dev';
 // 인메모리 D1 — 행 모양은 migrations/0001_init.sql 그대로
 // ────────────────────────────────────────────────────────────
 
+/**
+ * 문제 세트 두 개.
+ *
+ * ⚠️ 개수가 `LIMITS.minQuestionsPerLevel`(10) 에 맞춰져 있다. 6이던 시절의 값(난이도별 6)을
+ *    그대로 두면 **두 세트 다 경고가 나서**, "경고 없이 만들어지는 세트" 로 검사하는 게이트가
+ *    전부 의미를 잃는다 (GW2 는 경고가 정확히 하나인 것을 본다).
+ */
 export const QUESTIONS: QuestionRow[] = [];
 {
   let id = 1;
-  // '유전' 은 난이도별 6문항 — 경고 없이 판이 만들어지는 단원
+  // '유전' 은 난이도별 10문항 — 경고 없이 판이 만들어지는 세트
   for (const lv of LEVELS) {
-    for (let i = 1; i <= 6; i++) {
+    for (let i = 1; i <= 10; i++) {
       QUESTIONS.push({
-        id: id++, unit: '유전', level: lv, text: `유전 ${lv} 문제 ${i}`,
+        id: id++, set_name: '유전', level: lv, text: `유전 ${lv} 문제 ${i}`,
         choice1: 'ㄱ', choice2: 'ㄴ', choice3: 'ㄷ', choice4: 'ㄹ',
         answer: (i % 4) + 1, explanation: '해설'
       });
     }
   }
-  // '항상성' 은 어려움이 3문항뿐 — 경고가 나되 판은 만들어져야 하는 단원
+  // '항상성' 은 어려움이 3문항뿐 — 경고가 나되 판은 만들어져야 하는 세트
   for (const lv of LEVELS) {
-    for (let i = 1; i <= (lv === '어려움' ? 3 : 6); i++) {
+    for (let i = 1; i <= (lv === '어려움' ? 3 : 10); i++) {
       QUESTIONS.push({
-        id: id++, unit: '항상성', level: lv, text: `항상성 ${lv} 문제 ${i}`,
+        id: id++, set_name: '항상성', level: lv, text: `항상성 ${lv} 문제 ${i}`,
         choice1: 'ㄱ', choice2: 'ㄴ', choice3: 'ㄷ', choice4: 'ㄹ',
         answer: (i % 4) + 1, explanation: '해설'
       });
@@ -83,19 +90,36 @@ export class MemDb implements DbPort {
   /** '최근 판 목록이 터져도 단원 목록은 살아야 한다' 를 검사하기 위한 스위치 */
   recentThrows = false;
 
-  async listUnits(): Promise<string[]> {
-    const seen: string[] = [];
-    for (const q of this.questions) if (seen.indexOf(q.unit) < 0) seen.push(q.unit);
-    return seen;
+  /** D1Db.listSets 와 **같은 계약** — 문제은행에 들어온 순서, 난이도별 개수 */
+  async listSets(): Promise<SetInfo[]> {
+    const order: string[] = [];
+    const acc = new Map<string, SetInfo>();
+    for (const q of this.questions) {
+      let hit = acc.get(q.set_name);
+      if (!hit) {
+        hit = { name: q.set_name, total: 0, byLevel: {} };
+        for (const lv of LEVELS) hit.byLevel[lv] = 0;
+        acc.set(q.set_name, hit);
+        order.push(q.set_name);
+      }
+      hit.total++;
+      hit.byLevel[q.level] = (hit.byLevel[q.level] ?? 0) + 1;
+    }
+    return order.map((n) => acc.get(n)!);
   }
   async recentGames(limit: number): Promise<RecentGame[]> {
     if (this.recentThrows) throw new Error('게임 표를 읽지 못했어요');
     return this.games.slice().sort((a, b) => b.createdAt - a.createdAt).slice(0, limit)
       .map((g) => ({ code: g.code, className: g.className, unit: g.unit, createdAt: g.createdAt, isOver: g.isOver }));
   }
-  async prepareUnit(unit: string): Promise<PreparedUnit> {
+  /** ⚠️ `setName` 이 null 이면 전체 은행 — D1Db.prepareSet 이 WHERE 절을 빼는 자리다 */
+  async prepareSet(setName: string | null): Promise<PreparedSet> {
     // ⚠️ 진짜 검사 함수를 부른다. 여기에 비슷한 걸 하나 더 쓰면 게이트가 사본을 검사한다 (§5)
-    return validateUnit(unit, this.questions.filter((q) => q.unit === unit), this.animals, this.settings);
+    return validateSet(
+      setName,
+      setName === null ? this.questions : this.questions.filter((q) => q.set_name === setName),
+      this.animals, this.settings
+    );
   }
   async hasGame(code: string): Promise<boolean> { return this.games.some((g) => g.code === code); }
   async addGame(row: { code: string; className: string; unit: string; createdAt: number }): Promise<void> {
@@ -110,23 +134,27 @@ export class MemDb implements DbPort {
 
   private toAdmin(r: QuestionRow): AdminQuestion {
     return {
-      id: r.id, unit: r.unit, level: r.level, text: r.text,
+      id: r.id, setName: r.set_name, level: r.level, text: r.text,
       choices: [r.choice1, r.choice2, r.choice3, r.choice4],
       answer: r.answer, explanation: r.explanation ?? ''
     };
   }
-  async adminQuestions(unit: string | null): Promise<AdminQuestion[]> {
-    return this.questions.filter((q) => !unit || q.unit === unit).map((q) => this.toAdmin(q));
+  /** ⚠️ D1 은 INTEGER PRIMARY KEY 가 다음 번호를 준다. 지운 번호를 다시 쓰지 않는 성질만 같다 */
+  private nextId(): number {
+    return this.questions.reduce((m, x) => Math.max(m, x.id), 0) + 1;
   }
-  async adminAddQuestion(q: QuestionDraft): Promise<AdminQuestion> {
-    // ⚠️ D1 은 INTEGER PRIMARY KEY 가 다음 번호를 준다. 여기서도 "가장 큰 번호 + 1" 로
-    //    흉내 내되, 지운 번호를 다시 쓰지 않는다는 성질만 같으면 된다
-    const id = this.questions.reduce((m, x) => Math.max(m, x.id), 0) + 1;
-    const row: QuestionRow = {
-      id, unit: q.unit, level: q.level, text: q.text,
+  private toRow(id: number, q: QuestionDraft): QuestionRow {
+    return {
+      id, set_name: q.setName, level: q.level, text: q.text,
       choice1: q.choices[0]!, choice2: q.choices[1]!, choice3: q.choices[2]!, choice4: q.choices[3]!,
       answer: q.answer, explanation: q.explanation
     };
+  }
+  async adminQuestions(setName: string | null): Promise<AdminQuestion[]> {
+    return this.questions.filter((q) => !setName || q.set_name === setName).map((q) => this.toAdmin(q));
+  }
+  async adminAddQuestion(q: QuestionDraft): Promise<AdminQuestion> {
+    const row = this.toRow(this.nextId(), q);
     this.questions.push(row);
     return this.toAdmin(row);
   }
@@ -134,7 +162,7 @@ export class MemDb implements DbPort {
     const row = this.questions.find((x) => x.id === id);
     if (!row) return false;
     Object.assign(row, {
-      unit: q.unit, level: q.level, text: q.text,
+      set_name: q.setName, level: q.level, text: q.text,
       choice1: q.choices[0], choice2: q.choices[1], choice3: q.choices[2], choice4: q.choices[3],
       answer: q.answer, explanation: q.explanation
     });
@@ -145,6 +173,27 @@ export class MemDb implements DbPort {
     if (i < 0) return false;
     this.questions.splice(i, 1);
     return true;
+  }
+  async adminRenameSet(from: string, to: string): Promise<number> {
+    let n = 0;
+    for (const q of this.questions) if (q.set_name === from) { q.set_name = to; n++; }
+    return n;
+  }
+  async adminDeleteSet(name: string): Promise<number> {
+    const before = this.questions.length;
+    this.questions = this.questions.filter((q) => q.set_name !== name);
+    return before - this.questions.length;
+  }
+  /**
+   * ⚠️ D1Db 는 이것을 **한 번의 batch** 로 한다 (지우기와 넣기 사이에 실패하면 문제은행이
+   *    빈 채로 남는다). 인메모리에서는 실패할 지점이 없으므로 같은 **순서**만 지킨다 —
+   *    지우고 나서 넣는다. 순서가 다르면 replaceSet 이 방금 넣은 것을 도로 지운다
+   */
+  async adminImport(setName: string, mode: ImportMode, rows: QuestionDraft[]): Promise<number> {
+    if (mode === 'replaceAll') this.questions = [];
+    else if (mode === 'replaceSet') this.questions = this.questions.filter((q) => q.set_name !== setName);
+    for (const q of rows) this.questions.push(this.toRow(this.nextId(), { ...q, setName }));
+    return rows.length;
   }
   async adminAnimals(): Promise<AdminAnimal[]> {
     return this.animals.slice()
@@ -304,12 +353,18 @@ export function errOf(res: ApiResponse): string {
  *    미설정 배포를 검사하는 게이트는 판을 **먼저** 만들고 나서 꺼야 한다 (SEC12).
  */
 export async function open(
-  net: Net, unit = '유전', teamCount = 6, roomTitle = '2학년 3반', fraudEnabled?: boolean
+  net: Net, setName: string | null = '유전', teamCount = 6, roomTitle = '2학년 3반', fraudEnabled?: boolean
 ): Promise<Opened> {
   const res = await net.call('POST', '/api/game', {
     headers: admin(net.adminPassword ?? ''),
-    // 본문의 정본은 `roomTitle` 이다. 옛 이름(`className`)도 받는지는 GW-TITLE 이 따로 본다
-    body: { roomTitle, unit, teamCount, ...(fraudEnabled === undefined ? {} : { fraudEnabled }) }
+    // 본문의 정본은 `roomTitle`·`setName` 이다. 옛 이름(`className`·`unit`)도 받는지는
+    // GW-TITLE 이 따로 본다.
+    // ⚠️ setName 이 null 이면 **아예 안 보낸다** — 안 보내는 것이 '전체 은행'이다 (SET2)
+    body: {
+      roomTitle, teamCount,
+      ...(setName === null ? {} : { setName }),
+      ...(fraudEnabled === undefined ? {} : { fraudEnabled })
+    }
   });
   if (!res.body.ok) throw new Error('판 생성 실패: ' + res.body.error + ' ' + res.body.message);
   const d = dataOf(res);

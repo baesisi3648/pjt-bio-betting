@@ -1,35 +1,36 @@
 /**
- * admin/main.ts — 문제은행 관리 화면 (MIGRATION §7 5단계).
+ * admin/main.ts — 애니멀 더비 문제 관리자 (MIGRATION §7 5단계 · RENEWAL §3-3).
  *
  * 앱스 스크립트판에서 이 일을 하던 것은 **스프레드시트 그 자체**였습니다. 선생님이
  * '문제' 탭에 줄을 넣고, 메뉴의 '시트 상태 확인'(`validateSheets`)이 난이도별 개수와
  * 동물 8줄을 검사했습니다. 문제은행이 D1 으로 들어오면서 그 탭도 그 메뉴도 사라졌고,
- * 이 화면이 그 둘을 대신합니다.
+ * 이 화면이 그 둘을 대신합니다. 2단계에서 '단원'이 **문제 세트**가 되고,
+ * JSON 가져오기·내보내기가 붙었습니다.
  *
  * ── 이 파일이 지키는 것 ──
  *
  * 1. **비밀번호는 매 요청 헤더에 싣는다.** 세션도 쿠키도 토큰도 없습니다 (§10 — 사용자 결정).
  *    저장은 `shared/pw.ts` 의 `pwStore` 하나가 맡습니다 — 교사 화면(판 만들기 ·
  *    열쇠 되찾기)이 **같은 열쇠**를 쓰기 때문에, 같은 출처에서 한 번만 넣으면 둘 다 통합니다.
- *    (`sessionStorage` 인 이유와 `localStorage` 로 바꾸면 안 되는 이유도 거기 적혀 있습니다)
  *
  * 2. **별도 진입점입니다.** 수업용 교사 번들(`teacher.html`)에 이 코드가 실리지 않게
  *    `admin.html` 을 Vite input 으로 따로 두었습니다 (vite.config.ts).
- *    ⚠️ 교사 화면에서 이 파일을 import 하지 마세요 — 링크 하나로 충분합니다.
  *
- * 3. **난이도·범위·동물 코드를 여기에 박아 두지 않는다.** 전부 서버가 응답에 실어 줍니다
- *    (`/api/admin/summary` 의 `levels`, `/api/admin/settings` 의 `ranges`,
- *     `/api/admin/animals` 의 `codes`). 화면에 박으면 `src/game/config.ts` 를 고친 날
- *    화면만 옛 값을 안내합니다 — '설정의 trackCells 를 12로 바꿔도 조용히 10칸'이었던
- *    그 함정과 같은 종류입니다 (MIGRATION §5).
+ * 3. **난이도·범위·동물 코드·세트 목록을 여기에 박아 두지 않는다.** 전부 서버가 응답에
+ *    실어 줍니다. 화면에 박으면 `src/game/config.ts` 를 고친 날 화면만 옛 값을 안내합니다 —
+ *    '설정의 trackCells 를 12로 바꿔도 조용히 10칸'이었던 그 함정과 같은 종류입니다 (§5).
  *
  * 4. **저장 응답을 그대로 그린다.** 저장 뒤에 다시 GET 하지 않습니다. 쓰기 라우트가
  *    읽기와 같은 모양을 돌려주므로(`admin.ts`), "저장은 됐는데 화면은 옛날"이 없습니다.
+ *
+ * 5. **내보내기는 `<a href>` 가 아니라 `fetch` 다.** 그 파일에는 정답과 해설이 전부
+ *    들어 있어서 라우트가 관리자 비밀번호를 요구하고, 링크에는 헤더를 실을 수 없습니다.
+ *    받아서 Blob 으로 만들고 클릭으로 저장합니다 (게이트 EXP2).
  */
 
 import { HEADER_UNSAFE_MSG, api, headerSafe, isOk } from '../shared/gateway.ts';
 import { pwStore } from '../shared/pw.ts';
-import { $, confirmBox, esc, maybe, toast } from '../shared/ui.ts';
+import { $, confirmBox, esc, toast } from '../shared/ui.ts';
 import type { Envelope } from '../../do/room.ts';
 
 // ────────────────────────────────────────────────────────────
@@ -37,22 +38,31 @@ import type { Envelope } from '../../do/room.ts';
 // ────────────────────────────────────────────────────────────
 
 interface AdminQuestion {
-  id: number; unit: string; level: string; text: string;
+  id: number; setName: string; level: string; text: string;
   choices: string[]; answer: number; explanation: string;
 }
 interface AdminAnimal { code: string; name: string; emoji: string }
 interface AdminSetting { key: string; value: string }
 interface Range { min: number; max: number; label: string }
 
-interface UnitHealth {
-  unit: string; counts: Record<string, number>; total: number;
+interface SetHealth {
+  setName: string; counts: Record<string, number>; total: number;
   blocking: string[]; warnings: string[];
 }
 interface AnimalsData { animals: AdminAnimal[]; codes: string[]; blocking: string[] }
 interface Summary {
-  units: UnitHealth[]; levels: string[]; minPerLevel: number; animals: AnimalsData;
+  sets: SetHealth[]; levels: string[]; minPerLevel: number; animals: AnimalsData;
 }
 interface SettingsData { settings: AdminSetting[]; ranges: Record<string, Range>; warnings: string[] }
+
+/** 가져오기 미리보기 (RENEWAL §3-2). `errors[].index` 는 0부터 — 화면에서 +1 한다 */
+interface ImportSummary {
+  title: string; total: number; byDifficulty: Record<string, number>;
+  errors: { index: number; reason: string }[]; existingSet: boolean;
+}
+
+/** 파일에 적히는 난이도 → 화면에 쓸 한국어. 순서는 서버의 LEVELS 를 그대로 쓴다 */
+const DIFF_ORDER = ['easy', 'medium', 'hard'];
 
 // ────────────────────────────────────────────────────────────
 // 이 화면이 기억하는 것
@@ -61,11 +71,13 @@ interface SettingsData { settings: AdminSetting[]; ranges: Record<string, Range>
 let PW = '';
 let SUMMARY: Summary | null = null;
 let QUESTIONS: AdminQuestion[] = [];
-let UNITS: string[] = [];
+let SETS: string[] = [];
 /** 지금 폼에 올라와 있는 문항. null 이면 '새 문제' */
 let editing: AdminQuestion | null = null;
 let ANIMALS: AnimalsData | null = null;
 let SETTINGS: SettingsData | null = null;
+/** 파일에서 읽어 미리보기까지 끝난 JSON. '적용' 버튼 셋이 이걸 쓴다 */
+let pending: { json: unknown; summary: ImportSummary; setName: string } | null = null;
 
 // ────────────────────────────────────────────────────────────
 // 서버 부르기 — 비밀번호는 **매 호출** 헤더로
@@ -150,33 +162,33 @@ async function refreshSummary(): Promise<void> {
 
 function paintSummary(s: Summary): void {
   SUMMARY = s;
-  UNITS = s.units.map((u) => u.unit);
 
-  const head = ['<tr><th>단원</th>' + s.levels.map((lv) => `<th>${esc(lv)}</th>`).join('') +
+  const head = ['<tr><th>문제 세트</th>' + s.levels.map((lv) => `<th>${esc(lv)}</th>`).join('') +
                 '<th>합계</th></tr>'];
-  const rows = s.units.map((u) => {
+  const rows = s.sets.map((u) => {
     const cells = s.levels.map((lv) => {
       const n = u.counts[lv] ?? 0;
       // ⚠️ 색만으로 알리지 않는다 — 모자란 칸에는 ⚠️ 를 같이 단다 (05 §2)
       const low = n < s.minPerLevel;
       return `<td class="n ${low ? 'low' : 'full'}">${n}${low ? ' ⚠️' : ''}</td>`;
     }).join('');
-    return `<tr><td><b>${esc(u.unit)}</b></td>${cells}<td class="n">${u.total}</td></tr>`;
+    return `<tr><td><b>${esc(u.setName)}</b></td>${cells}<td class="n">${u.total}</td></tr>`;
   });
 
-  let h = s.units.length
+  let h = s.sets.length
     ? `<table class="health">${head.join('')}${rows.join('')}</table>` +
-      `<div class="hint">난이도마다 <b>${s.minPerLevel}문항</b> 이상이면 6라운드 내내 같은 난이도를 골라도 문제가 겹치지 않습니다.</div>`
+      `<div class="hint">난이도마다 <b>${s.minPerLevel}문항</b> 이상이면 ` +
+      `${s.minPerLevel}라운드 동안 같은 문제가 안 나옵니다. 모자라면 앞 라운드 문제를 다시 냅니다.</div>`
     : '<div class="empty">문제가 하나도 없습니다. 아래 ‘＋ 새 문제’ 로 넣거나, ' +
-      '<b>npx wrangler d1 migrations apply wilde-derby</b> 로 시드를 넣으세요.</div>';
+      '‘📥 JSON 가져오기’ 로 파일을 넣으세요.</div>';
 
-  for (const u of s.units) {
+  for (const u of s.sets) {
     for (const m of u.blocking) h += `<div class="msg stop">⛔ ${esc(m)}</div>`;
     for (const m of u.warnings) h += `<div class="msg warn">⚠️ ${esc(m)}</div>`;
   }
-  // 동물은 판 만들기를 **차단**한다. 단원 줄에 섞지 않고 따로 크게 보여준다
+  // 동물은 판 만들기를 **차단**한다. 세트 줄에 섞지 않고 따로 크게 보여준다
   for (const m of s.animals.blocking) {
-    h += `<div class="msg stop">⛔ ${esc(m)} — 판을 만들 수 없습니다. ‘동물’ 탭에서 고쳐주세요.</div>`;
+    h += `<div class="msg stop">⛔ ${esc(m)} — 방을 만들 수 없습니다. ‘동물’ 탭에서 고쳐주세요.</div>`;
   }
 
   $('health').innerHTML = h;
@@ -186,26 +198,31 @@ function paintSummary(s: Summary): void {
 // 문제 탭
 // ────────────────────────────────────────────────────────────
 
-function selectedUnit(): string {
-  const sel = maybe('q-unit') as HTMLSelectElement | null;
-  return sel ? sel.value : '';
+/** 지금 고른 세트. 빈 문자열이면 '— 전체 —' */
+function selectedSet(): string {
+  return ($('q-set') as HTMLSelectElement).value;
 }
 
-async function loadQuestions(unit?: string): Promise<void> {
-  const u = unit !== undefined ? unit : selectedUnit();
-  const d = unwrap(await call('/api/admin/questions' + (u ? `?unit=${encodeURIComponent(u)}` : '')));
+async function loadQuestions(setName?: string): Promise<void> {
+  const u = setName !== undefined ? setName : selectedSet();
+  const d = unwrap(await call('/api/admin/questions' + (u ? `?set=${encodeURIComponent(u)}` : '')));
   if (!d) return;
   QUESTIONS = d.questions as AdminQuestion[];
-  UNITS = d.units as string[];
-  paintUnitSelect(u);
+  SETS = d.sets as string[];
+  paintSetSelect(u);
   paintList();
 }
 
-function paintUnitSelect(current: string): void {
-  const sel = $('q-unit') as HTMLSelectElement;
+function paintSetSelect(current: string): void {
+  const sel = $('q-set') as HTMLSelectElement;
   sel.innerHTML = '<option value="">— 전체 —</option>' +
-    UNITS.map((u) => `<option${u === current ? ' selected' : ''}>${esc(u)}</option>`).join('');
+    SETS.map((u) => `<option${u === current ? ' selected' : ''}>${esc(u)}</option>`).join('');
   sel.value = current;
+  // 세트를 안 골랐으면 이름 바꾸기·삭제는 뜻이 없다 (무엇을 바꿀지 모른다)
+  const one = !!sel.value;
+  ($('btn-rename') as HTMLButtonElement).disabled = !one;
+  ($('btn-delset') as HTMLButtonElement).disabled = !one;
+  closeRename();
 }
 
 function paintList(): void {
@@ -215,9 +232,9 @@ function paintList(): void {
         `<tr data-id="${q.id}"${editing && editing.id === q.id ? ' class="on"' : ''}>` +
         `<td>${q.id}</td>` +
         `<td><span class="lv ${levelClass(q.level)}">${esc(q.level)}</span></td>` +
-        `<td>${esc(q.text)}${selectedUnit() ? '' : ` <span class="rng">(${esc(q.unit)})</span>`}</td>` +
+        `<td>${esc(q.text)}${selectedSet() ? '' : ` <span class="rng">(${esc(q.setName)})</span>`}</td>` +
         `<td class="ans">${q.answer}. ${esc(q.choices[q.answer - 1] ?? '')}</td></tr>`).join('')
-    : '<tr><td colspan="4" class="empty">이 단원에는 아직 문제가 없습니다.</td></tr>';
+    : '<tr><td colspan="4" class="empty">이 세트에는 아직 문제가 없습니다.</td></tr>';
 }
 
 /** 폼을 연다. q 가 null 이면 새 문제 */
@@ -228,15 +245,15 @@ function openForm(q: AdminQuestion | null): void {
   $('q-form-title').textContent = q ? `${q.id}번 문제 고치기` : '새 문제';
   ($('btn-del') as HTMLButtonElement).classList.toggle('hidden', !q);
 
-  const unitSel = $('f-unit') as HTMLSelectElement;
-  const cur = q ? q.unit : selectedUnit();
-  unitSel.innerHTML = UNITS.map((u) => `<option${u === cur ? ' selected' : ''}>${esc(u)}</option>`).join('') +
-    '<option value="__new__">＋ 새 단원…</option>';
-  // 단원이 하나도 없으면 처음부터 '새 단원' 칸을 연다
-  const newUnit = $('f-newunit') as HTMLInputElement;
-  newUnit.value = '';
-  if (!UNITS.length) { unitSel.value = '__new__'; newUnit.classList.remove('hidden'); }
-  else { unitSel.value = cur || UNITS[0]!; newUnit.classList.add('hidden'); }
+  const setSel = $('f-set') as HTMLSelectElement;
+  const cur = q ? q.setName : selectedSet();
+  setSel.innerHTML = SETS.map((u) => `<option${u === cur ? ' selected' : ''}>${esc(u)}</option>`).join('') +
+    '<option value="__new__">＋ 새 세트…</option>';
+  // 세트가 하나도 없으면 처음부터 '새 세트' 칸을 연다
+  const newSet = $('f-newset') as HTMLInputElement;
+  newSet.value = '';
+  if (!SETS.length) { setSel.value = '__new__'; newSet.classList.remove('hidden'); }
+  else { setSel.value = cur || SETS[0]!; newSet.classList.add('hidden'); }
 
   const lvSel = $('f-level') as HTMLSelectElement;
   lvSel.innerHTML = levels.map((lv) => `<option${q && q.level === lv ? ' selected' : ''}>${esc(lv)}</option>`).join('');
@@ -264,13 +281,13 @@ function closeForm(): void {
 }
 
 function formBody(): Record<string, unknown> {
-  const unitSel = $('f-unit') as HTMLSelectElement;
-  const unit = unitSel.value === '__new__'
-    ? ($('f-newunit') as HTMLInputElement).value.trim()
-    : unitSel.value;
+  const setSel = $('f-set') as HTMLSelectElement;
+  const setName = setSel.value === '__new__'
+    ? ($('f-newset') as HTMLInputElement).value.trim()
+    : setSel.value;
   const checked = document.querySelector<HTMLInputElement>('input[name="ans"]:checked');
   return {
-    unit,
+    setName,
     level: ($('f-level') as HTMLSelectElement).value,
     text: ($('f-text') as HTMLTextAreaElement).value,
     choices: [1, 2, 3, 4].map((n) => ($(`f-c${n}`) as HTMLInputElement).value),
@@ -290,8 +307,8 @@ async function saveQuestion(): Promise<void> {
   toast(editing ? '고쳤습니다' : '넣었습니다');
   const saved = d.question as AdminQuestion;
   closeForm();
-  // 새 단원으로 넣었으면 그 단원을 보여준다 — 안 그러면 방금 넣은 문제가 안 보인다
-  await loadQuestions(selectedUnit() && saved.unit !== selectedUnit() ? saved.unit : selectedUnit());
+  // 새 세트로 넣었으면 그 세트를 보여준다 — 안 그러면 방금 넣은 문제가 안 보인다
+  await loadQuestions(selectedSet() && saved.setName !== selectedSet() ? saved.setName : selectedSet());
   await refreshSummary();
 }
 
@@ -299,7 +316,7 @@ function deleteQuestion(): void {
   if (!editing) return;
   const q = editing;
   // ⚠️ 브라우저의 confirm() 을 쓰지 않는다 (shared/ui.ts 주석)
-  confirmBox(`${q.id}번 문제를 지울까요?\n\n${q.text}\n\n이미 만든 판은 그대로입니다.`, async () => {
+  confirmBox(`${q.id}번 문제를 지울까요?\n\n${q.text}\n\n이미 만든 방은 그대로입니다.`, async () => {
     const d = unwrap(await call(`/api/admin/questions/${q.id}`, 'DELETE'));
     if (!d) return;
     toast('지웠습니다');
@@ -307,6 +324,181 @@ function deleteQuestion(): void {
     await loadQuestions();
     await refreshSummary();
   });
+}
+
+// ────────────────────────────────────────────────────────────
+// 세트 이름 바꾸기 · 삭제
+// ────────────────────────────────────────────────────────────
+
+function closeRename(): void {
+  $('rename-row').classList.add('hidden');
+}
+
+function openRename(): void {
+  const cur = selectedSet();
+  if (!cur) return;
+  const box = $('f-setname') as HTMLInputElement;
+  box.value = cur;
+  $('rename-row').classList.remove('hidden');
+  box.focus();
+  box.select();
+}
+
+async function renameSet(): Promise<void> {
+  const from = selectedSet();
+  const to = ($('f-setname') as HTMLInputElement).value.trim();
+  if (!from || !to) { toast('새 세트 이름을 넣어주세요'); return; }
+  const d = unwrap(await call('/api/admin/sets/' + encodeURIComponent(from), 'PUT', { name: to }));
+  if (!d) return;
+  toast(`'${to}' 로 바꿨습니다 (${d.affected}문항)`);
+  closeRename();
+  closeForm();
+  await loadQuestions(to);
+  await refreshSummary();
+}
+
+function deleteSet(): void {
+  const name = selectedSet();
+  if (!name) return;
+  const n = SUMMARY?.sets.find((x) => x.setName === name)?.total ?? 0;
+  confirmBox(
+    `'${name}' 세트를 통째로 지울까요?\n\n문항 ${n}개가 사라집니다. 되돌릴 수 없습니다.\n` +
+    '지우기 전에 ‘📤 JSON 내보내기’ 로 받아 두면 다시 넣을 수 있습니다.\n\n이미 만든 방은 그대로입니다.',
+    async () => {
+      const d = unwrap(await call('/api/admin/sets/' + encodeURIComponent(name), 'DELETE'));
+      if (!d) return;
+      toast(`'${name}' 을(를) 지웠습니다 (${d.affected}문항)`);
+      closeForm();
+      await loadQuestions('');
+      await refreshSummary();
+    }
+  );
+}
+
+// ────────────────────────────────────────────────────────────
+// JSON 내보내기
+//
+// ⚠️ `<a href="/api/admin/export">` 로는 못 받는다. 그 파일에는 정답과 해설이 전부
+//    들어 있어서 라우트가 관리자 비밀번호를 요구하고, 링크에는 헤더를 실을 수 없다.
+//    (물음표 뒤로 비밀번호를 받게 고치지 마세요 — 주소는 기록·어깨너머로 남습니다)
+// ────────────────────────────────────────────────────────────
+
+/** `content-disposition: attachment; filename*=UTF-8''…` 에서 이름을 꺼낸다 */
+function fileNameOf(cd: string | null, fallback: string): string {
+  if (!cd) return fallback;
+  const m = /filename\*=UTF-8''([^;]+)/i.exec(cd);
+  if (!m) return fallback;
+  try { return decodeURIComponent(m[1]!.trim()); } catch { return fallback; }
+}
+
+async function exportJson(): Promise<void> {
+  const setName = selectedSet();
+  const url = '/api/admin/export' + (setName ? `?set=${encodeURIComponent(setName)}` : '');
+
+  let res: Response;
+  try { res = await fetch(url, { headers: { 'X-Admin-Password': PW }, cache: 'no-store' }); }
+  catch { toast('서버에 닿지 못했어요'); return; }
+
+  // 거절이면 파일이 아니라 봉투가 온다 — 그 문장을 그대로 보여준다
+  const cd = res.headers.get('content-disposition');
+  if (!cd) {
+    const env = await res.json().catch(() => null) as Envelope<unknown> | null;
+    if (env) unwrap(env); else toast('내보내지 못했어요');
+    return;
+  }
+
+  const text = await res.text();
+  const name = fileNameOf(cd, `애니멀더비_${setName || '전체'}.json`);
+  const blob = new Blob([text], { type: 'application/json' });
+  const href = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = href;
+  a.download = name;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  // ⚠️ 안 풀면 이 탭이 살아 있는 동안 파일 내용이 메모리에 남는다.
+  //    바로 풀면 사파리가 저장을 시작하기 전에 사라지므로 한 박자 뒤에 푼다
+  setTimeout(() => URL.revokeObjectURL(href), 10_000);
+  toast(`${name} 로 저장했습니다`);
+}
+
+// ────────────────────────────────────────────────────────────
+// JSON 가져오기 — 파일 → 미리보기 → 세 가지 방식 중 선택
+// ────────────────────────────────────────────────────────────
+
+function closeImport(): void {
+  pending = null;
+  $('imp-panel').classList.add('hidden');
+  // ⚠️ 같은 파일을 두 번 고를 수 있게 값을 비운다. 안 비우면 change 가 안 나서
+  //    "파일을 골랐는데 아무 일도 안 일어난다" 가 된다
+  ($('f-file') as HTMLInputElement).value = '';
+}
+
+async function pickedFile(f: File): Promise<void> {
+  let json: unknown;
+  try { json = JSON.parse(await f.text()); }
+  catch (e) {
+    toast('JSON 파일을 읽지 못했어요 — ' + (e as Error).message);
+    ($('f-file') as HTMLInputElement).value = '';
+    return;
+  }
+
+  const d = unwrap(await call('/api/admin/import/preview', 'POST', { json }));
+  if (!d) { ($('f-file') as HTMLInputElement).value = ''; return; }
+  const s = d as unknown as ImportSummary;
+
+  pending = { json, summary: s, setName: s.title };
+  paintImport(f.name, s);
+  $('imp-panel').classList.remove('hidden');
+  $('imp-panel').scrollIntoView({ block: 'nearest' });
+}
+
+function paintImport(fileName: string, s: ImportSummary): void {
+  const levels = SUMMARY?.levels || DIFF_ORDER;
+  const counts = DIFF_ORDER.map((d, i) =>
+    `<span class="pill l${i}">${esc(levels[i] ?? d)} ${s.byDifficulty[d] ?? 0}</span>`).join('');
+
+  let h = `<div class="imp-head">📥 <b>${esc(fileName)}</b></div>`;
+  h += `<div class="imp-title">세트 이름: <b>${esc(s.title || '(파일에 제목이 없습니다)')}</b>` +
+       (s.existingSet ? ' <span class="tag">이미 있는 세트</span>' : '') + '</div>';
+  h += `<div class="imp-count"><b>총 ${s.total}문항</b> ${counts}</div>`;
+
+  if (s.errors.length) {
+    // ⚠️ 몇 개인지만 말하고 끝내지 않는다. 어느 줄이 왜 틀렸는지 모르면 고칠 수 없다
+    const lines = s.errors.slice(0, 12)
+      .map((e) => `<li>${e.index + 1}번째 문항: ${esc(e.reason)}</li>`).join('');
+    const more = s.errors.length > 12 ? `<li>… 그리고 ${s.errors.length - 12}개 더</li>` : '';
+    h += `<div class="msg warn">⚠️ ${s.errors.length}개 문항은 <b>건너뜁니다</b> (형식 오류)<ul>${lines}${more}</ul></div>`;
+  }
+  if (!s.total) {
+    h += '<div class="msg stop">⛔ 넣을 수 있는 문항이 하나도 없습니다. 파일을 고쳐서 다시 넣어주세요.</div>';
+  }
+  if (!s.existingSet) {
+    h += '<div class="hint">‘같은 이름 세트 교체’ 는 같은 이름의 세트가 있을 때만 뜻이 있습니다 — ' +
+         '지금은 새 세트가 만들어집니다.</div>';
+  }
+
+  $('imp-summary').innerHTML = h;
+  const none = s.total === 0;
+  for (const id of ['btn-imp-append', 'btn-imp-set', 'btn-imp-all']) {
+    ($(id) as HTMLButtonElement).disabled = none;
+  }
+}
+
+async function applyImport(mode: 'append' | 'replaceSet' | 'replaceAll'): Promise<void> {
+  if (!pending) return;
+  const body = { json: pending.json, mode, setName: pending.setName || undefined };
+  const d = unwrap(await call('/api/admin/import', 'POST', body));
+  if (!d) return;
+
+  const skipped = Number(d.skipped) || 0;
+  toast(`'${String(d.setName)}' 에 ${d.inserted}문항을 넣었습니다` +
+        (skipped ? ` (형식 오류 ${skipped}개는 건너뜀)` : ''));
+  closeImport();
+  closeForm();
+  await loadQuestions(String(d.setName));
+  await refreshSummary();
 }
 
 // ────────────────────────────────────────────────────────────
@@ -330,7 +522,7 @@ function paintAnimals(d: AnimalsData): void {
   }).join('');
 
   $('a-warn').innerHTML = d.blocking.length
-    ? d.blocking.map((m) => `<div class="msg stop">⛔ ${esc(m)} — 지금은 판을 만들 수 없습니다.</div>`).join('')
+    ? d.blocking.map((m) => `<div class="msg stop">⛔ ${esc(m)} — 지금은 방을 만들 수 없습니다.</div>`).join('')
     : '';
 }
 
@@ -412,13 +604,42 @@ for (const k of ['q', 'a', 's'] as const) {
   ($('tab-' + k) as HTMLButtonElement).onclick = () => tab(k);
 }
 
-($('q-unit') as HTMLSelectElement).onchange = () => { closeForm(); void loadQuestions(); };
+($('q-set') as HTMLSelectElement).onchange = () => { closeForm(); closeImport(); void loadQuestions(); };
 ($('btn-new') as HTMLButtonElement).onclick = () => openForm(null);
 ($('btn-cancel') as HTMLButtonElement).onclick = () => closeForm();
 ($('btn-save') as HTMLButtonElement).onclick = () => { void saveQuestion(); };
 ($('btn-del') as HTMLButtonElement).onclick = () => deleteQuestion();
 ($('btn-save-animals') as HTMLButtonElement).onclick = () => { void saveAnimals(); };
 ($('btn-save-settings') as HTMLButtonElement).onclick = () => { void saveSettings(); };
+
+// ── 세트 ──
+($('btn-rename') as HTMLButtonElement).onclick = () => openRename();
+($('btn-rename-ok') as HTMLButtonElement).onclick = () => { void renameSet(); };
+($('btn-rename-cancel') as HTMLButtonElement).onclick = () => closeRename();
+($('f-setname') as HTMLInputElement).onkeydown = (e) => { if (e.key === 'Enter') void renameSet(); };
+($('btn-delset') as HTMLButtonElement).onclick = () => deleteSet();
+
+// ── 가져오기·내보내기 ──
+($('btn-export') as HTMLButtonElement).onclick = () => { void exportJson(); };
+($('btn-import') as HTMLButtonElement).onclick = () => ($('f-file') as HTMLInputElement).click();
+($('f-file') as HTMLInputElement).onchange = (e) => {
+  const f = (e.target as HTMLInputElement).files?.[0];
+  if (f) void pickedFile(f);
+};
+($('btn-imp-append') as HTMLButtonElement).onclick = () => { void applyImport('append'); };
+($('btn-imp-set') as HTMLButtonElement).onclick = () => { void applyImport('replaceSet'); };
+($('btn-imp-cancel') as HTMLButtonElement).onclick = () => closeImport();
+($('btn-imp-all') as HTMLButtonElement).onclick = () => {
+  if (!pending) return;
+  // ⚠️ 문제은행 **전체**를 지우는 유일한 버튼이다. 확인 대화 없이 두면 안 된다
+  const total = SUMMARY?.sets.reduce((n, s) => n + s.total, 0) ?? 0;
+  confirmBox(
+    `문제은행을 통째로 바꿀까요?\n\n지금 있는 ${total}문항이 모두 사라지고, ` +
+    `이 파일의 ${pending.summary.total}문항만 남습니다.\n되돌릴 수 없습니다.\n\n` +
+    '먼저 ‘📤 JSON 내보내기’ 로 지금 것을 받아 두세요.',
+    () => { void applyImport('replaceAll'); }
+  );
+};
 
 // 목록은 줄이 매번 다시 그려지므로 위임으로 받는다 (줄마다 핸들러를 달면 갈아 끼울 때 샌다)
 $('q-list').addEventListener('click', (e) => {
@@ -429,9 +650,9 @@ $('q-list').addEventListener('click', (e) => {
   if (q) openForm(q);
 });
 
-$('f-unit').addEventListener('change', () => {
-  const sel = $('f-unit') as HTMLSelectElement;
-  const box = $('f-newunit') as HTMLInputElement;
+$('f-set').addEventListener('change', () => {
+  const sel = $('f-set') as HTMLSelectElement;
+  const box = $('f-newset') as HTMLInputElement;
   box.classList.toggle('hidden', sel.value !== '__new__');
   if (sel.value === '__new__') box.focus();
 });

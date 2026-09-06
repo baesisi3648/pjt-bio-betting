@@ -113,6 +113,14 @@ export default {
     }
 
     const res = await handle(await toApiRequest(request), portsOf(env));
+
+    // ⚠️ 봉투가 아닌 응답은 **JSON 내보내기 하나뿐이다** (ports.ts RawResponse 주석).
+    //    브라우저가 이 응답을 파일로 저장하므로 `{ok:true,data:…}` 로 감싸면 안 된다 —
+    //    감싸면 저장된 파일이 우리 형식(RENEWAL §3-2)이 아니게 되어 다시 못 가져온다.
+    //    여기서 판단하지 않는다. 무엇을 파일로 낼지는 router 가 이미 정했고,
+    //    이 파일은 그대로 흘려보내기만 한다 (index.ts 머리 주석)
+    if (res.raw) return new Response(res.raw.body, { status: res.status, headers: res.raw.headers });
+
     return new Response(JSON.stringify(res.body), {
       status: res.status,
       headers: {

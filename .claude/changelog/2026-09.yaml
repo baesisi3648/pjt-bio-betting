@@ -1394,3 +1394,299 @@ entries:
     description: Add test file gates.ts
     impact:
       - "internal dependency added: ../src/game/rules.ts, ../src/game/config.ts, ../src/game/config.ts (+more)"
+  - date: "2026-09-06T15:21:09"
+    type: feature
+    domain: web
+    files:
+      - web/migrations/0006_sets.sql
+    description: Create 0006_sets in web
+    impact:
+      - database migration
+  - date: "2026-09-06T15:21:21"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Add new functionality to config in web
+    impact:
+      - none
+  - date: "2026-09-06T15:21:26"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/types.ts
+    description: Add new functionality to types in web
+    impact:
+      - none
+  - date: "2026-09-06T15:22:01"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/bank.ts
+    description: Create bank in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/config.ts, ../game/types.ts (+more)"
+  - date: "2026-09-06T15:23:00"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Create ports in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/types.ts, ../do/room.ts"
+  - date: "2026-09-06T15:23:56"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Create db in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ./bank.ts, ./bank.ts"
+  - date: "2026-09-06T15:25:25"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/portable.ts
+    description: Create portable in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ./ports.ts"
+  - date: "2026-09-06T15:27:05"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/admin.ts
+    description: Create admin in web
+    impact:
+      - "internal dependency added: ../game/config.ts, ../game/config.ts, ./bank.ts (+more)"
+  - date: "2026-09-06T15:27:09"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:27:13"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:27:19"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Add new functionality to router in web
+    impact:
+      - none
+  - date: "2026-09-06T15:27:27"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:27:35"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:27:39"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:27:46"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-06T15:28:08"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Add new functionality to router in web
+    impact:
+      - none
+  - date: "2026-09-06T15:28:20"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Add new functionality to index in web
+    impact:
+      - none
+  - date: "2026-09-06T15:28:26"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:28:38"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:28:50"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:29:10"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:29:22"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:34:10"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Add test file admin.ts
+    impact:
+      - "internal dependency added: ../src/game/config.ts, ../src/server/portable.ts, ../src/server/ports.ts (+more)"
+  - date: "2026-09-06T15:35:13"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin.html
+    description: Create admin in web
+    impact:
+      - none
+  - date: "2026-09-06T15:37:27"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/main.ts
+    description: Create main in web
+    impact:
+      - "internal dependency added: ../shared/gateway.ts, ../shared/pw.ts, ../shared/ui.ts (+more)"
+  - date: "2026-09-06T15:37:34"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/admin.css
+    description: Add new functionality to admin in web
+    impact:
+      - none
+  - date: "2026-09-06T15:37:43"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/admin/admin.css
+    description: Add new functionality to admin in web
+    impact:
+      - none
+  - date: "2026-09-06T15:40:54"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Add new functionality to ports in web
+    impact:
+      - none
+  - date: "2026-09-06T15:41:00"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/bank.ts
+    description: Refactor bank
+    impact:
+      - none
+  - date: "2026-09-06T15:41:07"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/admin.ts
+    description: Refactor admin
+    impact:
+      - none
+  - date: "2026-09-06T15:41:40"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Update test admin.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:43:48"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Update test admin.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:43:59"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Update test admin.ts
+    impact:
+      - none
+  - date: "2026-09-06T15:44:49"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Update documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-06T15:45:33"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Update documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-06T15:45:39"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Update documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-06T15:46:03"
+    type: refactor
+    domain: web
+    files:
+      - web/scripts/import-questions.ts
+    description: Refactor import-questions
+    impact:
+      - none
