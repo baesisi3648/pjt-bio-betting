@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>와일드 더비 — 교사</title>
+<title>애니멀 더비 — 교사</title>
 <!-- ⚠️ 외부 글꼴·CDN 링크를 넣지 마세요. 학교망에서 막히면 수업이 멈춥니다 -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="./shared/base.css">
@@ -14,7 +14,8 @@
 
 <!-- ══ S1 시작 화면 ══ -->
 <div id="s1">
-  <h1>🧬 생명과학 와일드 더비 <span id="ver-badge" style="font-size:18px;color:var(--muted);font-weight:400">버전 확인 중…</span></h1>
+  <h1>🐆 애니멀 더비 <span id="ver-badge" style="font-size:18px;color:var(--muted);font-weight:400">버전 확인 중…</span></h1>
+  <p class="tagline">문제를 풀고 힌트를 모아 우승 동물을 예측하는 전략 퀴즈 게임</p>
   <div class="tabs">
     <button id="tab-new" class="on" data-pane="new">새 판 만들기</button>
     <button id="tab-resume" data-pane="resume">판 코드로 이어하기</button>
@@ -32,23 +33,33 @@
       <!-- ⚠️ 토스트가 아니라 여기 남깁니다. 거절 사유는 고칠 때까지 보여야 합니다 -->
       <div id="create-msg" class="stop hidden"></div>
     </div>
-    <label for="cls">반 이름</label><input id="cls" placeholder="2학년 3반">
-    <label for="unit">단원</label><select id="unit"></select>
+    <!-- 어떤 과목이든 문제은행만 바꾸면 되는 게임이라, 문제 준비가 첫 단계다 (RENEWAL §4-1) -->
+    <a class="startcard" href="/admin" target="_blank" rel="noopener">
+      <span class="sc-step">1</span>
+      <span class="sc-body"><b>먼저 문제를 준비하세요</b><br>문제 관리자에서 문제 세트를 넣거나 JSON 으로 가져옵니다</span>
+      <span class="sc-go">문제 관리자 열기 ↗</span>
+    </a>
+    <label for="cls">방 제목</label><input id="cls" placeholder="2학년 3반 세포와 물질대사 · 중간고사 총정리">
+    <label for="unit">문제 세트</label><select id="unit"></select>
     <div id="no-questions" class="warn hidden">
-      📋 <b>문제은행이 비어 있습니다.</b>
+      📋 <b>문제가 하나도 없습니다.</b>
 
-      아직 D1 에 문제가 들어가지 않았습니다. 배포한 사람이 아래를 한 번 실행해야 합니다.
-      <b>npx wrangler d1 migrations apply wilde-derby</b>
-      (로컬에서 확인 중이면 뒤에 <b>--local</b> 을 붙입니다)
-
+      위의 <b>문제 관리자</b>에서 문제를 먼저 넣어주세요. JSON 파일로 한 번에 가져올 수도 있습니다.
       넣으신 뒤 아래 버튼을 누르면 목록이 갱신됩니다.
       <button class="btn-pause" style="margin-top:12px" id="btn-reload">다시 불러오기</button>
     </div>
     <label for="cnt">모둠 수</label><select id="cnt"></select>
     <label>모둠 이름 (비우면 1모둠, 2모둠…)</label>
     <div id="names" class="names"></div>
+    <!-- 사기 라운드 스위치 (RENEWAL §1). 기본 켬. 켜면 학생 폰에 공지가 뜬다 — 몰래 속이는 게 아니라
+         "어느 라운드가 거짓인지 추리하라"는 놀이다 -->
+    <label class="switch">
+      <input type="checkbox" id="fraud" checked>
+      <span class="sw-title">🎭 사기 라운드</span>
+      <span class="sw-desc" id="fraud-desc">2~4라운드 중 한 라운드는 힌트가 거짓입니다 — 학생에게 공지됩니다</span>
+    </label>
     <div id="check"></div>
-    <button class="primary" id="btn-create">판 만들기</button>
+    <button class="primary" id="btn-create">게임 방 만들기</button>
   </div>
 
   <div id="pane-resume" class="card hidden">
@@ -78,8 +89,11 @@
 <!-- ══ 배포 안내 ══ -->
 <div id="handout" class="hidden">
   <div class="card">
+    <div class="room-title" id="out-title"></div>
     <h2>칠판에 적어주세요</h2>
     <div class="code" id="out-code"></div>
+    <div id="fraud-note" class="warn hidden">🎭 <b>사기 라운드가 켜져 있습니다.</b> 2~4라운드 중 한 라운드는 힌트가 전부 거짓입니다.
+학생들에게 미리 말해 주세요 — 폰에도 같은 안내가 뜹니다. 어느 라운드인지는 정산 때 공개됩니다.</div>
     <div class="qrwrap" style="margin-top:16px">
       <div class="qrbox" id="out-qr"></div>
       <div style="max-width:620px">

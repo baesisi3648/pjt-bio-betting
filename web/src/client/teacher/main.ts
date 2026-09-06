@@ -145,23 +145,34 @@ function drawNames(): void {
   $('names').innerHTML = h;
 }
 
+// 서버의 최근 판 목록은 열쇠 이름이 아직 className·unit 이다 (ports.ts RecentGame 주석).
+// 화면에서는 '방 제목'·'문제 세트'로 읽는다
 interface RecentRow { code: string; className: string; unit: string; createdAt: number; isOver: boolean }
+interface SetInfo { name: string; total: number; byLevel: Record<string, number> }
+
+/** 사기 라운드 스위치 값. 배포 안내 화면의 안내 상자가 이걸 본다 */
+let fraudOn = true;
 
 function loadUnits(): void {
-  api('/api/units').then((env) => {
-    const d = handle(env) as { units: string[]; recent: RecentRow[]; recentError: string | null } | null;
+  Promise.all([api('/api/units'), api('/api/sets')]).then(([envU, envS]) => {
+    const d = handle(envU) as { units: string[]; recent: RecentRow[]; recentError: string | null } | null;
     if (!d) return;
+    const sets = (isOk(envS) ? (envS.data as { sets: SetInfo[] }).sets : []) || [];
 
     const sel = $('unit') as HTMLSelectElement;
     const setupBox = $('no-questions');
-    if (!d.units.length) {
+    if (!sets.length) {
       sel.innerHTML = '<option value="">— 문제가 없습니다 —</option>';
       sel.disabled = true;
       setupBox.classList.remove('hidden');
     } else {
       sel.disabled = false;
       setupBox.classList.add('hidden');
-      sel.innerHTML = d.units.map((u) => `<option>${esc(u)}</option>`).join('');
+      // 빈 값 = 전체 은행 (RENEWAL §3-4). 세트 옆에 난이도별 개수를 붙여 10문항 미달을 고르기 전에 보게 한다
+      sel.innerHTML = '<option value="">— 전체 (모든 세트) —</option>' + sets.map((st) => {
+        const b = st.byLevel || {};
+        return `<option value="${esc(st.name)}">${esc(st.name)} (쉬움 ${b['쉬움'] ?? 0} · 보통 ${b['보통'] ?? 0} · 어려움 ${b['어려움'] ?? 0})</option>`;
+      }).join('');
     }
 
     let c = '';
@@ -174,7 +185,7 @@ function loadUnits(): void {
     $('recent').innerHTML = d.recent.length
       ? d.recent.map((g) =>
           `<tr data-code="${esc(g.code)}" style="cursor:pointer"><td><b>${esc(g.code)}</b></td>` +
-          `<td>${esc(g.className)}</td><td>${esc(g.unit)}</td>` +
+          `<td>${esc(g.className)}</td><td>${esc(g.unit || '(전체)')}</td>` +
           `<td>${esc(dateText(g.createdAt))}</td><td>${g.isOver ? '끝남' : '진행중'}</td></tr>`).join('')
       : '<tr><td colspan="5" style="color:var(--muted)">아직 만든 판이 없어요. 새 판을 만들어 보세요.</td></tr>';
 
@@ -194,8 +205,8 @@ function dateText(ms: number): string {
 /** 판을 만들기 전 문제은행 미리보기 (원본 gwPrepare) */
 function checkSheets(): void {
   const u = ($('unit') as HTMLSelectElement).value;
-  if (!u) return;
-  api(`/api/prepare?unit=${encodeURIComponent(u)}`).then((env) => {
+  // 빈 값은 전체 은행 — 그것도 미리 본다 (문항 수 경고가 거기서도 나온다)
+  api(`/api/prepare?set=${encodeURIComponent(u)}`).then((env) => {
     const d = handle(env) as { blocking: string[]; warnings: string[] } | null;
     if (!d) return;
     let h = '';
@@ -215,8 +226,8 @@ function create(): void {
   const names: string[] = [];
   for (let i = 1; i <= n; i++) names.push((($(`tn${i}`) as HTMLInputElement).value || '').trim());
 
-  const unit = ($('unit') as HTMLSelectElement).value;
-  if (!unit) { toast('단원을 골라주세요'); return; }
+  const setName = ($('unit') as HTMLSelectElement).value;   // '' = 전체 은행
+  fraudOn = ($('fraud') as HTMLInputElement).checked;
 
   const pw = adminPw();
   if (!pw) {
@@ -238,8 +249,8 @@ function create(): void {
     // ⚠️ 매 호출 싣는다. 서버는 세션도 쿠키도 만들지 않는다 (MIGRATION §10)
     headers: { 'X-Admin-Password': pw },
     body: {
-      className: ($('cls') as HTMLInputElement).value || '우리 반',
-      unit, teamCount: n, teamNames: names
+      roomTitle: ($('cls') as HTMLInputElement).value || '우리 방',
+      setName, teamCount: n, teamNames: names, fraudEnabled: fraudOn
     }
   }).then((env) => {
     if (!isOk(env)) {
@@ -280,12 +291,15 @@ function create(): void {
 // ────────────────────────────────────────────────────────────
 
 interface HandoutData {
-  code: string; pins: Record<number, string>;
+  code: string; roomTitle?: string; pins: Record<number, string>;
   teams: { no: number; name: string }[]; studentUrl?: string;
 }
 
 function drawHandout(d: HandoutData): void {
   studentUrl = d.studentUrl || studentUrl;
+  $('out-title').textContent = d.roomTitle || ($('cls') as HTMLInputElement).value || '';
+  // 선생님이 학생들에게 미리 말할 수 있게 — 폰에도 같은 공지가 뜬다 (team/main.ts fraudNote)
+  $('fraud-note').classList.toggle('hidden', !fraudOn);
   $('out-code').textContent = d.code;
   $('qr-code-echo').textContent = d.code;
   $('out-url').textContent = studentUrl;
@@ -507,7 +521,8 @@ function render(d: TeacherView): void {
   if (d.isOver) { showResult(d); return; }
   // 1단계 리뉴얼에서 뷰 이름만 바뀌었다 (className→roomTitle, unit→setName).
   // 화면 문구·배치는 3·4단계에서 손댄다 (RENEWAL §5)
-  $('p-cls').textContent = `${d.roomTitle} · ${d.setName ?? '전체'}`;
+  fraudOn = !!d.fraudEnabled;
+  $('p-cls').textContent = `애니멀 더비 · ${d.roomTitle}`;
   $('p-round').textContent = `${d.round}라운드`;
   $('ver').textContent = '배포 ' + d.deployVersion;
 
@@ -1057,6 +1072,12 @@ function wire(): void {
   $('tab-resume').addEventListener('click', () => pane('resume'));
   ($('cnt') as HTMLSelectElement).addEventListener('change', drawNames);
   ($('unit') as HTMLSelectElement).addEventListener('change', checkSheets);
+  ($('fraud') as HTMLInputElement).addEventListener('change', () => {
+    const on = ($('fraud') as HTMLInputElement).checked;
+    $('fraud-desc').textContent = on
+      ? '2~4라운드 중 한 라운드는 힌트가 거짓입니다 — 학생에게 공지됩니다'
+      : '모든 힌트가 참입니다';
+  });
   $('btn-reload').addEventListener('click', loadUnits);
   $('btn-create').addEventListener('click', create);
   $('btn-resume').addEventListener('click', resume);

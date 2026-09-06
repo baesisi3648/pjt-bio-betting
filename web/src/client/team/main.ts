@@ -102,6 +102,7 @@ function step1(): void {
     const d = handle(env) as { roomTitle: string; teams: { no: number; name: string }[] } | null;
     if (!d) return;
     CODE = c;
+    $('j-room').textContent = d.roomTitle || '';
     // ⚠️ 원본은 모둠 이름을 onclick 문자열에 끼워 넣느라 작은따옴표를 지웠다.
     //    여기서는 data 속성으로 넘겨서 이름을 있는 그대로 쓴다
     $('jteams').innerHTML = d.teams.map((t) =>
@@ -225,6 +226,7 @@ function render(d: TeamView): void {
     b.classList.toggle('hidden', !me.hints.length);
   }
   if (d.phase === 'discuss' && TAB === 0) TAB = 1;
+  $('g-room').textContent = d.roomTitle || '';
 
   const n = $('now');
   n.textContent = '지금은 ▸ ' + (PHASE_KO[d.phase] || '');
@@ -368,10 +370,20 @@ function submit(btn: HTMLButtonElement): void {
 }
 
 /* 탭 2 — 힌트 (게임의 심장) */
+/**
+ * 사기 라운드 공지. 서버는 **켜져 있는지만** 준다(fraudNotice) — 어느 라운드인지는 정산 때까지 비밀이다.
+ * ⚠️ 접히지 않게 맨 위에 둔다. 이 한 줄이 없으면 학생은 거짓 힌트를 참으로 믿고 억울해진다
+ */
+function fraudNote(): string {
+  return D && D.fraudNotice
+    ? '<div class="fraudnote">🎭 2~4라운드 중 한 라운드의 힌트는 <b>거짓</b>입니다.<br>어느 라운드인지는 여러분이 추리하세요. 서로 어긋나는 힌트를 찾아보세요.</div>'
+    : '';
+}
+
 function hintHtml(): string {
   const h = D && D.me ? D.me.hints : [];
-  if (!h.length) return '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
-  return h.slice().reverse().map((x) =>
+  if (!h.length) return fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
+  return fraudNote() + h.slice().reverse().map((x) =>
     `<div class="hint"><div class="meta">${x.round}라운드 · ${esc(x.level)}</div>` +
     `<div class="txt">${esc(x.text)}</div></div>`
   ).join('');
@@ -395,19 +407,25 @@ function betHtml(): string {
   for (const k of Object.keys(draft) as AnimalCode[]) used += draft[k] || 0;
   const cap = Math.min(d.maxBet, me.coins);
 
+  const finished = new Set<AnimalCode>((d.finished || []) as AnimalCode[]);
   const rows = (Object.keys(d.animals) as AnimalCode[]).map((c) => {
     const v = draft[c] || 0;
     let chips = '';
     // 건 코인만큼 칩이 쌓인다 — 이게 무게감의 핵심. 방금 얹은 하나만 튀어오른다
     for (let i = 0; i < v; i++) chips += `<span class="chip${c === lastBumped && i === v - 1 ? ' new' : ''}"></span>`;
-    return `<div class="brow${v ? ' has' : ''}">` +
+    // 골인한 동물은 잠긴다 — 서버(validateBet BET_FINISHED)와 같은 값(finished)을 본다.
+    // 1위가 8라운드에 들어오면 그 라운드 베팅이 공짜가 되던 구멍을 막는 규칙이다 (RENEWAL §1)
+    const fin = finished.has(c);
+    const controls = fin
+      ? '<span class="fin-tag">🏁 골인</span>'
+      : `<button class="step" data-act="bet" data-code="${c}" data-delta="-1"${v ? '' : ' disabled'}>−</button>` +
+        `<span class="cnt num">${v}</span>` +
+        `<button class="step plus" data-act="bet" data-code="${c}" data-delta="1"${used >= cap ? ' disabled' : ''}>+</button>`;
+    return `<div class="brow${v ? ' has' : ''}${fin ? ' fin' : ''}">` +
       `<span class="b-emoji">${d.emojis[c] || ''}</span>` +
       `<span class="b-main"><span class="bname">${esc(d.animals[c])}</span>` +
         `<span class="b-sub"><span class="bodds num">${d.odds[c].toFixed(2)}배</span>` +
-        `<span class="chips">${chips}</span></span></span>` +
-      `<button class="step" data-act="bet" data-code="${c}" data-delta="-1"${v ? '' : ' disabled'}>−</button>` +
-      `<span class="cnt num">${v}</span>` +
-      `<button class="step plus" data-act="bet" data-code="${c}" data-delta="1"${used >= cap ? ' disabled' : ''}>+</button></div>`;
+        `<span class="chips">${chips}</span></span></span>` + controls + '</div>';
   }).join('');
 
   return '<div class="bet-head"><span>이번 라운드에 걸 코인</span>' +
@@ -487,9 +505,11 @@ function showResult(d: TeamView): void {
   const mine = (d.settlement || []).filter((s: Settlement) => s.teamNo === TEAM)[0];
   const medal = ['🥇', '🥈', '🥉'];
 
+  // 정산 뒤에만 오는 값이다. 정산 전 뷰에는 이 열쇠가 아예 없다 (LEAK 게이트)
+  const fr = (d as TeamView & { fraudRound?: number | null }).fraudRound;
   let html = '<div class="card"><h1>🏁 최종 결과</h1><div style="font-size:20px;line-height:2;margin-top:10px">' +
     truth.slice(0, 3).map((c, i) => `${medal[i]} ${i + 1}등 ${d.emojis[c] || ''} ${esc(d.animals[c])}`).join('<br>') +
-    '</div></div>';
+    '</div>' + (fr ? `<div class="fraudnote" style="margin-top:12px">🎭 ${fr}라운드 힌트가 거짓이었습니다</div>` : '') + '</div>';
 
   if (mine) {
     html += '<div class="card"><h1>우리 모둠</h1>' + mine.lines.map((l) =>

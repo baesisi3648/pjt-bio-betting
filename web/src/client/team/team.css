@@ -46,6 +46,15 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 .result.x{background:#FDECEA;color:#B3261E}
 
 /* 힌트 — 이 앱에서 제일 많이 읽히는 화면 */
+.tagline{color:#67788A;font-size:13px;margin:-2px 0 12px}
+.room{font-size:17px;font-weight:800;color:var(--text-dark);margin-bottom:4px}
+.room-small{font-size:12px;color:#8494A4;padding-top:8px}
+/* 사기 라운드 공지 — 접히지 않는다. 학생이 힌트를 그대로 믿지 않게 하는 것이 이 게임의 놀이다 (RENEWAL §1) */
+.fraudnote{background:#FFF3CD;border:2px solid #E0B341;border-radius:10px;padding:12px 14px;margin-bottom:12px;
+  font-size:14px;line-height:1.6;color:#5C4400;font-weight:600}
+/* 골인한 동물은 더 걸 수 없다 (BET_FINISHED). 이미 건 칩은 그대로 보인다 */
+.brow.fin{opacity:.55}
+.fin-tag{flex:none;font-size:13px;font-weight:800;color:#B8860B;padding:0 6px;white-space:nowrap}
 .hint{background:#FFF8E7;border-left:6px solid var(--gold);border-radius:10px;
       padding:16px;margin-bottom:12px}
 .hint .meta{font-size:12px;color:#8A7433;margin-bottom:6px}

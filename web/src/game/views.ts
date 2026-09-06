@@ -89,6 +89,8 @@ export interface TeamView extends Clock {
   question?: { text: string; choices: string[] };
   truth?: AnimalCode[];
   settlement?: Settlement[] | null;
+  /** 정산 뒤에만. 정산 전에는 열쇠 자체가 없다 — truth 와 같은 등급 (게이트 LEAK) */
+  fraudRound?: number | null;
 }
 
 export interface TeacherView extends Clock {
@@ -139,7 +141,7 @@ export interface TeacherView extends Clock {
 
 export interface LobbyView { roomTitle: string; teams: TeamBrief[] }
 export interface HandoutView {
-  code: string; pins: Record<number, string>; teams: TeamBrief[];
+  code: string; roomTitle: string; pins: Record<number, string>; teams: TeamBrief[];
 }
 export interface RevealView {
   truth: AnimalCode[];
@@ -348,6 +350,7 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
   if (state.isOver) {
     v.truth = finalOrderOf(state);
     v.settlement = state.settlement || null;
+    v.fraudRound = state.fraudRound;      // "3라운드 힌트가 거짓이었습니다" — 학생이 자기 추리를 확인하는 순간
   }
   return v;
 }
@@ -421,6 +424,7 @@ export function handoutView(state: GameState): HandoutView {
   for (const t of state.teams) pins[t.no] = t.pin;
   return {
     code: state.code,
+    roomTitle: state.roomTitle,      // '다시 보기'로 들어온 배포 안내에도 방 제목이 붙게
     pins,
     teams: state.teams.map((t) => ({ no: t.no, name: t.name }))
   };

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>와일드 더비</title>
+<title>애니멀 더비</title>
 <!-- ⚠️ 외부 글꼴·CDN 링크를 넣지 마세요. 학교망에서 막히면 수업이 멈춥니다 -->
 <link rel="icon" type="image/svg+xml" href="/favicon.svg">
 <link rel="stylesheet" href="./shared/base.css">
@@ -14,13 +14,15 @@
 <!-- ══ S4 접속 ══ -->
 <div id="join">
   <div class="card">
-    <h1>🧬 와일드 더비</h1>
+    <h1>🐆 애니멀 더비</h1>
+    <p class="tagline">문제를 풀고 힌트를 모아 우승 동물을 예측하는 전략 퀴즈 게임</p>
     <div id="j1">
       <p class="sub">칠판에 적힌 판 코드 4자리를 넣어주세요</p>
       <input id="jcode" maxlength="4" style="text-transform:uppercase" autocomplete="off">
       <button class="big" id="j1-next">다음</button>
     </div>
     <div id="j2" class="hidden">
+      <p class="room" id="j-room"></p>
       <p class="sub">우리 모둠을 골라주세요</p>
       <div class="teamgrid" id="jteams"></div>
     </div>
@@ -38,6 +40,7 @@
     <div class="bar"><div id="tbar" style="width:100%"></div></div>
     <div class="now" id="now"></div>
     <div class="me"><span id="mname"></span><span id="mcoins"></span></div>
+    <div class="room-small" id="g-room"></div>
   </div>
   <div class="tabs">
     <button id="t0" class="on" data-tab="0">문제</button>

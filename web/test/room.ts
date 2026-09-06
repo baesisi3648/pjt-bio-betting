@@ -487,18 +487,20 @@ gate('LEAK', '어떤 단계에서도 정산 전에 truth·moves·lastRound·frau
              : `${seen.join('·')} — 6개 단계 × 3개 뷰에서 0건 · 실제 사기 라운드는 ${fraudRound}R (안 나갔다) · fraudNotice 켬 true / 끔 false` };
 });
 
-gate('REVEAL-FRAUD', '정산 뒤에야 교사 뷰에 사기 라운드가 뜬다 (모둠 뷰에는 끝까지 없다)', () => {
+gate('REVEAL-FRAUD', '정산 뒤에야 사기 라운드가 뜬다 (교사·모둠 뷰 모두, 정산 전에는 열쇠 자체가 없다)', () => {
   const t = new Table();
   t.open(2, 'RVFR');
   const secret = t.state().fraudRound;
   playFullGame(t, 2);
   const before = t.tv().fraudRound;
+  const teamBefore = allKeys(JSON.parse(JSON.stringify(t.view(1))));
   t.room.finalize(t.hostKey);
   const after = t.tv().fraudRound;
-  const teamKeys = allKeys(JSON.parse(JSON.stringify(t.view(1))));
+  // 학생 결과 화면이 "N라운드 힌트가 거짓이었습니다" 를 띄운다 (RENEWAL §4-3) — 정산 뒤에만
+  const teamAfter = t.view(1).fraudRound;
   return {
-    ok: before === null && after === secret && secret !== null && !teamKeys.has('fraudRound'),
-    detail: `정산 전 ${String(before)} → 정산 후 ${String(after)}라운드 공개 · 모둠 뷰에는 정산 뒤에도 없음`
+    ok: before === null && after === secret && secret !== null && !teamBefore.has('fraudRound') && teamAfter === secret,
+    detail: `정산 전 교사 ${String(before)}·모둠 열쇠 없음 → 정산 후 교사 ${String(after)}·모둠 ${String(teamAfter)}라운드 공개`
   };
 });
 
