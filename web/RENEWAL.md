@@ -155,10 +155,12 @@ MIGRATION §4-1(정답 비공개 — `fraudRound` 포함), §4-2, §4-4~§4-8 �
 | `POST /api/admin/import/preview` | `{json, setName?}` | `{title, total, byDifficulty:{easy,medium,hard}, errors:[{index,reason}], existingSet}` · **아무것도 저장하지 않는다** |
 | `POST /api/admin/import` | `{json, mode:'append'\|'replaceSet'\|'replaceAll', setName?}` | `{setName, inserted, skipped, summary}` · 유효 0건이면 `BAD_REQUEST` |
 | `GET /api/admin/summary` | — | `{sets:[{setName, counts, total, blocking, warnings}], levels, minPerLevel, animals}` (`units` → `sets`, `unit` → `setName`, `minPerLevel` = 10) |
+| `POST /api/admin/games/:code/delete`<br>`DELETE /api/admin/games/:code` | — | `{code}` · 없는 코드 `NOT_FOUND` · **되돌릴 수 없다** — D1 `games` 줄과 그 판의 DO 상태(모둠 암호·정답·힌트·코인)를 함께 버린다. 교사 열쇠로는 못 지운다 (열쇠는 판을 *진행*하는 권한이다). 교사 화면이 POST 를 쓰는 이유는 `DELETE` 메서드를 막는 학교망 프록시가 있어서다 (게이트 `DEL1`~`DEL3`) |
 
 ⚠️ **봉투가 아닌 응답은 내보내기 하나뿐이다.** `ApiResponse.raw` 라는 탈출구를 하나 두고 `index.ts` 가 그대로 흘려보낸다 — 봉투로 감싸면 저장된 파일이 §3-2 형식이 아니게 되어 다시 못 가져온다. 그 갈래는 **`adminDenied` 뒤에** 있다 (앞에 두면 그 파일만 인증 없이 나간다 — 게이트 `EXP2`).
 
 **게이트** (`test/admin.ts` 17개): `ADM1`~`ADM6` · `IMP1`~`IMP4` · `EXP1`·`EXP2` · `SET1`·`SET2` · `WARN10` · `LEAK-ADMIN` · `ADM-GAME`
+(`test/cleanup.ts` 8개): `CLEAN1`~`CLEAN4` · `CLEAN-FIN` · `DEL1`~`DEL3` — 판 보존 기간 (MIGRATION §7)
 
 ---
 

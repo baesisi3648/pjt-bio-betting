@@ -198,12 +198,17 @@ function loadUnits(): void {
 
     // ⚠️ 최근 판 목록은 라운드 진행 상황을 담지 않는다 — 인증 없이 나가는 목록이기 때문이다
     //    (ports.ts RecentGame 주석). 그래서 원본의 '몇 라운드' 칸이 '만든 날짜'로 바뀌었다
+    // 🗑 는 마지막 칸이다 — 줄 아무 데나 누르면 코드가 채워지므로, 지우기는 **누를 곳이
+    // 정해져 있어야** 한다. `data-del` 로 표시해 두고 처리기가 그 버튼만 골라 본다
     $('recent').innerHTML = d.recent.length
       ? d.recent.map((g) =>
-          `<tr data-code="${esc(g.code)}" style="cursor:pointer"><td><b>${esc(g.code)}</b></td>` +
+          `<tr data-code="${esc(g.code)}" data-title="${esc(g.className)}" style="cursor:pointer">` +
+          `<td><b>${esc(g.code)}</b></td>` +
           `<td>${esc(g.className)}</td><td>${esc(g.unit || '(전체)')}</td>` +
-          `<td>${esc(dateText(g.createdAt))}</td><td>${g.isOver ? '끝남' : '진행중'}</td></tr>`).join('')
-      : '<tr><td colspan="5" style="color:var(--muted)">아직 만든 판이 없어요. 새 판을 만들어 보세요.</td></tr>';
+          `<td>${esc(dateText(g.createdAt))}</td><td>${g.isOver ? '끝남' : '진행중'}</td>` +
+          `<td style="text-align:right;width:1%">` +
+          `<button class="recent-del" data-del="${esc(g.code)}" title="이 판을 지웁니다">🗑</button></td></tr>`).join('')
+      : '<tr><td colspan="6" style="color:var(--muted)">아직 만든 판이 없어요. 새 판을 만들어 보세요.</td></tr>';
 
     if (d.recentError) toast('최근 판 목록을 읽지 못했어요: ' + d.recentError);
     checkSheets();
@@ -403,6 +408,58 @@ function resume(): void {
     setAdminPw(pw);
     verifyAndPlay(c, d.hostKey);
   }).catch(() => toast('서버 응답이 없어요'));
+}
+
+/**
+ * 판 지우기 (2026-09-07 사용자 결정).
+ *
+ * 지워지는 것은 '최근 판' 한 줄만이 아니다 — 그 판의 **모둠 암호·정답·힌트·코인 기록**이
+ * 전부 사라진다 (서버가 D1 줄과 Durable Object 상태를 함께 버린다). 되돌릴 수 없으므로
+ * 확인 대화 문장에 무엇이 사라지는지 적는다. "정말 삭제하시겠습니까?" 로는 부족하다.
+ *
+ * ⚠️ 관리자 비밀번호를 쓴다 (교사 열쇠가 아니다). 열쇠는 그 판을 **진행**하는 권한이고,
+ *    지우는 것은 판 바깥의 일이다 — 서버도 같은 문으로 막는다 (router.ts adminDenied).
+ */
+function deleteGame(code: string, title: string): void {
+  confirmBox(
+    `판 ${code}(${title})를 지웁니다.\n모둠 암호·정답·코인 기록이 전부 사라지고 되돌릴 수 없어요.`,
+    () => {
+      // 같은 탭에서 이미 넣은 값(판 만들기·열쇠 되찾기·/admin 이 함께 쓴다)
+      const pw = pwStore() || (($('radmin') as HTMLInputElement).value || '').trim();
+      if (!pw) {
+        // ⚠️ 여기서 새 입력란을 만들지 않는다. 관리자 비밀번호를 넣는 자리는 이 화면에
+        //    이미 둘이고(cadmin·radmin), 셋이 되면 어느 것이 저장되는지 아무도 모른다
+        pane('resume');
+        ($('radmin') as HTMLInputElement).closest('#key-row')?.classList.remove('hidden');
+        ($('radmin') as HTMLInputElement).focus();
+        toast('판을 지우려면 관리자 비밀번호를 넣어주세요 (아래 이어하기 칸)');
+        return;
+      }
+      // 한글·이모지 비밀번호는 헤더에 실리지 못해 브라우저가 던진다 — 보내기 전에 이유를 말한다
+      if (!headerSafe(pw)) { toast(HEADER_UNSAFE_MSG); return; }
+
+      // POST 를 쓴다 — DELETE 메서드를 막는 학교망 프록시가 있다 (admin.ts GAMES 주석)
+      api(`/api/admin/games/${encodeURIComponent(code)}/delete`, {
+        method: 'POST', headers: { 'X-Admin-Password': pw }
+      }).then((env) => {
+        if (!isOk(env)) {
+          if (env.error === 'ADMIN_DISABLED') {
+            toast('관리자 기능이 꺼져 있어요 — 배포 설정(ADMIN_PASSWORD)을 확인해주세요');
+          } else {
+            toast(env.message);
+            // 틀린 값을 남겨 두면 '새 판' 입력란에까지 미리 채워진다 (resume 과 같은 처리)
+            if (env.error === 'ADMIN_DENIED') { pwStore(null); setAdminPw(''); }
+          }
+          return;
+        }
+        toast(`${code} 판을 지웠어요`);
+        // 이 기기에 남은 그 판의 교사 열쇠도 쓸모가 없다. 남겨 두면 '이어하기' 가
+        // 열쇠는 있는데 판이 없는 상태로 GAME_NOT_FOUND 를 낸다
+        try { localStorage.removeItem('wd_host_' + code); } catch { /* 막힌 브라우저 */ }
+        loadUnits();
+      }).catch(() => toast('서버 응답이 없어요'));
+    }
+  );
 }
 
 /**
@@ -1237,8 +1294,15 @@ function wire(): void {
 
   // 최근 판을 누르면 코드가 채워진다 (원본에는 없던 편의. 칠판 코드를 다시 타이핑할 일을 줄인다)
   $('recent').addEventListener('click', (e) => {
-    const tr = (e.target as HTMLElement).closest('tr') as HTMLElement | null;
+    const el = e.target as HTMLElement;
+    const tr = el.closest('tr') as HTMLElement | null;
     if (!tr || !tr.dataset.code) return;
+
+    // ⚠️ 🗑 먼저 본다. 아래로 흘려보내면 지우기를 누른 순간 이어하기 칸에도 그 코드가
+    //    채워지고, 확인 대화에서 '아니오' 를 눌러도 그 흔적이 남는다
+    const del = el.closest('[data-del]') as HTMLElement | null;
+    if (del && del.dataset.del) { deleteGame(del.dataset.del, tr.dataset.title || ''); return; }
+
     ($('rcode') as HTMLInputElement).value = tr.dataset.code;
   });
 

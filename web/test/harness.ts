@@ -24,7 +24,7 @@ import { validateSet } from '../src/server/bank.ts';
 import type { AnimalRow, QuestionRow, SettingRow } from '../src/server/bank.ts';
 import { handle } from '../src/server/router.ts';
 import type {
-  AdminAnimal, AdminQuestion, AdminSetting, ApiResponse, DbPort, ImportMode, Ports,
+  AdminAnimal, AdminQuestion, AdminSetting, ApiResponse, DbPort, GameRow, ImportMode, Ports,
   PreparedSet, QuestionDraft, RecentGame, RoomPort, SetInfo
 } from '../src/server/ports.ts';
 
@@ -80,13 +80,20 @@ export const SETTINGS: SettingRow[] = [
   { key: 'autoSkipSeconds', value: '5' }
 ];
 
-interface GameRow { code: string; className: string; unit: string; createdAt: number; isOver: boolean }
+/**
+ * 인메모리 '게임' 표 한 줄 — D1 의 `games` 와 같은 칸을 든다.
+ * ⚠️ `finishedAt` 을 빠뜨리면 정리 게이트(CLEAN1~3)가 검사할 것이 없어진다 (migrations/0007)
+ */
+interface MemGameRow {
+  code: string; className: string; unit: string; createdAt: number;
+  isOver: boolean; finishedAt: number | null;
+}
 
 export class MemDb implements DbPort {
   questions = QUESTIONS.map((q) => ({ ...q }));
   animals = ANIMALS.map((a) => ({ ...a }));
   settings = SETTINGS.map((s) => ({ ...s }));
-  games: GameRow[] = [];
+  games: MemGameRow[] = [];
   /** '최근 판 목록이 터져도 단원 목록은 살아야 한다' 를 검사하기 위한 스위치 */
   recentThrows = false;
 
@@ -123,11 +130,21 @@ export class MemDb implements DbPort {
   }
   async hasGame(code: string): Promise<boolean> { return this.games.some((g) => g.code === code); }
   async addGame(row: { code: string; className: string; unit: string; createdAt: number }): Promise<void> {
-    this.games.push({ ...row, isOver: false });
+    this.games.push({ ...row, isOver: false, finishedAt: null });
   }
-  async markOver(code: string): Promise<void> {
+  /** ⚠️ D1Db 와 같은 계약 — 정산 표시와 정산 **시각**을 같이 쓴다 (migrations/0007) */
+  async markOver(code: string, finishedAt: number): Promise<void> {
     const g = this.games.find((x) => x.code === code);
-    if (g) g.isOver = true;
+    if (g) { g.isOver = true; g.finishedAt = finishedAt; }
+  }
+  async allGames(): Promise<GameRow[]> {
+    return this.games.map((g) => ({
+      code: g.code, createdAt: g.createdAt, isOver: g.isOver, finishedAt: g.finishedAt
+    }));
+  }
+  async deleteGame(code: string): Promise<void> {
+    const i = this.games.findIndex((g) => g.code === code);
+    if (i >= 0) this.games.splice(i, 1);
   }
 
   // ── 관리 화면 (5단계). D1Db 와 **같은 계약**을 지킨다 ──
@@ -252,10 +269,25 @@ export class MemRoom implements RoomPort {
     });
   }
 
+  /** CLEAN4 용 — 이 판의 `wipe()` 만 던지게 만든다 (DO 가 응답하지 않는 날) */
+  wipeThrows = false;
+
   async op(name: string, args: unknown[]): Promise<Envelope<unknown>> { return this.ops.op(name, args); }
   async hostKey(): Promise<string | null> {
     const s = this.room.raw();
     return s ? s.hostKey : null;
+  }
+  /**
+   * GameRoom.wipe 와 **같은 계약** — 상태·이벤트·알람을 통째로 버린다.
+   * ⚠️ `hydrate(null)` 이 정본이다. 여기서 이벤트만 비우고 상태를 남기면 게이트는
+   *    초록불인데 진짜 DO 는 지운 판을 계속 살아 있는 것처럼 답한다 (MIGRATION §5)
+   */
+  async wipe(): Promise<void> {
+    if (this.wipeThrows) throw new Error('DO 가 응답하지 않아요');
+    this.room.hydrate(null);
+    this.alarmAt = null;
+    this.events = [];
+    this.snapshots = [];
   }
   throttle(): ThrottleState { return this.ops.throttleState(); }
 }

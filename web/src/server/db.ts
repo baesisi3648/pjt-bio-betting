@@ -13,7 +13,7 @@ import { LEVELS } from '../game/config.ts';
 import { validateSet } from './bank.ts';
 import type { AnimalRow, QuestionRow, SettingRow } from './bank.ts';
 import type {
-  AdminAnimal, AdminQuestion, AdminSetting, DbPort, ImportMode, PreparedSet,
+  AdminAnimal, AdminQuestion, AdminSetting, DbPort, GameRow, ImportMode, PreparedSet,
   QuestionDraft, RecentGame, SetInfo
 } from './ports.ts';
 
@@ -28,7 +28,12 @@ function toAdminQuestion(r: QuestionRow): AdminQuestion {
 
 const Q_COLS = 'id, set_name, level, text, choice1, choice2, choice3, choice4, answer, explanation';
 
-interface GameRow { code: string; class_name: string; set_name: string; created_at: number; is_over: number }
+/** D1 의 `games` 한 줄. 열 이름(snake_case)을 아는 곳은 이 파일뿐이다 */
+interface GameSqlRow {
+  code: string; class_name: string; set_name: string; created_at: number; is_over: number;
+  /** migrations/0007. 정산 전이거나 0007 이전에 정산된 판이면 null */
+  finished_at: number | null;
+}
 
 export class D1Db implements DbPort {
   private db: D1Database;
@@ -74,7 +79,7 @@ export class D1Db implements DbPort {
     const r = await this.db
       .prepare('SELECT code, class_name, set_name, created_at, is_over FROM games ORDER BY created_at DESC LIMIT ?1')
       .bind(Math.max(1, Math.floor(limit) || 10))
-      .all<GameRow>();
+      .all<GameSqlRow>();
     // ⚠️ 여기서 고르는 열이 곧 "인증 없이 나가는 것"이다. 라운드 진행 상황이나
     //    상태 JSON 을 여기 얹지 마세요 — 이 목록은 아무나 볼 수 있습니다
     //
@@ -101,8 +106,37 @@ export class D1Db implements DbPort {
       .run();
   }
 
-  async markOver(code: string): Promise<void> {
-    await this.db.prepare('UPDATE games SET is_over = 1 WHERE code = ?1').bind(code).run();
+  /**
+   * ⚠️ `finished_at` 을 **같이** 쓴다. 정산한 판은 정산 30일 뒤에 지워지므로
+   *    (migrations/0007 · cleanup.ts), 이 한 줄을 빠뜨리면 그 판은 정산했는데도
+   *    미정산 취급(90일)이 되어 두 달을 더 남는다.
+   */
+  async markOver(code: string, finishedAt: number): Promise<void> {
+    await this.db.prepare('UPDATE games SET is_over = 1, finished_at = ?2 WHERE code = ?1')
+      .bind(code, finishedAt).run();
+  }
+
+  /**
+   * 정리용 — 표 전체를 시각과 상태만. ⚠️ 부르는 곳은 `cleanup.ts` 하나뿐이다.
+   * 판이 수백 개가 되어도 세 개의 숫자 열이라 한 번의 왕복으로 끝난다
+   */
+  async allGames(): Promise<GameRow[]> {
+    const r = await this.db
+      .prepare('SELECT code, created_at, is_over, finished_at FROM games')
+      .all<GameSqlRow>();
+    return (r.results || []).map((x) => ({
+      code: String(x.code),
+      createdAt: Number(x.created_at),
+      isOver: !!Number(x.is_over),
+      // ⚠️ `Number(null)` 은 0 이다. 0 으로 바꾸면 "1970년에 정산된 판" 이 되어
+      //    0007 이전 판이 전부 만료로 읽힌다 (cleanup.ts isExpired 주석)
+      finishedAt: x.finished_at == null ? null : Number(x.finished_at)
+    }));
+  }
+
+  /** ⚠️ 이 표만 지운다. 판의 **상태**는 DO 에 있고 그건 RoomPort.wipe 가 지운다 */
+  async deleteGame(code: string): Promise<void> {
+    await this.db.prepare('DELETE FROM games WHERE code = ?1').bind(code).run();
   }
 
   /** ⚠️ `setName` 이 null 이면 **전체 은행**이다 — WHERE 절 없이 통째로 읽는다 */

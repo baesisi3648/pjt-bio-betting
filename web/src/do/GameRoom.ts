@@ -109,6 +109,40 @@ export class GameRoom extends DurableObject<Env> {
     return state ? state.hostKey : null;
   }
 
+  /**
+   * 이 판을 **통째로 지운다** — 상태·이벤트·잠금 카운터·알람까지 (2026-09-07 사용자 결정).
+   *
+   * 부르는 곳은 둘이다: 교사 화면의 🗑 (관리자 비밀번호) 와 매일 도는 예약 정리
+   * (`src/server/index.ts` scheduled → `src/server/cleanup.ts`). 어느 쪽이든 Worker 가
+   * **먼저** 관리자 문을 지나고 온다 — 여기서는 다시 확인하지 않는다 (라우터 `adminDenied`).
+   *
+   * ⚠️ **`op()` 표에 넣지 않았다.** 넣으면 소켓으로도 부를 수 있게 되고, 그때는 판 코드만
+   *    아는 학생이 수업 중인 판을 지운다. `adminHostKey()` 를 따로 둔 것과 같은 이유다 —
+   *    소켓에서 닿을 수 있는 이름표는 `ops.ts` 의 표가 전부이고, 거기 없는 이름은
+   *    "모르는 요청이에요" 로 끝난다 (게이트 DEL3).
+   *
+   * ⚠️ 여기서는 `await` 를 써도 된다. §4-7 의 "읽고→고치고→쓰기 사이에 await 금지" 는
+   *    **상태를 바꾸는** 경로 이야기다 (그 틈으로 다른 요청이 끼어들면 코인이 증발한다).
+   *    이건 상태를 바꾸는 것이 아니라 **폐기**다 — 끼어든 요청이 무엇이든 결과는 같다.
+   *
+   * ⚠️ `hydrate(null)` 을 빠뜨리지 마세요. 저장소만 비우면 **메모리에 올라와 있는 상태는
+   *    그대로**라서, DO 가 잠들기 전까지는 지운 판이 계속 살아 있는 것처럼 답한다.
+   */
+  async wipe(): Promise<void> {
+    // 소켓이 붙어 있으면 먼저 알린다. 안 알리면 학생 폰은 재연결을 반복하며
+    // "연결 중…" 만 띄운 채 왜 안 되는지 영영 모른다
+    for (const ws of this.ctx.getWebSockets()) {
+      try {
+        ws.send(JSON.stringify({ type: 'gone' }));
+        ws.close(1000, '지워진 판');
+      } catch { /* 이미 끊긴 소켓 */ }
+    }
+
+    await this.ctx.storage.deleteAll();   // state · ev:* · throttle 전부
+    await this.ctx.storage.deleteAlarm(); // 남아 있으면 지워진 판에서 단계 전환이 한 번 더 돈다
+    this.room.hydrate(null);
+  }
+
   // ── HTTP — WebSocket 업그레이드만 ────────────────────
 
   override async fetch(request: Request): Promise<Response> {

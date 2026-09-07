@@ -157,7 +157,9 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
       const res = await room.op('finalize', [hostKeyOf(req, body)]);
       // '이어하기' 목록에서 끝난 판을 구분하기 위한 것. 실패해도 정산 결과는 그대로 돌려준다 —
       // ⚠️ 여기서 던지면 수업 마지막에 정산 화면이 통째로 안 뜬다
-      if (res.ok) { try { await ports.db.markOver(code); } catch { /* 목록 표시용일 뿐 */ } }
+      // ⚠️ 정산 시각을 같이 적는다 — 정산한 판은 이 시각으로부터 30일 뒤에 지워진다
+      //    (migrations/0007 · cleanup.ts). 실패하면 그 판은 미정산(90일) 취급으로 남는다
+      if (res.ok) { try { await ports.db.markOver(code, ports.now()); } catch { /* 목록 표시용일 뿐 */ } }
       return reply(res);
     }
     if (what === 'handout' && method === 'POST') {

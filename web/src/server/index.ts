@@ -18,6 +18,7 @@
 
 import { GameRoom } from '../do/GameRoom.ts';
 import type { Env } from '../do/GameRoom.ts';
+import { runCleanup } from './cleanup.ts';
 import { D1Db } from './db.ts';
 import { handle } from './router.ts';
 import type { ApiRequest, Ports, RoomPort } from './ports.ts';
@@ -40,7 +41,8 @@ function roomPort(env: Env, code: string): RoomPort {
   const stub = roomOf(env, code);
   return {
     op: (name, args) => stub.op(name, args),
-    hostKey: () => stub.adminHostKey()
+    hostKey: () => stub.adminHostKey(),
+    wipe: () => stub.wipe()
   };
 }
 
@@ -130,5 +132,27 @@ export default {
         'cache-control': 'no-store'
       }
     });
+  },
+
+  /**
+   * 예약 정리 — 매일 UTC 18:00 (= KST 03:00). 시각은 `wrangler.jsonc` 의 `triggers.crons`.
+   *
+   * 만료된 판을 지운다 (정산 30일 · 미정산 90일 — `cleanup.ts` RETENTION).
+   * **판단은 여기 없다.** 여기가 하는 일은 진짜 시계와 진짜 포트를 꽂는 것뿐이고,
+   * 무엇이 만료인지는 `env` 를 모르는 순수 함수가 정한다 (index.ts 머리 주석 · 게이트 CLEAN1~4).
+   *
+   * ⚠️ 던지지 않는다. cron 핸들러가 던지면 그날 정리가 실패로 기록될 뿐이고, 어차피
+   *    실패한 판은 D1 줄이 남아 있어 **내일 다시 만난다** (cleanup.ts runCleanup 주석).
+   *    로그 한 줄이 대시보드에 남는 편이 낫다.
+   *
+   * 로컬 확인: `npx wrangler dev --test-scheduled` 뒤
+   *            `curl "http://localhost:8787/__scheduled?cron=0+18+*+*+*"`
+   */
+  async scheduled(_controller: ScheduledController, env: Env, _ctx: ExecutionContext): Promise<void> {
+    try {
+      await runCleanup(portsOf(env), Date.now());
+    } catch (e) {
+      console.log('[정리] 통째로 실패: ' + (e as Error).message);
+    }
   }
 } satisfies ExportedHandler<Env>;

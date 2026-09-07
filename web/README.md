@@ -104,8 +104,13 @@ curl -H 'X-Admin-Password: <PW>' 'localhost:8787/api/admin/export?set=유전' -O
 
 관리자 비밀번호(`ADMIN_PASSWORD`)를 넣어야 열리는 경로:
 `POST /api/game`(**판 만들기**), `POST /api/admin/host-key`(교사 열쇠 되찾기),
-`/api/admin/*`(문제은행). 전부 헤더 `X-Admin-Password` 를 **매 호출** 확인합니다 —
-세션도 쿠키도 토큰도 없습니다.
+`/api/admin/*`(문제은행 · **판 지우기**). 전부 헤더 `X-Admin-Password` 를 **매 호출**
+확인합니다 — 세션도 쿠키도 토큰도 없습니다.
+
+**판은 영원히 남지 않습니다** (2026-09-07): 정산한 판은 정산 30일 뒤, 정산 안 하고 버려진
+판은 생성 90일 뒤에 D1 줄과 Durable Object 상태(모둠 암호·정답·코인)가 **함께** 지워집니다.
+매일 KST 03:00 에 도는 cron 이 하고, 교사 화면 '최근 판'의 🗑 로 지금 지울 수도 있습니다
+(기간은 `src/server/cleanup.ts` 의 `RETENTION` 한 곳 · 자세히는 `MIGRATION.md` §7 '판 보존 기간').
 
 **안 넣고 배포하면 맞는 값을 줘도 거부합니다** — secret 하나 빠뜨린 배포에서 판 코드만
 아는 학생이 정답과 모든 모둠 암호를 가져가면 안 되기 때문입니다. 그런 배포에서는

@@ -76,6 +76,10 @@
     <button class="primary" id="btn-resume">이어하기</button>
     <h2 style="margin-top:26px">최근 판</h2>
     <table><tbody id="recent"></tbody></table>
+    <!-- ⚠️ 이 문장이 없으면 "어제 만든 판이 왜 없어졌냐" 가 반드시 나온다.
+         숫자는 src/server/cleanup.ts 의 RETENTION 과 **같아야 한다** — 거기를 고치는 날
+         이 줄도 같이 고칩니다 (MIGRATION §5 trackCells 함정) -->
+    <div class="qrhint" style="font-size:18px">🕒 정산한 판은 30일, 정산 안 한 판은 90일 뒤 자동으로 지워집니다.</div>
   </div>
 
   <!-- 문제은행 관리 (5단계). ⚠️ 링크 하나뿐입니다 — 관리 코드를 이 번들에 넣지 마세요.

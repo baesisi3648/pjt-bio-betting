@@ -1,0 +1,22 @@
+-- 0007_games_finished_at.sql — 판 보존 기간 (2026-09-07 사용자 결정).
+--
+-- 지금까지 판은 **영원히 남았다.** D1 의 `games` 한 줄과, 판마다 하나인 Durable Object
+-- 상태(모둠 암호·정답·힌트·코인)를 지우는 코드가 어디에도 없었다. 한 학기가 지나면
+-- '최근 판' 표 뒤에 수백 개의 판이 쌓이고, 그 각각이 그 반 학생들의 암호를 들고 있다.
+--
+-- 정리 기준을 두 가지로 나누려면 "언제 끝났나"를 알아야 한다:
+--   정산한 판   → 정산 30일 뒤   (수업이 끝났고, 되돌아볼 일이 있어도 한 달이면 충분하다)
+--   버려진 판   → 생성 90일 뒤   (정산을 안 한 채 남은 것. 만들다 만 판일 수도 있어 길게 둔다)
+-- `created_at` 만으로는 이 둘을 나눌 수 없다. 그래서 정산 시각을 따로 적는다.
+--
+-- ⚠️ ms 숫자다. 문자열 날짜 금지 (MIGRATION §5 — 응답에 Date 를 섞어 화면이 통째로 비었다).
+--
+-- ⚠️ NULL 을 허용한다. 이 마이그레이션 **이전에** 정산된 판(is_over=1)에는 채울 값이 없다 —
+--    그 시각을 아무도 기록하지 않았기 때문이다. 지어내지 않고 NULL 로 두고, 정리 규칙이
+--    그런 줄은 `created_at` 을 대신 쓴다 (src/server/cleanup.ts isExpired · 게이트 CLEAN3).
+--    DEFAULT 0 으로 채우면 "1970년에 정산된 판" 이 되어 다음 정리에서 전부 지워진다.
+--
+--   npx wrangler d1 migrations apply wilde-derby --local
+--   npx wrangler d1 migrations apply wilde-derby --remote   (push 하면 자동으로 돈다)
+
+ALTER TABLE games ADD COLUMN finished_at INTEGER;

@@ -171,6 +171,16 @@ const QUESTIONS = /^\/api\/admin\/questions(?:\/(\d+))?$/;
  */
 const SETS = /^\/api\/admin\/sets\/([^/]+)$/;
 
+/**
+ * 판 하나 지우기 (2026-09-07 사용자 결정).
+ *
+ * 두 모양을 다 받는다: `DELETE /api/admin/games/ABCD` 와 `POST /api/admin/games/ABCD/delete`.
+ * ⚠️ POST 쪽을 남겨 둔 이유는 교사 화면이 그걸 쓰기 때문이다 — 학교망 프록시 중에
+ *    `DELETE` 메서드를 통째로 막는 것이 있고, 그러면 수업 준비 중에 지우기만 안 된다.
+ *    둘 다 **같은 문**(router.ts adminDenied)을 지난 뒤에 여기 온다.
+ */
+const GAMES = /^\/api\/admin\/games\/([A-Za-z0-9]{1,8})(\/delete)?$/;
+
 function decodeSeg(s: string): string {
   try { return decodeURIComponent(s); } catch { return s; }
 }
@@ -241,6 +251,29 @@ export async function adminRoute(
       return ok(await setsData(ports, await db.adminDeleteSet(name)));
     }
     return err('NOT_FOUND');
+  }
+
+  // ── 판 지우기 (2026-09-07 사용자 결정) ──
+  const g = GAMES.exec(path);
+  if (g) {
+    const code = g[1]!.toUpperCase();
+    const isDelete = method === 'DELETE' || (method === 'POST' && !!g[2]);
+    if (!isDelete) return err('NOT_FOUND');
+
+    // ⚠️ 없는 코드를 지운 척하지 않는다. 교사 화면이 "지웠어요" 를 띄우고 목록을 새로
+    //    불러왔는데 그 줄이 그대로 있으면, 선생님은 앱이 고장 났다고 읽는다
+    if (!(await db.hasGame(code))) {
+      return err('NOT_FOUND', `${code} 판이 없어요. 목록을 새로 불러와주세요.`);
+    }
+
+    // ⚠️ **DO 먼저, D1 나중.** 뒤집으면 목록에서 줄이 사라진 뒤 DO 지우기가 실패했을 때
+    //    그 판은 어느 목록에도 없으면서 상태만 남아 영원히 지워지지 않는다. 여기서 던지면
+    //    라우터가 500 을 내고 목록은 그대로다 — 다시 누르면 된다 (cleanup.ts 와 같은 순서)
+    await ports.room(code).wipe();
+    await db.deleteGame(code);
+
+    // ⚠️ 확인 대화는 화면의 몫이다 (세트 지우기와 같다). HTTP 는 한 번의 왕복이다
+    return ok({ code });
   }
 
   // ── JSON 내보내기 — 봉투가 아니라 **파일**이다 ──

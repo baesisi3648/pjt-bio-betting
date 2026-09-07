@@ -1899,3 +1899,259 @@ entries:
     description: Create guide in web
     impact:
       - none
+  - date: "2026-09-07T00:14:19"
+    type: feature
+    domain: web
+    files:
+      - web/migrations/0007_games_finished_at.sql
+    description: Create 0007_games_finished_at in web
+    impact:
+      - database migration
+  - date: "2026-09-07T00:14:38"
+    type: fix
+    domain: web
+    files:
+      - web/src/do/GameRoom.ts
+    description: Fix issue in GameRoom
+    impact:
+      - none
+  - date: "2026-09-07T00:14:45"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Add new functionality to ports in web
+    impact:
+      - none
+  - date: "2026-09-07T00:14:55"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Refactor ports
+    impact:
+      - none
+  - date: "2026-09-07T00:15:04"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/ports.ts
+    description: Add new functionality to ports in web
+    impact:
+      - none
+  - date: "2026-09-07T00:15:39"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/cleanup.ts
+    description: Create cleanup in web
+    impact:
+      - "internal dependency added: ./ports.ts"
+  - date: "2026-09-07T00:15:44"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Add new functionality to db in web
+    impact:
+      - none
+  - date: "2026-09-07T00:15:48"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Refactor db
+    impact:
+      - none
+  - date: "2026-09-07T00:15:58"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Refactor db
+    impact:
+      - none
+  - date: "2026-09-07T00:16:02"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/db.ts
+    description: Refactor db
+    impact:
+      - none
+  - date: "2026-09-07T00:16:08"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/router.ts
+    description: Refactor router
+    impact:
+      - none
+  - date: "2026-09-07T00:16:10"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Refactor index
+    impact:
+      - none
+  - date: "2026-09-07T00:16:15"
+    type: refactor
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Refactor index
+    impact:
+      - none
+  - date: "2026-09-07T00:16:26"
+    type: fix
+    domain: web
+    files:
+      - web/src/server/index.ts
+    description: Fix issue in index
+    impact:
+      - none
+  - date: "2026-09-07T00:16:37"
+    type: feature
+    domain: web
+    files:
+      - web/wrangler.jsonc
+    description: Add new functionality to wrangler in web
+    impact:
+      - none
+  - date: "2026-09-07T00:16:47"
+    type: feature
+    domain: web
+    files:
+      - web/src/server/admin.ts
+    description: Add new functionality to admin in web
+    impact:
+      - none
+  - date: "2026-09-07T00:16:58"
+    type: fix
+    domain: web
+    files:
+      - web/src/server/admin.ts
+    description: Fix issue in admin
+    impact:
+      - none
+  - date: "2026-09-07T00:17:04"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T00:17:07"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T00:17:12"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T00:17:16"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T00:17:23"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T00:18:53"
+    type: test
+    domain: web
+    files:
+      - web/test/cleanup.ts
+    description: Add test file cleanup.ts
+    impact:
+      - "internal dependency added: ../src/server/cleanup.ts, ../src/server/ports.ts, ./harness.ts"
+  - date: "2026-09-07T00:19:16"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher.html
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-07T00:19:26"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-07T00:19:36"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T00:19:57"
+    type: fix
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Fix issue in main
+    impact:
+      - none
+  - date: "2026-09-07T00:20:05"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T00:23:04"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Update documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-07T00:23:09"
+    type: docs
+    domain: web
+    files:
+      - web/RENEWAL.md
+    description: Update documentation RENEWAL.md
+    impact:
+      - none
+  - date: "2026-09-07T00:23:39"
+    type: docs
+    domain: web
+    files:
+      - web/MIGRATION.md
+    description: Update documentation MIGRATION.md
+    impact:
+      - database migration
+  - date: "2026-09-07T00:23:53"
+    type: docs
+    domain: web
+    files:
+      - web/README.md
+    description: Update documentation README.md
+    impact:
+      - none

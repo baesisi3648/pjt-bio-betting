@@ -74,6 +74,12 @@ export interface RoomPort {
    *    op() 표에 넣지 않은 이유는 GameRoom.adminHostKey 주석에 있다.
    */
   hostKey(): Promise<string | null>;
+  /**
+   * ⚠️ 관리자 전용. 이 판의 상태를 **통째로 버린다** (MIGRATION §7 '판 보존 기간').
+   *    `hostKey()` 와 같은 이유로 op() 표 밖에 있다 — 소켓에서 닿으면 판 코드만 아는
+   *    학생이 수업 중인 판을 지운다 (게이트 DEL3).
+   */
+  wipe(): Promise<void>;
 }
 
 // ────────────────────────────────────────────────────────────
@@ -97,6 +103,26 @@ export interface RecentGame {
   /** ms. ⚠️ Date 객체를 넣으면 직렬화 경계에서 응답이 통째로 죽는다 (MIGRATION §5) */
   createdAt: number;
   isOver: boolean;
+}
+
+/**
+ * 정리(자동 삭제)가 보는 판 한 줄 — **시각과 상태뿐이다.**
+ *
+ * `RecentGame` 과 따로 둔 이유: 저쪽은 화면에 그리는 목록이고(방 제목·세트 이름),
+ * 이쪽은 "언제 지울 것인가" 만 판단한다. 하나로 합치면 정리 함수가 방 제목을 알게 되고,
+ * 그러면 `expiredCodes` 를 게이트에서 부를 때마다 쓸데없는 값을 지어내야 한다.
+ *
+ * ⚠️ `finishedAt` 이 **null 일 수 있다.** migrations/0007 이전에 정산된 판에는 그 시각을
+ *    아무도 기록하지 않았다. 정리 규칙이 그런 줄은 `createdAt` 을 대신 쓴다
+ *    (cleanup.ts `isExpired` · 게이트 CLEAN3).
+ */
+export interface GameRow {
+  code: string;
+  /** ms */
+  createdAt: number;
+  isOver: boolean;
+  /** ms. 정산하지 않았거나, 0007 이전에 정산된 판이면 null */
+  finishedAt: number | null;
 }
 
 /**
@@ -201,7 +227,21 @@ export interface DbPort {
   /** 뽑은 판 코드가 이미 쓰였는가 (apps-script 의 findGameRow) */
   hasGame(code: string): Promise<boolean>;
   addGame(row: { code: string; className: string; unit: string; createdAt: number }): Promise<void>;
-  markOver(code: string): Promise<void>;
+  /**
+   * 정산 표시. `finishedAt` 을 **같이** 쓴다 — 정산한 판은 정산 30일 뒤에 지워지므로,
+   * 이 시각이 곧 그 판의 수명이다 (migrations/0007).
+   *
+   * ⚠️ 시각을 인자로 받는다. `Date.now()` 를 db 구현 안에서 부르면 게이트가 가짜 시계로
+   *    "29일 뒤에는 안 지운다" 를 검사할 수 없다 (MIGRATION §9-3).
+   */
+  markOver(code: string, finishedAt: number): Promise<void>;
+  /**
+   * 정리용 — **판 표 전체**를 시각과 상태만 담아 읽는다 (`recentGames` 는 최신 10개다).
+   * ⚠️ 이건 정리 함수만 부른다. 라우트에 붙이지 마세요 — 학기 전체의 판 코드 목록이다
+   */
+  allGames(): Promise<GameRow[]>;
+  /** 목록에서 한 줄을 지운다. **DO 상태는 따로 지운다** (RoomPort.wipe) */
+  deleteGame(code: string): Promise<void>;
 
   // ── 관리 화면. 부르는 곳은 admin.ts 하나뿐이다 ──
   /** setName 이 null 이면 전부 */
