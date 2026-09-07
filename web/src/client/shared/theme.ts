@@ -39,6 +39,16 @@ export const C = {
   stands: 0x121b24
 } as const;
 
+/**
+ * 1~3위 왕관 색 (2026-09-07 — RENEWAL §4-2 실시간 순위 연출).
+ *
+ * ⚠️ 이모지 👑 는 색을 못 바꾼다. 그래서 무대는 흰 왕관을 한 번 굽고 이 세 값으로
+ *    `tint` 만 바꾼다 (`teacher/stage.ts`). CSS 폴백 트랙은 👑 이모지를 쓰므로 색이
+ *    금 하나뿐이고, 대신 **등수 글자**를 이 색으로 칠해 금·은·동을 구분한다 —
+ *    `teacher.css` 의 `.lane-rank.r1/.r2/.r3` 에 같은 값이 16진수로 적혀 있다. 같이 고칠 것.
+ */
+export const MEDAL = { gold: 0xf2b441, silver: 0xd8e0e8, bronze: 0xcd7f32 } as const;
+
 /** 레인 배지 색. teacher.css .s0~.s7 과 같은 순서 */
 export const SILK = [0xf2b441, 0x4fc3f7, 0x8bc34a, 0xef5350, 0xba68c8, 0xff8a65, 0x4db6ac, 0xdce775];
 

@@ -69,10 +69,11 @@ export const QUESTIONS: QuestionRow[] = [];
 export const ANIMAL_NAMES = ['치타', '사자', '호랑이', '늑대', '얼룩말', '타조', '개구리', '거북이'];
 export const ANIMALS: AnimalRow[] = ANIMAL_CODES.map((c, i) => ({ code: c, name: ANIMAL_NAMES[i]!, emoji: '🐎' }));
 
-// ⚠️ migrations/0002 + 0005 의 값과 **같아야 한다.** 시드와 가짜가 갈라지면
-//    게이트가 딴 판(옛 시간·옛 트랙)을 검사하고, 배포판만 조용히 다르게 돈다
+// ⚠️ migrations/0002 + 0005 + 0008 의 값과 **같아야 한다.** 시드와 가짜가 갈라지면
+//    게이트가 딴 판(옛 시간·옛 트랙·옛 코인)을 검사하고, 배포판만 조용히 다르게 돈다
 export const SETTINGS: SettingRow[] = [
-  { key: 'initialCoins', value: '20' }, { key: 'maxBetPerRound', value: '3' },
+  // 0008_coins30.sql — 20 → 30 (라운드당 3코인 × 10라운드)
+  { key: 'initialCoins', value: '30' }, { key: 'maxBetPerRound', value: '3' },
   { key: 'seedCoins', value: '15' }, { key: 'moveSeconds', value: '15' },
   { key: 'quizSeconds', value: '40' }, { key: 'discussSeconds', value: '90' },
   { key: 'betSeconds', value: '45' }, { key: 'trackCells', value: '20' },

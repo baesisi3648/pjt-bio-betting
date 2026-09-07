@@ -14,7 +14,20 @@
  * ⚠️ **글자를 가리지 않는다** (§11-1, 8m 가독성). 먼지·속도선은 잔디 안에서만 놀고
  *    이름·칸수·배지 위로 올라가지 않는다. 파티클은 레인 컨테이너 안, 말보다 아래다.
  *
- * ⚠️ **정산 전에는 등수를 그리지 않는다** (§4-1). 골인한 말에는 '🏁 골인'만 붙는다.
+ * ── 실시간 순위 연출 세 가지 (2026-09-07 사용자 결정) ──
+ *
+ * 1. **레인마다 등수**가 배지 옆에 붙는다 (`[3] 3위 얼룩말`). 경주 15초 동안은 프레임마다
+ *    **안무 위치** 기준으로, 나머지 단계는 서버 위치 기준으로 갱신한다.
+ * 2. **1~3위 왕관** — 금·은·동. 이모지 👑 는 색을 못 바꾸므로 `Graphics` 로 한 번 굽고
+ *    `tint` 로만 색을 준다. 1위에는 빛나는 테가 하나 더 붙는다. 말과 함께 움직인다.
+ * 3. **단독 1위가 바뀌는 순간** 가운데에 "호랑이 1위로 역전!" 이 1.5초. 카메라 흔들림과
+ *    **같은 판정**(`shared/rank.ts soleLeader`)을 쓴다 — 흔들림만 나고 글자는 안 나오는
+ *    (또는 그 반대의) 순간이 생기지 않게.
+ *
+ * ⚠️ 등수 계산은 `shared/rank.ts` **한 곳**에 있다. 무대·CSS 폴백 트랙·동물 카드가
+ *    같은 순간에 다른 등수를 적으면 8m 밖에서는 어느 쪽이 맞는지 알 수 없다 (§5 사본 함정).
+ * ⚠️ 골인한 말도 이제 등수를 보여준다 (`1위 🏁`). 골인 라운드가 1위 8R·2위 9R·3위 10R
+ *    로 고정돼 감출 것이 없어졌기 때문이다 — 그 전에는 '🏁 골인'뿐이었다 (§4-1 · rank.ts).
  *
  * ── 4단계에서 방향을 뒤집었다 (RENEWAL §1 결정표 · §4-2) ──
  *
@@ -36,8 +49,11 @@
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
 import type { AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
+import { sfx } from '../shared/audio.ts';
 import { COUNTDOWN_END, RUN_END, beforeOf, raceFrame, raceSeed } from '../shared/race.ts';
-import { C, FONT, silkOf } from '../shared/theme.ts';
+import type { Rank } from '../shared/rank.ts';
+import { crownTier, rankPlain, ranksOf, soleLeader } from '../shared/rank.ts';
+import { C, FONT, MEDAL, silkOf } from '../shared/theme.ts';
 
 /**
  * 손으로 맞춘 값들. **오래된 교실 TV** 를 염두에 두고 조절하는 자리다.
@@ -65,7 +81,16 @@ export const TUNING = {
    *    위아래 레인 높이가 눈에 띄게 다르면 "어느 말이 앞서나"보다 "왜 저 줄만 작지"가
    *    먼저 보인다 (§4-2 "위치 가독성이 우선").
    */
-  perspective: 0.92
+  perspective: 0.92,
+  /**
+   * "호랑이 1위로 역전!" 이 떠 있는 시간(ms). 한 라운드에 역전이 여럿이면 하나씩 차례로.
+   * ⚠️ 더 늘리지 말 것 — 질주는 15초뿐이라, 2초를 넘기면 역전 두 번에 화면 절반이 글자다.
+   */
+  reversalMs: 1500,
+  /** 역전 글자 크기(1920 기준 px). 카운트다운(120)보다 한참 작다 — 경주를 가리면 안 된다 */
+  reversalSize: 64,
+  /** 왕관 높이 = 레인 높이 × 이 값. 레인을 넘지 않는 크기다 (build 의 crownY 주석) */
+  crownH: 0.22
 };
 
 interface Lane {
@@ -75,6 +100,12 @@ interface Lane {
   horse: Sprite;
   posText: Text;
   nameText: Text;
+  /** 배지 옆 등수 (`3위` · `공동2위` · `1위 🏁`) */
+  rankText: Text;
+  /** 1~3위 왕관. 흰 텍스처 하나를 tint 로 금·은·동으로 쓴다 */
+  crown: Sprite;
+  /** 1위 왕관 뒤의 빛나는 테 */
+  crownHalo: Sprite;
   flash: Sprite;
   code: AnimalCode;
   index: number;
@@ -108,6 +139,27 @@ export interface RaceStage {
 }
 
 const GAP = 14;
+/** 등수 글자 기본색. teacher.css `.ac-rank`(동물 카드) 와 같은 회색이다 */
+const RANK_FILL = 0xc9d6e2;
+
+/**
+ * 폭을 넘으면 뒤를 잘라 '…' 를 붙인다. Pixi `Text` 에는 CSS 의 `text-overflow` 가 없다.
+ * ⚠️ 코드 포인트 단위로 자른다 — `slice` 로 자르면 이모지가 반 토막 나서 두부(�)가 된다
+ */
+function fitText(t: Text, maxW: number): void {
+  if (maxW <= 0 || t.width <= maxW) return;
+  const chars = Array.from(t.text);
+  for (let n = chars.length - 1; n > 0; n--) {
+    t.text = chars.slice(0, n).join('') + '…';
+    if (t.width <= maxW) return;
+  }
+  t.text = '…';
+}
+
+/** 역전 문구에 쓰는 동물 이름. 이름이 비어 있으면 이모지라도 보여준다 */
+function nameOf(v: TeacherView, c: AnimalCode): string {
+  return v.animals[c] || v.emojis[c] || '';
+}
 
 export async function createStage(host: HTMLElement): Promise<RaceStage | null> {
   const app = new Application();
@@ -148,6 +200,22 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
   const dotTex = app.renderer.generateTexture(dot);
   dot.destroy();
 
+  /**
+   * 왕관 한 개 — 삼각 세 개 + 띠. **흰색으로 한 번만 굽고 색은 `tint` 로만 준다.**
+   *
+   * ⚠️ 이모지 👑 를 쓰지 않는 이유가 이것이다: 이모지는 색을 못 바꿔서 금·은·동을
+   *    구분할 수 없다. 1·2·3위가 같은 노란 왕관을 쓰면 왕관이 아무 말도 안 한다.
+   * ⚠️ 가운데 뿔이 제일 높다. 좌우가 같은 높이면 8m 밖에서 산 세 개로 보인다.
+   *    40×30 으로 굽고 레인 높이에 맞춰 줄인다 (build 의 crownScale).
+   */
+  const crownG = new Graphics()
+    .poly([0, 22, 5, 5, 12.5, 15, 20, 0, 27.5, 15, 35, 5, 40, 22])
+    .fill(0xffffff)
+    .rect(0, 20, 40, 10)
+    .fill(0xffffff);
+  const crownTex = app.renderer.generateTexture(crownG);
+  crownG.destroy();
+
   // 카운트다운 숫자 뒤에 까는 어두운 판. ⚠️ 레인 이름·칸수(양 끝)는 덮지 않는 폭으로 잡는다
   const scrim = new Sprite(Texture.WHITE);
   scrim.tint = 0x000000;
@@ -169,6 +237,27 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
   subText.visible = false;
   overlay.addChild(subText);
 
+  /**
+   * "호랑이 1위로 역전!" — 카운트다운과 **다른 한 벌**이다.
+   *
+   * ⚠️ bigText 를 돌려 쓰지 않는다. 질주 중에 카운트다운 글자가 아직 사라지는 중이면
+   *    (`출발!` 페이드) 한 Text 를 두 곳에서 만지게 되고, 그런 코드는 언젠가
+   *    "3" 이 떠 있는데 역전 글자가 덮어쓰는 프레임을 만든다.
+   * ⚠️ 120px 은 이 자리에 너무 크다 (사용자 결정) — 경주를 가린다. 64px 이다.
+   */
+  const revScrim = new Sprite(Texture.WHITE);
+  revScrim.tint = 0x000000;
+  revScrim.alpha = 0;
+  revScrim.anchor.set(0.5);
+  overlay.addChild(revScrim);
+
+  const revText = new Text({
+    text: '', style: { fontFamily: FONT, fontSize: TUNING.reversalSize, fontWeight: '900', fill: C.gold, align: 'center' }
+  });
+  revText.anchor.set(0.5);
+  revText.visible = false;
+  overlay.addChild(revText);
+
   const emojiTex = new Map<string, Texture>();
   function textureFor(emoji: string): Texture {
     const got = emojiTex.get(emoji);
@@ -186,8 +275,17 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
   let scale = 1;
   let laneH = TUNING.laneH;
   let width = 0;
+  /**
+   * 직전 **단독** 1위. 공동 1위 동안에는 바뀌지 않는다 — "공동이 되는 것"과
+   * "공동에서 도로 풀리는 것"은 역전이 아니기 때문이다 (사용자 결정).
+   * 그래서 A 단독 → A·B 공동 → B 단독 은 역전으로 잡힌다. B 가 A 를 실제로 제친 것이다.
+   */
   let leader: AnimalCode | null = null;
   let shakeLeft = 0;
+  /** 아직 못 보여준 역전 문구. 한 라운드에 여럿이면 차례로 하나씩 */
+  const reversals: string[] = [];
+  /** 지금 떠 있는 역전 문구가 사라지기까지 남은 ms. 0 이면 아무것도 안 떠 있다 */
+  let revLeft = 0;
   const particles: Particle[] = [];
 
   // ── 레이아웃 ─────────────────────────────────────────────
@@ -365,6 +463,26 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       horse.y = h / 2;
       root.addChild(horse);
 
+      // ── 1~3위 왕관 ── (2026-09-07 사용자 결정)
+      // ⚠️ **레인을 넘지 않는 크기·자리다.** 한 화면 모드에서 레인은 56px 까지 내려가는데,
+      //    그때도 왕관 꼭대기가 위 레인을 침범하면 안 된다:
+      //    밑변 = mid - 0.26h · 높이 0.22h → 꼭대기 = 0.02h 로 레인 안에 남는다.
+      //    왕관을 키우고 싶으면 레인을 키우는 것이 아니라 이 비율만 만진다.
+      // ⚠️ 말과 **함께 움직인다** — x·y 는 paintRank 가 매 프레임 말에 붙인다.
+      const crownH = Math.max(8, h * TUNING.crownH);
+      const crownHalo = new Sprite(dotTex);
+      crownHalo.anchor.set(0.5);
+      crownHalo.tint = C.gold;
+      crownHalo.alpha = 0;
+      crownHalo.scale.set((crownH * 2.4) / 16);
+      root.addChild(crownHalo);
+
+      const crown = new Sprite(crownTex);
+      crown.anchor.set(0.5, 1);                 // 밑변 가운데 기준 — 말 머리 위에 얹는다
+      crown.scale.set(crownH / crownTex.height);
+      crown.visible = false;
+      root.addChild(crown);
+
       // 골인 플래시 — 레인 위에 얹는 금색 판. 평소엔 alpha 0 이라 아무것도 안 가린다
       const flash = new Sprite(Texture.WHITE);
       flash.tint = C.gold;
@@ -389,15 +507,32 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       silkNo.y = h / 2;
       root.addChild(silkNo);
 
-      // 이름은 배지 오른쪽에 왼쪽 정렬 — 8줄의 이름 머리가 한 줄로 맞는다
+      // ── 실시간 등수 — **배지 옆 한 줄**이다 (`[3] 3위 얼룩말`) ──
+      // ⚠️ 이름 아래로 내리지 말 것. 레인이 두 줄이 되면 한 화면 모드에서 8줄이 안 들어간다.
+      // ⚠️ 폭을 **고정**한다. 글자 폭대로 흘려 쓰면 '2위' ↔ '공동2위' 가 오갈 때마다
+      //    이름이 좌우로 흔들리고, 8줄의 이름 머리가 한 줄로 안 맞는다
+      const rankW = Math.round(84 * scale);
+      const rankText = new Text({
+        text: '',
+        style: { fontFamily: FONT, fontSize: Math.round(21 * scale), fontWeight: '900', fill: RANK_FILL }
+      });
+      rankText.anchor.set(0, 0.5);
+      rankText.x = badge + Math.round(12 * scale);
+      rankText.y = h / 2;
+      root.addChild(rankText);
+
+      // 이름은 등수 오른쪽에 왼쪽 정렬 — 8줄의 이름 머리가 한 줄로 맞는다
       const nameText = new Text({
         text: v.animals[code] || '',
         style: { fontFamily: FONT, fontSize: Math.round(30 * scale), fontWeight: '700', fill: C.text }
       });
       nameText.anchor.set(0, 0.5);
-      nameText.x = badge + Math.round(12 * scale);
+      nameText.x = rankText.x + rankW + Math.round(8 * scale);
       nameText.y = h / 2;
       root.addChild(nameText);
+      // ⚠️ 이름 칸 폭(tagW)은 그대로다 — 등수가 들어온 만큼 **이름이 줄어든다** (사용자 결정).
+      //    칸을 넓히면 잔디가 그만큼 짧아져서 20칸 눈금이 촘촘해진다
+      fitText(nameText, tagW - nameText.x);
 
       // 칸수는 화면 **오른쪽 끝**(GOAL 옆). 왼쪽 정렬이라 체크무늬에서 떨어져 앉는다
       const posText = new Text({
@@ -411,7 +546,8 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
 
       world.addChild(root);
       lanes.push({
-        root, covered, halo, horse, posText, nameText, flash, code, index: i,
+        root, covered, halo, horse, posText, nameText, rankText, crown, crownHalo,
+        flash, code, index: i,
         h, mid: h / 2,
         x0: xStart, x1: xGoal, w: xGoal - xStart,
         finished: false, dustDebt: 0
@@ -428,6 +564,12 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     scrim.height = Math.round(250 * scale);
     bigText.style.fontSize = Math.round(120 * scale);
     subText.style.fontSize = Math.round(34 * scale);
+    // 역전 글자 — 가운데. 카운트다운보다 작고 판도 얇다 (경주를 덜 가린다)
+    revText.x = width / 2; revText.y = totalH / 2;
+    revText.style.fontSize = Math.round(TUNING.reversalSize * scale);
+    revScrim.x = width / 2; revScrim.y = totalH / 2;
+    revScrim.width = Math.min(width * 0.62, 900 * scale);
+    revScrim.height = Math.round(120 * scale);
   }
 
   // ── 파티클 ───────────────────────────────────────────────
@@ -496,7 +638,8 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     // 지나온 자국은 출발선(l.x0)에 왼쪽 끝을 붙인 채 말 쪽으로 자란다
     l.covered.width = Math.max(0, l.horse.x - l.x0);
     const fin = cellPos >= cells - 1e-9;
-    // ⚠️ 등수가 아니다 — 골인 여부만 (§4-1). 정산 전에 순위를 그리면 게임이 끝난다
+    // 오른쪽 칸(GOAL 옆)은 **칸수**다. 등수는 왼쪽 이름 칸에 있다 (paintRank) —
+    // 한 줄에 같은 정보를 두 번 적으면 8m 밖에서 어느 쪽을 읽을지 눈이 헤맨다
     l.posText.text = fin ? '🏁 골인' : `${Math.floor(cellPos)}/${cells}`;
     l.posText.style.fill = fin ? C.gold : 0x8fa3b5;
     l.nameText.style.fill = fin ? C.gold : C.text;
@@ -511,6 +654,34 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     if (!fin) l.finished = false;
   }
 
+  /**
+   * 레인의 등수 글자와 왕관. **`place()` 가 말을 옮긴 뒤에** 부른다 —
+   * 왕관이 말의 지금 자리(질주 중에는 매 프레임 달라진다)를 따라가야 하기 때문이다.
+   *
+   * @param tMs 1위 왕관 테를 숨 쉬게 하는 시간축(ms). 정지 화면에서는 0 이라 가만히 있다
+   */
+  function paintRank(l: Lane, r: Rank | undefined, tMs: number): void {
+    const tier = crownTier(r);
+    l.rankText.text = rankPlain(r);
+    // 등수 글자도 금·은·동으로 칠한다 — 왕관과 **같은 색**이라 8m 밖에서 둘이 한 뜻으로
+    // 읽힌다. ⚠️ 색은 거들 뿐이다: '1위'라는 글자가 없으면 색은 아무 말도 못 한다 (§11-1)
+    l.rankText.style.fill =
+      tier === 1 ? MEDAL.gold : tier === 2 ? MEDAL.silver : tier === 3 ? MEDAL.bronze
+      : r && r.done ? C.gold : RANK_FILL;
+
+    l.crown.visible = tier > 0;
+    if (tier > 0) {
+      l.crown.tint = tier === 1 ? MEDAL.gold : tier === 2 ? MEDAL.silver : MEDAL.bronze;
+      l.crown.x = l.horse.x;
+      l.crown.y = l.horse.y - l.h * 0.26;          // 말이 들썩이면 왕관도 같이 들썩인다
+    }
+    // 빛나는 테는 **1위에만**. 셋 다 두르면 금·은·동이 서로를 지운다
+    const crownH = Math.max(8, l.h * TUNING.crownH);
+    l.crownHalo.alpha = tier === 1 ? 0.22 + 0.12 * Math.sin(tMs / 240) : 0;
+    l.crownHalo.x = l.horse.x;
+    l.crownHalo.y = l.horse.y - l.h * 0.26 - crownH / 2;
+  }
+
   function still(v: TeacherView): void {
     measure();
     build(v);
@@ -518,11 +689,19 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     bigText.visible = false;
     subText.visible = false;
     scrim.alpha = 0;
+    // 정지 화면에서는 역전 글자를 남기지 않는다 — 다음 단계로 넘어가면 지난 이야기다
+    revText.visible = false;
+    revScrim.alpha = 0;
+    revLeft = 0;
+    reversals.length = 0;
     world.x = 0; world.y = 0;
+    const codes = lanes.map((l) => l.code);
+    const ranks = ranksOf(v.positions, codes, v.trackCells, v.finished || []);
     for (const l of lanes) {
       l.flash.alpha = 0;
       l.finished = (v.positions[l.code] || 0) >= v.trackCells;
       place(l, v.positions[l.code] || 0, v.trackCells, false, 0);
+      paintRank(l, ranks[l.code], 0);
     }
     app.render();
   }
@@ -564,6 +743,11 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
 
     const running = t >= COUNTDOWN_END && t < RUN_END;
 
+    // ⚠️ 경주 중 등수는 **안무 위치(pos)** 기준이다 — 서버 위치(after)로 세면 출발도
+    //    하기 전에 도착 등수가 레인에 적힌다. 그건 20초짜리 스포일러다 (§4-1)
+    const ranks = ranksOf(pos, lanes.map((l) => l.code), cells, v.finished || []);
+    const tMs = t * 1000;
+
     for (const l of lanes) {
       const p = pos[l.code] ?? 0;
       const delta = (after[l.code] || 0) - (before[l.code] || 0);
@@ -571,6 +755,7 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       const bob = running ? Math.sin((t * 1000 + l.index * 90) / 34) * (delta > 0 ? 5 : 2) * scale : 0;
       const wasX = l.horse.x;
       place(l, p, cells, true, bob);
+      paintRank(l, ranks[l.code], tMs);
       l.horse.rotation = running && delta > 0 ? Math.sin((t * 1000 + l.index * 90) / 34) * 0.09 : 0;
 
       if (running && delta > 0 && dt > 0) {
@@ -588,17 +773,48 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       if (l.flash.alpha > 0) l.flash.alpha = Math.max(0, l.flash.alpha - dt / TUNING.flashMs);
     }
 
-    // 선두 교체 — 짧게 흔든다. 8m 밖에서도 "뭔가 일어났다"가 전달되는 유일한 신호다
+    // ── 1위 역전 ──────────────────────────────────────────
+    // 카메라 흔들림과 "역전!" 글자는 **같은 판정 하나**에서 나온다 (사용자 결정).
+    // 판정을 둘로 두면 흔들리기만 하고 글자는 안 나오는 프레임이 언젠가 생긴다.
+    //
+    // ⚠️ 단독 1위가 **다른 단독 1위로 바뀔 때만**이다:
+    //    · 공동 1위가 되는 것은 역전이 아니다 (아직 아무도 못 제쳤다)
+    //    · 공동에서 도로 같은 말이 단독이 되는 것도 아니다 (제자리로 돌아온 것뿐)
+    //    · 첫 단독 선두가 정해지는 순간도 아니다 (제친 상대가 없다)
+    //    그래서 `leader` 는 **단독일 때만** 갱신하고, 공동인 동안에는 그대로 둔다.
     if (running) {
-      let top: AnimalCode | null = null, best = -1;
-      for (const l of lanes) {
-        const p = pos[l.code] ?? 0;
-        if (p > best + 1e-9) { best = p; top = l.code; }
+      const top = soleLeader(pos, lanes.map((l) => l.code));
+      if (top && leader && top !== leader) {
+        shakeLeft = TUNING.shakeMs;
+        reversals.push(`${nameOf(v, top)} 1위로 역전!`);
+        sfx('coin');
+        // ⚠️ 'goldenKey' 를 쓰지 않는다 — 그 소리는 정산에서 1등이 밝혀지는 **한 순간**의
+        //    것이다 (RENEWAL §4-4). 경주마다 몇 번씩 울리면 그 순간이 값을 잃는다.
+        //    'dice' 는 출발 신호라 질주 중에 또 굴리면 두 번 출발한 것처럼 들린다.
       }
-      if (top && leader && top !== leader) shakeLeft = TUNING.shakeMs;
-      leader = top;
+      if (top) leader = top;
     } else if (t < COUNTDOWN_END) {
       leader = null;
+      reversals.length = 0;
+    }
+
+    // 큐를 하나씩. ⚠️ 질주가 끝나면(정착 구간) 남은 것은 **버린다** — 말이 다 선 뒤에
+    //    "역전!"이 뜨면 지금 일어난 일로 읽힌다
+    if (!running) { reversals.length = 0; if (revLeft > 0) revLeft = Math.min(revLeft, 200); }
+    if (revLeft > 0) revLeft = Math.max(0, revLeft - dt);
+    if (revLeft <= 0 && reversals.length) {
+      revText.text = reversals.shift() as string;
+      revLeft = TUNING.reversalMs;
+    }
+    const showRev = revLeft > 0;
+    revText.visible = showRev;
+    if (showRev) {
+      // 끝의 0.3초만 사라진다. 그 전에는 또렷하게 — 8m 밖에서 읽을 시간이 필요하다
+      const fade = Math.min(1, revLeft / 300);
+      revText.alpha = fade;
+      revScrim.alpha = 0.5 * fade;
+    } else {
+      revScrim.alpha = 0;
     }
 
     if (shakeLeft > 0) {

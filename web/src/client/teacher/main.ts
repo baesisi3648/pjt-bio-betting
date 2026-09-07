@@ -62,7 +62,9 @@ import { ServerClock } from '../shared/clock.ts';
 import { FATAL, HEADER_UNSAFE_MSG, api, handle, headerSafe, hostOp, isOk } from '../shared/gateway.ts';
 import { pwStore } from '../shared/pw.ts';
 import { qrSvg } from '../shared/qr.ts';
-import { COUNTDOWN_END } from '../shared/race.ts';
+import { COUNTDOWN_END, beforeOf, raceFrame, raceSeed } from '../shared/race.ts';
+import type { Rank } from '../shared/rank.ts';
+import { crownTier, rankPlain, ranksOf } from '../shared/rank.ts';
 import { GameSocket } from '../shared/socket.ts';
 import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
 import type { RaceStage } from './stage.ts';
@@ -563,7 +565,7 @@ function startStageLoop(): void {
     // ⚠️ 'moving' 이 아니라 raceMoves 로 판단한다 — 경주 중에 일시정지하면 phase 는
     //    'paused' 가 되지만 경주는 그 자리에 서 있어야 한다 (elapsed 가 멈춰 준다)
     const t = d.raceMoves ? clock.elapsed(d) : null;
-    if (t != null) { s.frame(d, t, dt); stillKey = ''; return; }
+    if (t != null) { s.frame(d, t, dt); paintRaceRanks(d, t); stillKey = ''; return; }
     const key = d.stateVersion + '|' + d.phase;
     if (key !== stillKey) { stillKey = key; s.still(d); }
   };
@@ -823,12 +825,17 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
       //    옮기면 골인한 말이 체크무늬 **아래**로 숨는다
       return `<div class="lane" id="ln-${c}">` +
         `<div class="lane-tag"><span class="silk s${i % SILK}">${i + 1}</span>` +
+          // 등수는 **배지와 이름 사이 한 줄**. 무대(stage.ts)의 레인과 같은 자리다
+          `<span class="lane-rank" id="lr-${c}"></span>` +
           `<span class="lane-name">${esc(d.animals[c])}</span></div>` +
         '<div class="course">' +
           '<div class="start"></div>' +
           `<div class="covered" id="cv-${c}" style="width:${coveredW(pct)}"></div>` +
           `<div class="runway"><div class="runner" id="rn-${c}" style="left:${pct}%">` +
-            `<div class="trail"></div><div class="horse">${d.emojis[c] || '🐎'}</div>` +
+            // 👑 는 말 기준점 안에 있어서 말과 함께 움직인다. 이모지는 색을 못 바꾸므로
+            // 금·은·동 구분은 등수 글자 색(.lane-rank.r1/.r2/.r3)이 대신한다
+            `<div class="trail"></div><div class="crown" id="cr-${c}"></div>` +
+            `<div class="horse">${d.emojis[c] || '🐎'}</div>` +
           '</div></div>' +
           '<div class="finish"></div>' +
         '</div>' +
@@ -841,6 +848,10 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
   // ⚠️ 트랙 칸 수는 서버가 준 값이다. 10 으로 박아 두면 '설정' 탭의 트랙칸수를 12 로 바꿔도
   //    화면은 10칸에서 골인시킨다 — 앱스 스크립트판이 정확히 그랬다 (MIGRATION §5 trackCells)
   const cells = d.trackCells || 10;
+  // ⚠️ 무대(캔버스)와 **같은 함수**로 센다. reduced-motion 을 켠 순간 등수가 달라지면
+  //    "연출은 거들 뿐"(MIGRATION §11-1)이 깨진다 — 정보는 두 렌더러가 같아야 한다.
+  //    다만 여기는 서버 위치만 본다: 이 트랙에는 15초 안무가 없기 때문이다
+  const ranks = ranksOf(d.positions, codes, cells, d.finished || []);
   codes.forEach((c) => {
     const raw = d.positions[c];
     const fin = raw >= cells;
@@ -855,9 +866,21 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
     const cv = maybe('cv-' + c);
     if (cv) cv.style.width = coveredW(pct);
     const lp = maybe('lp-' + c);
-    // ⚠️ 등수가 아니라 골인 여부만 (§4-1). 정산 전에 순위를 그리면 게임이 끝난다
+    // 오른쪽 칸은 **칸수**다. 등수는 왼쪽 이름 칸에 있다 (무대의 레인과 같은 배치)
     if (lp) lp.textContent = fin ? '🏁 골인' : `${Math.max(0, raw)}/${cells}`;
     lane.classList.toggle('finished', fin);
+
+    // 등수 + 왕관. 무대의 `paintRank` 와 같은 내용이다 — 이쪽은 이모지·CSS 로 흉내 낸다
+    const rank = ranks[c];
+    const tier = crownTier(rank);
+    const lr = maybe('lr-' + c);
+    if (lr) {
+      lr.innerHTML = rankHtml(rank);
+      lr.className = 'lane-rank' + (tier ? ' r' + tier : '');
+    }
+    const cr = maybe('cr-' + c);
+    // 👑 는 1~3위에만. 색을 못 바꾸는 이모지라 금·은·동은 등수 글자 색이 말한다
+    if (cr) cr.textContent = tier ? '👑' : '';
 
     if (moved) {                       // 달리는 동안만 다리를 움직인다
       runner.classList.add('galloping');
@@ -1031,23 +1054,52 @@ function rollTick(now: number): void {
 }
 
 /**
- * **현재 위치 기준** 순위 (RENEWAL §4-2 구획 3). 정산 전 최종 순위가 아니다.
+ * **현재 위치 기준** 순위 한 줄 (RENEWAL §4-2 구획 3). 정산 전 최종 순위가 아니다.
  *
- * ⚠️ 동률은 **공동 순위**다 (RENEWAL §1 결정표). 위치가 같은데 순서를 매기면
- *    화면이 서버의 tie-break(truth 순)를 그대로 보여주게 되고, 그건 정답의 일부다.
- * ⚠️ 골인한 동물은 순위 대신 '🏁 골인'이다 — 정산 전에는 등수를 그리지 않는다 (§4-1).
+ * ⚠️ 셈은 `shared/rank.ts` 한 곳에서 한다. 무대(레인)·CSS 폴백 트랙·이 카드가 같은
+ *    순간에 다른 등수를 적으면 8m 밖에서는 어느 쪽이 맞는지 알 길이 없다 (§5 사본 함정).
+ *    여기서는 '공동'을 작게 쓰려고 태그를 감쌀 뿐이다.
+ * ⚠️ 골인한 동물도 이제 등수를 보여준다 (`1위 🏁`). 골인 라운드가 1위 8R·2위 9R·3위 10R
+ *    로 고정돼 감출 것이 없어졌기 때문이다 (2026-09-07 사용자 결정 — rank.ts).
  */
-function rankText(d: TeacherView, c: AnimalCode, codes: AnimalCode[]): string {
-  const pos = d.positions[c] || 0;
-  if (pos >= d.trackCells) return '🏁 골인';
-  let ahead = 0, tied = 0;
-  for (const o of codes) {
-    const p = d.positions[o] || 0;
-    if (p > pos) ahead++;
-    else if (p === pos && o !== c) tied++;
-  }
-  const r = ahead + 1;
-  return tied > 0 ? `<span class="tie">공동</span>${r}위` : `${r}위`;
+/**
+ * 경주 15초 동안 **동물 카드의 등수도 무대와 같이 흐르게** 한다.
+ *
+ * ⚠️ 이걸 안 하면 같은 화면이 스스로를 반박한다. 서버가 준 `positions` 는 이미 **도착
+ *    위치**라서, 레인에서는 치타가 아직 4위인데 카드에는 벌써 '공동 2위'라고 적힌다 —
+ *    20초짜리 경주의 결말을 카드가 먼저 말해 버리는 셈이다. TV 와 폰이 서로 다른 말을
+ *    앞세우면 안 된다는 규칙(`shared/race.ts`)과 같은 이야기고, 여기서는 **한 화면 안**이라
+ *    더 나쁘다.
+ * ⚠️ 무대가 도는 동안에만 부른다. reduced-motion·WebGL 없는 TV 에서는 안무 자체가 없어서
+ *    CSS 폴백 트랙도 카드도 똑같이 서버 위치를 보므로 이미 일치한다.
+ * ⚠️ **글자가 바뀔 때만** DOM 을 만진다. 매 프레임 8장을 innerHTML 로 갈아 끼우면
+ *    교실 노트북이 경주 내내 그 일만 한다.
+ */
+let raceRankKey = '';
+
+function paintRaceRanks(d: TeacherView, t: number): void {
+  const codes = Object.keys(d.animals) as AnimalCode[];
+  const before = beforeOf(d.positions, d.raceMoves || {});
+  const pos = raceFrame(raceSeed(d.code, d.round), before, d.positions, d.trackCells, t);
+  const ranks = ranksOf(pos, codes, d.trackCells, d.finished || []);
+  const key = codes.map((c) => rankPlain(ranks[c])).join('|');
+  if (key === raceRankKey) return;
+  raceRankKey = key;
+  codes.forEach((c) => {
+    const r = ranks[c];
+    const rk = maybe('ar-' + c);
+    if (rk) {
+      rk.innerHTML = rankHtml(r);
+      rk.className = 'ac-rank' + (r && r.done ? ' fin' : '');
+    }
+    const card = maybe('tr-' + c);
+    if (card) card.classList.toggle('fin', !!(r && r.done));
+  });
+}
+
+function rankHtml(r: Rank | undefined): string {
+  if (!r) return '';
+  return (r.tied ? '<span class="tie">공동</span>' : '') + r.rank + '위' + (r.done ? ' 🏁' : '');
 }
 
 function drawTote(d: TeacherView, codes: AnimalCode[]): void {
@@ -1082,11 +1134,15 @@ function drawTote(d: TeacherView, codes: AnimalCode[]): void {
     rolls.clear();
   }
 
+  // ⚠️ 서버가 준 위치로 한 번 적어 둔다. 경주 중이면 다음 프레임에 paintRaceRanks 가
+  //    안무 위치로 덮는다 — 그래서 그 캐시를 여기서 풀어 준다
+  raceRankKey = '';
+  const ranks = ranksOf(d.positions, codes, d.trackCells, d.finished || []);
   codes.forEach((c) => {
     const fin = (d.positions[c] || 0) >= d.trackCells;
     const rk = maybe('ar-' + c);
     if (rk) {
-      rk.innerHTML = rankText(d, c, codes);
+      rk.innerHTML = rankHtml(ranks[c]);
       rk.className = 'ac-rank' + (fin ? ' fin' : '');
     }
     const card = maybe('tr-' + c);

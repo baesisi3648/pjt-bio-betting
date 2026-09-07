@@ -16,7 +16,13 @@ export type FinishRound = Record<AnimalCode, number | null>;
 /** 한 판의 경주 계획. truth[0] = 1등, lastRound 는 학생에게 비공개 */
 export interface Race {
   truth: AnimalCode[];
-  /** 3위가 골인하는 라운드 = 판이 끝나는 라운드 (9 또는 10). ⚠️ 학생에게 비공개 */
+  /**
+   * 3위가 골인하는 라운드 = 판이 끝나는 라운드. ⚠️ 학생에게 비공개.
+   *
+   * 2026-09-07 부터 **항상 ROUNDS(10)** 이다 — 골인 라운드를 8·9·10 으로 고정했으므로
+   * 3위는 언제나 10R 에 들어온다. 값이 9 인 판은 그 이전에 만들어진 판(이어하기)뿐이라
+   * 필드를 지우지 않고 남긴다 (RENEWAL §2-1).
+   */
   lastRound: number;
   moves: Moves;
   /**
@@ -115,7 +121,8 @@ export interface GameState {
   fraudRound: number | null;
 
   round: number;
-  lastRound: number;              // 학생에게 비공개
+  // 학생에게 비공개. 새로 만드는 판은 항상 ROUNDS(10) — 옛 판은 9 일 수 있다 (Race.lastRound)
+  lastRound: number;
   phase: Phase;
   roundStarted: boolean;
   phaseEndsAt: number | null;

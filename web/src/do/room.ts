@@ -239,13 +239,13 @@ export class Room {
 
     // 경주 계획 — 순위를 먼저 정하고 이동을 역산한다 (§4-2). 실패하면 다시 굴린다
     //
-    // ⚠️ 트랙칸수가 5 미만이면 4~8위를 서로 다른 칸에 못 세우고, 27 이상이면
-    //    모두가 매 라운드 3칸씩 달려야 해서 선두가 바뀌지 않는다 (RENEWAL §2-1 조건 5·6).
-    //    설정 범위(4~30)는 그대로 두고, 만들 수 없는 값이면 이유를 말한다 —
+    // ⚠️ 트랙칸수가 5 미만이면 4~8위를 서로 다른 칸에 못 세우고, 24 이상이면
+    //    1위가 1라운드부터 3칸씩 달려야 해서 선두가 안 바뀐다 (RENEWAL §2-1 조건 5·6).
+    //    SETTING_RANGE 가 먼저 5~23 으로 막지만, 만들 수 없는 값이면 여기서도 이유를 말한다 —
     //    조용히 조건을 포기하면 힌트가 겹치거나 경주가 밋밋해진다
     const race = planRace(this.rng, settings.trackCells, ROUNDS);
     if (!race) {
-      return err('SHEET_INVALID', `경주를 만들지 못했어요. '설정'의 트랙칸수를 5~26 사이로 해주세요 (지금 ${settings.trackCells}).`);
+      return err('SHEET_INVALID', `경주를 만들지 못했어요. '설정'의 트랙칸수를 5~23 사이로 해주세요 (지금 ${settings.trackCells}).`);
     }
 
     // 사기 라운드는 2·3·4 중 하나. 스위치를 끄면 없다 (RENEWAL §1)
@@ -297,8 +297,9 @@ export class Room {
       emojis: animals.emojis,
       // 사기 라운드 자리는 이미 거짓 문장으로 치환돼 있다 — 지급할 때 다시 따지지 않는다
       hintPool: hintPlan.texts,
-      // ⚠️ lastRound(9|10)가 아니라 ROUNDS(10)만큼 배정한다. 9라운드 분만 배정하면
-      //    10라운드에 문제가 없다는 것으로 마지막 라운드가 드러난다 (§4-1)
+      // ⚠️ lastRound 가 아니라 ROUNDS(10)만큼 배정한다. 지금은 둘이 같지만(골인 8·9·10 고정)
+      //    옛 규칙에서는 9라운드 분만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가
+      //    드러났다. 배정 기준은 계속 ROUNDS 다 (§4-1)
       questionPlan: planQuestions(byLevel, ROUNDS, this.rng),
       questionById: {},
       pool,
@@ -519,6 +520,11 @@ export class Room {
     if (state.phase !== PHASES.WAITING) return ok(teacherView(state, now));
 
     if (state.roundStarted) {
+      // ⚠️ 새로 만드는 판의 lastRound 는 **항상 ROUNDS(10)** 이다 (골인 8·9·10 고정 —
+      //    RENEWAL §2-1). 그러니 이 비교는 지금 사실상 `round >= 10` 이다.
+      //    그래도 ROUNDS 로 바꿔 쓰지 않는다 — lastRound 가 9 로 저장된 옛 판을 이어 열면
+      //    그 판은 9라운드에서 끝나야 하고, ROUNDS 로 박으면 10라운드째에 문제도 힌트도
+      //    없는 빈 라운드가 하나 더 돈다
       if (state.round >= state.lastRound) {
         state.phase = PHASES.DONE;
         state.phaseEndsAt = null;
@@ -639,6 +645,8 @@ export class Room {
     const gate = this.hostGate(state, hostKey);
     if (gate) return gate;
 
+    // 정산은 lastRound 시점의 위치로 한다. 새 판은 항상 ROUNDS(10)라 사실상 마지막 라운드지만,
+    // lastRound 가 9 로 저장된 옛 판은 9라운드 위치로 정산해야 그때 본 화면과 순위가 맞는다
     const finalPos = positionsAtRound(state.moves, state.lastRound, state.settings.trackCells);
     const finalOrder = rankByPosition(finalPos, state.truth);
     const odds = computeOdds(state.pool);

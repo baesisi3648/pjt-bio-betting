@@ -39,14 +39,22 @@ import type {
  * ── RENEWAL §2-1 의 조건 7가지 ──
  *   1. truth 는 무작위 순열이고, 10라운드 끝 위치로 매긴 순위가 truth 와 같다
  *   2. 이동량은 라운드마다 0~3
- *   3. 1위는 8 또는 9라운드에 골인하고 그 뒤로는 0
- *   4. 2위 ≥ 1위, 3위 ≥ 2위, 전부 10 이하. lastRound = 3위의 골인 라운드(9|10)
+ *   3. 1위는 **8라운드**에 골인하고 그 뒤로는 0
+ *   4. 2위는 **9라운드**, 3위는 **10라운드**에 골인한다. lastRound = 10 (항상)
  *   5. 4~8위는 10라운드 끝에 결승선 미만이고 **서로 다른 칸**에 선다
  *   6. 선두가 최소 2번 바뀌고, 1위 동물은 **4라운드 이후에** 처음 선두에 선다
  *   7. 같은 시드면 같은 결과
  *
+ * ── 왜 8·9·10 으로 고정했나 (2026-09-07 사용자 결정) ──
+ * 예전에는 1위가 8~9R, 2위·3위는 "앞 등수 이후, 10R 이하" 였다. 그래서 2위와 3위가
+ * **같은 라운드에 나란히 들어오는** 판이 흔했고, 둘 다 결승선 칸에 서 있으므로
+ * 화면의 '현재 순위'가 둘을 **공동 2위**로 그렸다 (동률은 위치로 판단한다 — RENEWAL §1).
+ * 셋을 반드시 다른 라운드에 넣는 방법은 라운드를 고정하는 것뿐이라 8·9·10 으로 못박았다.
+ * 따라오는 것: `lastRound` 가 언제나 ROUNDS 라 "3위가 9R 에 들어오면 10R 없이 정산" 이
+ * 사라졌다 (필드는 옛 판 이어하기를 위해 남는다).
+ *
  * 6번은 굴려 보고 아니면 다시 굴린다. 대신 그냥 굴리면 거의 안 걸리므로
- * (20칸을 8라운드에 가려면 1위는 처음부터 3칸씩 달려야 한다) **페이스를 나눠 준다** —
+ * (20칸을 8라운드에 가려면 1위는 평균 2.5칸씩 달려야 한다) **페이스를 나눠 준다** —
  * 1위는 늦게 붙고, 4~8위 중 앞쪽 둘은 초반에 튀어나간다. 그래서 초반 선두는
  * 끝내 못 들어오는 말이고, 1위는 중반 이후에 올라온다. '사기경마'의 그림이다.
  */
@@ -64,19 +72,24 @@ export function planRace(
 function tryPlanRace(rng: Rng, track: number, rounds: number): Race | null {
   const truth = shuffle([...ANIMAL_CODES] as AnimalCode[], rng);   // truth[0] = 1등
 
-  // ── 골인 라운드 (조건 3·4) ──
-  // 20칸을 3칸씩 가도 7라운드가 필요하다. 트랙이 넓으면 8라운드로는 못 가므로 9로 민다
-  const first = track > 3 * (rounds - 2) ? rounds - 1 : (rng() < 0.5 ? rounds - 2 : rounds - 1);
-  if (track > 3 * first) return null;            // 트랙이 너무 넓다 (설정 상한 30)
-  const second = first + Math.floor(rng() * (rounds - first + 1));
-  const thirdLow = Math.max(second, rounds - 1); // lastRound 는 9 또는 10 이어야 한다
-  const third = thirdLow + Math.floor(rng() * (rounds - thirdLow + 1));
-  const lastRound = third;
+  // ── 골인 라운드 (조건 3·4) — 8·9·10 고정 ──
+  // 무작위로 고르지 않는다. 셋이 겹치면 화면에 '공동 2위'가 뜬다 (위 주석)
+  const first  = rounds - 2;                     // 1위 8R
+  const second = rounds - 1;                     // 2위 9R
+  const third  = rounds;                         // 3위 10R
+  // 1위가 8라운드에 닿을 수 없는 트랙(3×8 = 24 초과)이면 이 판은 성립하지 않는다.
+  // SETTING_RANGE.trackCells.max(23) 가 먼저 막지만, planRace 는 인자로 오는 값을
+  // 믿지 않는다 — 설정을 거치지 않는 호출자(게이트·스크립트)가 있다.
+  // 24 자체도 결국 조건 6에서 걸린다(1위가 1라운드부터 3칸 = 곧바로 선두). config.ts 참조
+  if (track > 3 * first) return null;
+  const lastRound = rounds;                      // 항상 ROUNDS. 3위가 10R 에 들어온다
 
   const moves = {} as Moves;
   const finishRound = {} as FinishRound;
 
   // ── 1·2·3위: 결승선까지 (조건 3·4) ──
+  // planOneAnimal 은 `at` 라운드에 **정확히** 닿는다 — 마지막 이동이 0이 아니어야 하므로
+  // at-1 라운드에는 반드시 결승선 미만이다. 그래서 2위가 9R 보다 일찍 들어오는 일이 없다
   const arrive = [first, second, third];
   for (let rank = 1; rank <= 3; rank++) {
     const at = arrive[rank - 1]!;
@@ -93,7 +106,8 @@ function tryPlanRace(rng: Rng, track: number, rounds: number): Race | null {
   for (let i = 0; i < 5; i++) {
     const rank = i + 4;
     // 4·5위는 초반에 튀어나간다 — 끝내 못 들어오는 말이 초반 선두를 잡는 그림 (조건 6)
-    const parts = planOneAnimal(tail[i]!, lastRound, rounds, rng, i < 2 ? 'fast' : 'even');
+    // mustArrive=false: 이 말들은 결승선에 닿지 않는다. 마지막 라운드에 꼭 움직일 이유가 없다
+    const parts = planOneAnimal(tail[i]!, lastRound, rounds, rng, i < 2 ? 'fast' : 'even', false);
     if (!parts) return null;
     moves[truth[rank - 1]!] = parts;
     finishRound[truth[rank - 1]!] = null;
@@ -139,18 +153,28 @@ export type Pace = 'slow' | 'even' | 'fast';
 /**
  * 한 동물의 라운드별 이동량(0~3)을 만든다. 길이는 언제나 `rounds`.
  *
- * `arriveAt` 라운드에 정확히 `total` 칸이 되고 그 뒤는 0이다. 결승선까지 가는
- * 말이면 **마지막 이동이 0이면 안 된다** — 그 라운드에 움직여서 들어와야 경주가 산다.
+ * `arriveAt` 라운드에 정확히 `total` 칸이 되고 그 뒤는 0이다. **그 전 라운드에는
+ * 반드시 total 미만**이다 — 마지막 이동이 0이 아니어야 하므로. 이 성질이 조건 3·4
+ * ("1위는 8R, 2위는 9R, 3위는 10R 에 골인")를 지탱한다. 일찍 닿는 판이 나오면
+ * 골인 라운드를 고정한 의미가 없다.
+ *
+ * ⚠️ `mustArrive` 는 **결승선까지 가는 말에만** 참이다. 4~8위는 아무 데도 닿지 않고
+ *    그냥 그 칸에서 끝나므로 "마지막 라운드에 움직여야 한다"를 강요할 이유가 없다.
+ *    강요하면 좁은 트랙(5~7칸)에서 4~8위 중 한 마리의 총 이동이 1~2칸이 되는데,
+ *    그 한 칸이 10번째 칸에 떨어질 확률이 2^-9 이라 판이 통째로 실패한다
+ *    (측정: 5칸에서 2.2% 의 시드가 방 만들기에 실패했다).
  */
 export function planOneAnimal(
-  total: number, arriveAt: number, rounds: number, rng: Rng = Math.random, pace: Pace = 'even'
+  total: number, arriveAt: number, rounds: number, rng: Rng = Math.random,
+  pace: Pace = 'even', mustArrive = true
 ): number[] | null {
   if (total < 0 || arriveAt < 1 || arriveAt > rounds) return null;
 
   for (let attempt = 0; attempt < LIMITS.reverseAttempts; attempt++) {
     const parts = splitIntoMoves(total, arriveAt, rng, pace);
     if (!parts) continue;
-    if (total > 0 && parts[parts.length - 1] === 0) continue;   // 그 라운드에 움직여서 도착
+    // 그 라운드에 움직여서 도착한다 (= 그 전 라운드에는 결승선 미만이다)
+    if (mustArrive && total > 0 && parts[parts.length - 1] === 0) continue;
     while (parts.length < rounds) parts.push(0);                // 도착 후 정지
     return parts;
   }
@@ -680,9 +704,10 @@ export function settle(
  * 라운드마다 그때그때 뽑으면 저장소가 날아가 복구할 때 다른 문제가 나온다.
  * 문항이 모자라면 가장 먼저 쓴 것부터 다시 낸다 (03-user-flow §6의 약속).
  *
- * ⚠️ `rounds` 는 **10**(ROUNDS)이다. `lastRound`(9 또는 10)가 아니다 —
- *    마지막 라운드는 학생에게 비공개인데, 9라운드 분만 배정해 두면 10라운드에
- *    문제가 없는 것으로 마지막 라운드가 드러난다.
+ * ⚠️ `rounds` 는 **10**(ROUNDS)이다. `lastRound` 가 아니다. 지금은 둘이 같지만
+ *    (골인 라운드 8·9·10 고정), 옛 규칙에서는 lastRound 가 9 일 수 있었고 그때
+ *    9라운드 분만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가 드러났다.
+ *    기준은 계속 ROUNDS 다.
  */
 export function planQuestions(
   questionsByLevel: Partial<Record<Level, Question[]>>, rounds: number = ROUNDS, rng: Rng = Math.random

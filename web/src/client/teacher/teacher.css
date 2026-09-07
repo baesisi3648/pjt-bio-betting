@@ -131,6 +131,17 @@ th{color:var(--muted);font-size:20px}
       justify-content:center;font-size:25px;font-weight:900;color:#0F1720;background:#8FA3B5}
 .s0{background:#F2B441} .s1{background:#4FC3F7} .s2{background:#8BC34A} .s3{background:#EF5350}
 .s4{background:#BA68C8} .s5{background:#FF8A65} .s6{background:#4DB6AC} .s7{background:#DCE775}
+/* 실시간 등수 — **배지와 이름 사이 한 줄**이다 (`[3] 3위 얼룩말`, 2026-09-07 결정).
+   PixiJS 무대의 레인과 같은 자리·같은 글자다 (stage.ts paintRank).
+   ⚠️ 폭을 **고정**한다. 글자 폭대로 흘려 쓰면 '2위' ↔ '공동2위' 가 오갈 때마다 이름이
+      좌우로 흔들리고 8줄의 이름 머리가 안 맞는다. 이름 칸(.lane-tag) 폭은 그대로이므로
+      등수가 들어온 만큼 **이름이 줄어든다**(줄임표) — 무대와 같은 규칙이다.
+   ⚠️ 색만으로 뜻을 전하지 않는다 (§11-1). 금·은·동은 거들 뿐이고 '1위'라는 글자가 정본이다 */
+.lane-rank{width:82px;flex:none;font-size:20px;font-weight:900;color:#C9D6E2;white-space:nowrap;
+           overflow:hidden;text-overflow:clip}
+.lane-rank .tie{font-size:14px;font-weight:700;color:var(--muted);margin-right:2px}
+/* 왕관 색 — shared/theme.ts 의 MEDAL 과 같은 값이다. 같이 고칠 것 */
+.lane-rank.r1{color:#F2B441} .lane-rank.r2{color:#D8E0E8} .lane-rank.r3{color:#CD7F32}
 .lane-name{font-size:28px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .lane-pos{width:116px;flex:none;text-align:left;font-size:22px;font-weight:800;color:#8FA3B5;padding-left:12px}
 .lane.finished .lane-name{color:var(--gold)}
@@ -174,6 +185,14 @@ th{color:var(--muted);font-size:20px}
 /* ⚠️ scaleX(-1) — 이모지가 달리는 쪽(오른쪽)을 보게 한다. gallop keyframe 에도 있다 */
 .horse{position:absolute;left:0;top:0;font-size:calc(var(--lane-h,78px) * .67);line-height:1;
        transform:translate(-50%,-50%) scaleX(-1);filter:drop-shadow(0 3px 5px rgba(0,0,0,.6))}
+/* 1~3위 왕관 — 말 기준점 안에 있어서 **말과 함께 움직인다** (질주 중에도).
+   ⚠️ 이모지는 색을 못 바꾼다. 그래서 여기서는 금·은·동을 구분하지 않고, 그 구분은
+      왼쪽 등수 글자 색(.lane-rank.r1/.r2/.r3)이 맡는다. 무대(PixiJS)는 왕관을
+      Graphics 로 그려 색만 바꾸므로 왕관 자체가 금·은·동이다 (stage.ts crownTex).
+   ⚠️ 레인을 넘지 않는 크기다. 잔디(.course)가 overflow:hidden 이라 넘치면 잘린다 */
+.crown{position:absolute;left:0;top:0;line-height:1;pointer-events:none;
+       font-size:calc(var(--lane-h,78px) * .30);transform:translate(-50%,-115%);
+       filter:drop-shadow(0 2px 3px rgba(0,0,0,.7))}
 /* 속도선은 말 **뒤(왼쪽)** 로 뻗는다 */
 .trail{position:absolute;right:16px;top:50%;width:0;height:7px;border-radius:4px;opacity:0;
        transform:translateY(-50%);background:linear-gradient(90deg,transparent,rgba(255,255,255,.85))}

@@ -189,15 +189,73 @@ gate('SIM1', '판 생성 — 6모둠, 암호 발급, 대기 단계에서 시작'
   };
 });
 
-gate('SIM1b', `판이 ${ROUNDS}라운드로 만들어진다 — lastRound 는 9 또는 10, 문항은 ${ROUNDS}라운드 분`, () => {
+gate('SIM1b', `판이 ${ROUNDS}라운드로 만들어진다 — lastRound = ${ROUNDS}, 문항도 ${ROUNDS}라운드 분`, () => {
   const s = T.state();
   const plans = Object.keys(s.questionPlan).length;
   const hints = LEVELS.map((lv) => s.hintPool[lv].length);
-  // ⚠️ 문항을 lastRound 만큼만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가 샌다
+  // ⚠️ 문항을 lastRound 만큼만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가 샌다.
+  //    지금은 lastRound 가 언제나 ROUNDS 라 둘이 같지만, 기준은 계속 ROUNDS 다
+  const finish = [0, 1, 2].map((k) => s.finishRound[s.truth[k]!]);
   return {
-    ok: (s.lastRound === 9 || s.lastRound === 10) && plans === ROUNDS &&
+    ok: s.lastRound === ROUNDS && finish.join('/') === `${ROUNDS - 2}/${ROUNDS - 1}/${ROUNDS}` &&
+        plans === ROUNDS &&
         hints.every((n) => n === ROUNDS) && s.settings.trackCells === DEFAULTS.trackCells,
-    detail: `lastRound ${s.lastRound} (학생 비공개) · 문항 배정 ${plans}라운드 분 · 힌트 ${hints.join('/')} · 트랙 ${s.settings.trackCells}칸`
+    detail: `lastRound ${s.lastRound} (학생 비공개) · 1·2·3위 골인 ${finish.join('/')}R · ` +
+            `문항 배정 ${plans}라운드 분 · 힌트 ${hints.join('/')} · 트랙 ${s.settings.trackCells}칸`
+  };
+});
+
+/**
+ * 옛 판(이어하기) 호환 — `lastRound` 가 9 로 저장된 판은 여전히 9라운드에서 끝난다.
+ *
+ * 2026-09-07 부터 새 판의 lastRound 는 항상 10 이라 `round >= lastRound` 분기는
+ * 사실상 죽은 코드다. 지우지 않은 이유가 이것이고, 그 이유를 게이트로 붙들어 둔다 —
+ * ROUNDS 로 바꿔 박으면 옛 판이 문제도 힌트도 없는 10라운드를 한 번 더 돈다.
+ */
+/**
+ * 골인한 동물은 **골인 순서**로 담긴다 (2026-09-07). 트랙 레인이 골인한 동물끼리의 등수를
+ * `finished` 배열 자리로 가르므로(client/shared/rank.ts), 코드 순서로 담으면 8R 에 들어온
+ * 1위가 9R 에 들어온 2위 뒤에 적히는 판이 나온다. 코드 순서와 골인 순서가 어긋나는 판을
+ * 골라 확인한다 — 어긋나지 않는 판에서는 변이가 안 잡힌다.
+ */
+gate('FIN-ORDER', '골인한 동물은 코드 순이 아니라 골인 순서로 담긴다 (1위 8R → 2위 9R)', () => {
+  let t: Table | null = null;
+  for (let k = 0; k < 40 && !t; k++) {
+    const cand = new Table();
+    cand.open(2, 'FO' + String(k).padStart(2, '0'));
+    const [a, b] = cand.state().truth;
+    if (ANIMAL_CODES.indexOf(a!) > ANIMAL_CODES.indexOf(b!)) t = cand;   // 코드 순이면 2위가 먼저 온다
+  }
+  if (!t) return { ok: false, detail: '어긋나는 판을 못 찾았다' };
+  for (let r = 1; r <= ROUNDS - 1; r++) {
+    t.room.advanceRound(t.hostKey);
+    for (let g = 0; g < 8 && t.state().phase !== PHASES.WAITING; g++) t.endPhase();
+  }
+  const st = t.state();
+  const got = t.tv().finished.join(',');
+  const want = [st.truth[0], st.truth[1]].join(',');
+  const phone = t.view(1).finished.join(',');
+  return {
+    ok: got === want && phone === want,
+    detail: `9R 뒤 finished: 교사 ${got} · 폰 ${phone} · 기대 ${want} (코드 순이면 ${[st.truth[1], st.truth[0]].join(',')})`
+  };
+});
+
+gate('SIM1c', '옛 판(lastRound 9)을 이어 열면 9라운드에서 끝난다', () => {
+  const t = new Table();
+  t.open(2, 'OLD9');
+  const st = t.state();
+  st.lastRound = 9;                       // 예전 규칙으로 저장된 판을 흉내낸다
+  const seen: number[] = [];
+  for (let r = 1; r <= 12 && t.state().phase !== PHASES.DONE; r++) {
+    t.room.advanceRound(t.hostKey);
+    if (t.state().phase === PHASES.DONE) break;
+    seen.push(t.state().round);
+    t.endPhase(); t.endPhase(); t.endPhase(); t.endPhase();   // moving→quiz→discuss→betting→waiting
+  }
+  return {
+    ok: t.state().phase === PHASES.DONE && t.state().round === 9 && seen.length === 9,
+    detail: `돈 라운드 ${seen.join(',')} → ${t.state().phase} (round ${t.state().round})`
   };
 });
 

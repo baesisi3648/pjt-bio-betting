@@ -110,6 +110,7 @@ export interface TeacherView extends Clock {
   /** 이미 골인한 동물 (TV 가 그 줄에 '골인'을 그리는 데 쓴다) */
   finished: AnimalCode[];
   round: number;
+  /** 판이 끝나는 라운드. 새 판은 항상 ROUNDS(10) — 옛 판(이어하기)만 9 일 수 있다 */
   lastRound: number;
   /** 이번 라운드가 이미 돌았는가. 교사 화면이 '다음은 몇 라운드'를 적는 데 쓴다 (Code.gs 원본에도 있었다) */
   roundStarted: boolean;
@@ -204,7 +205,12 @@ export function raceMovesOf(state: GameState): RaceMoves {
  */
 export function finishedOf(state: GameState): AnimalCode[] {
   const pos = currentPositions(state);
-  return ANIMAL_CODES.filter((c) => (pos[c] ?? 0) >= state.settings.trackCells);
+  const done = ANIMAL_CODES.filter((c) => (pos[c] ?? 0) >= state.settings.trackCells);
+  // **골인 순서**로 담는다 (2026-09-07 — 트랙 레인이 골인한 동물끼리의 등수를 이 배열 자리로
+  // 가른다: client/shared/rank.ts). 이미 골인한 동물의 finishRound 는 과거라 새는 것이 없다 —
+  // 위 주석의 "미래"는 아직 안 들어온 동물의 것이다. 같은 라운드(옛 판)면 코드 순서 그대로
+  const at = (c: AnimalCode): number => state.finishRound[c] ?? Number.MAX_SAFE_INTEGER;
+  return done.sort((a, b) => at(a) - at(b) || ANIMAL_CODES.indexOf(a) - ANIMAL_CODES.indexOf(b));
 }
 
 /**
@@ -364,6 +370,11 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
  *
  * lastRound 는 Code.gs 그대로 담는다 — 교사 화면이 '마지막 라운드인가'를 보고
  * 진행 버튼 문구를 바꾼다. 학생이 보는 teamView 에는 절대 담지 않는다.
+ *
+ * ⚠️ 2026-09-07 부터 새로 만드는 판의 lastRound 는 **항상 ROUNDS(10)** 이다
+ *    (골인 라운드 8·9·10 고정 — RENEWAL §2-1). 그래도 이 값을 계속 담고,
+ *    교사 화면의 `round < lastRound` 분기도 그대로 둔다 — 9 로 저장된 옛 판을
+ *    이어 열면 그 판은 여전히 9라운드에서 끝나야 한다.
  */
 export function teacherView(state: GameState, now: number): TeacherView {
   const v: TeacherView = {

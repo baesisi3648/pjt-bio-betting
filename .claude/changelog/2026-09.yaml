@@ -2155,3 +2155,483 @@ entries:
     description: Update documentation README.md
     impact:
       - none
+  - date: "2026-09-07T05:27:20"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Add new functionality to config in web
+    impact:
+      - none
+  - date: "2026-09-07T05:27:30"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Add new functionality to config in web
+    impact:
+      - none
+  - date: "2026-09-07T05:27:40"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Refactor config
+    impact:
+      - none
+  - date: "2026-09-07T05:27:59"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:28:10"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:28:16"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Add new functionality to rules in web
+    impact:
+      - none
+  - date: "2026-09-07T05:30:45"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:30:51"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:31:13"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/rank.ts
+    description: Create rank in web
+    impact:
+      - "internal dependency added: ../../game/config.ts"
+  - date: "2026-09-07T05:31:25"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/config.ts
+    description: Refactor config
+    impact:
+      - none
+  - date: "2026-09-07T05:31:29"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:35"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:31:35"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/types.ts
+    description: Add new functionality to types in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:36"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/types.ts
+    description: Refactor types
+    impact:
+      - none
+  - date: "2026-09-07T05:31:43"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:45"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/views.ts
+    description: Add new functionality to views in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:47"
+    type: feature
+    domain: web
+    files:
+      - web/src/game/views.ts
+    description: Add new functionality to views in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:48"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:31:59"
+    type: refactor
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Refactor room
+    impact:
+      - none
+  - date: "2026-09-07T05:32:00"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:32:02"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Add new functionality to room in web
+    impact:
+      - none
+  - date: "2026-09-07T05:32:08"
+    type: feature
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Add new functionality to room in web
+    impact:
+      - none
+  - date: "2026-09-07T05:32:10"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:32:14"
+    type: refactor
+    domain: web
+    files:
+      - web/src/do/room.ts
+    description: Refactor room
+    impact:
+      - none
+  - date: "2026-09-07T05:32:18"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:32:22"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:32:30"
+    type: feature
+    domain: web
+    files:
+      - web/migrations/0008_coins30.sql
+    description: Create 0008_coins30 in web
+    impact:
+      - database migration
+  - date: "2026-09-07T05:32:59"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/shared/theme.ts
+    description: Add new functionality to theme in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:02"
+    type: test
+    domain: web
+    files:
+      - web/test/gates.ts
+    description: Update test gates.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:33:10"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:23"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:24"
+    type: test
+    domain: web
+    files:
+      - web/test/gates.ts
+    description: Update test gates.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:33:26"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:33:28"
+    type: test
+    domain: web
+    files:
+      - web/test/gates.ts
+    description: Update test gates.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:33:33"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:40"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:56"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:33:56"
+    type: test
+    domain: web
+    files:
+      - web/test/harness.ts
+    description: Update test harness.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:33:59"
+    type: test
+    domain: web
+    files:
+      - web/test/admin.ts
+    description: Update test admin.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:33:59"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:34:06"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:34:11"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:34:18"
+    type: test
+    domain: web
+    files:
+      - web/test/room.ts
+    description: Update test room.ts
+    impact:
+      - none
+  - date: "2026-09-07T05:34:30"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:34:39"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Add new functionality to stage in web
+    impact:
+      - none
+  - date: "2026-09-07T05:34:47"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:34:53"
+    type: refactor
+    domain: web
+    files:
+      - web/src/game/rules.ts
+    description: Refactor rules
+    impact:
+      - none
+  - date: "2026-09-07T05:35:00"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T05:35:05"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T05:35:16"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T05:35:22"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-07T05:35:31"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-07T05:35:35"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-07T05:35:47"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-07T05:36:07"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/teacher.css
+    description: Add new functionality to teacher in web
+    impact:
+      - none
+  - date: "2026-09-07T05:36:22"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/stage.ts
+    description: Refactor stage
+    impact:
+      - none
+  - date: "2026-09-07T05:40:44"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T05:40:58"
+    type: feature
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Add new functionality to main in web
+    impact:
+      - none
+  - date: "2026-09-07T05:41:04"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none
+  - date: "2026-09-07T05:41:09"
+    type: refactor
+    domain: web
+    files:
+      - web/src/client/teacher/main.ts
+    description: Refactor main
+    impact:
+      - none

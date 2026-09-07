@@ -285,7 +285,8 @@ await gate('ADM5', '설정 — 범위 밖은 저장하지 않고 경고 문장�
   const net = new Net();
   const cases: [string, unknown, string][] = [
     ['quizSeconds 5', { settings: { quizSeconds: 5 } }, '10~900'],
-    ['trackCells 99', { settings: { trackCells: 99 } }, '5~26'],
+    // 상한 26 → 23 (2026-09-07). 1위 골인이 8R 로 고정돼 24칸 이상은 판이 안 만들어진다
+    ['trackCells 99', { settings: { trackCells: 99 } }, '5~23'],
     ['moveSeconds 1', { settings: { moveSeconds: 1 } }, '5~60'],
     ['숫자가 아님', { settings: { betSeconds: '육십' } }, '숫자가 아니라'],
     ['빈 값', { settings: { betSeconds: '' } }, '값을 넣어주세요'],

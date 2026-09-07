@@ -21,7 +21,7 @@ import {
   computeOdds, validateBet, settle, planQuestions, makeCode, makeHostKey
 } from '../src/game/rules.ts';
 import type { HintPredicate } from '../src/game/rules.ts';
-import { ANIMAL_CODES, DEFAULTS, LEVELS, ROUNDS } from '../src/game/config.ts';
+import { ANIMAL_CODES, DEFAULTS, LEVELS, ROUNDS, SETTING_RANGE } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import type { Pool, Positions, Question, Race, Rng } from '../src/game/types.ts';
 
@@ -100,36 +100,51 @@ gate('RACE-2', '조건 2 — 이동량은 라운드마다 0~3, 길이는 10', ()
   return { ok: bad === 0 && lenBad === 0, detail: `범위 밖 ${bad}개 · 길이가 ${ROUNDS} 아닌 줄 ${lenBad}개` };
 });
 
-gate('RACE-3', '조건 3 — 1위는 8 또는 9라운드에 골인하고 그 뒤로는 0칸', () => {
-  const seen: Record<number, number> = {};
+/**
+ * 조건 3·4 를 한 자리에서 본다 — **골인 라운드는 1위 8R · 2위 9R · 3위 10R 로 고정**이다
+ * (2026-09-07 사용자 결정).
+ *
+ * 예전에는 1위 8~9R, 2위·3위는 "앞 등수 이후 10R 이하"였다. 그래서 2위와 3위가 같은
+ * 라운드에 들어오는 판이 흔했고, 둘 다 결승선 칸에 서 있으니 화면의 '현재 순위'가
+ * **공동 2위**로 그렸다. 셋을 다른 라운드에 넣는 방법은 고정뿐이다.
+ *
+ * ⚠️ '정확히 그 라운드'까지 본다. 앞 라운드에 이미 결승선에 닿아 있으면 골인 라운드를
+ *    고정한 의미가 없다 (2위가 8R 에 들어와 1위와 나란히 서면 그 순간 공동 1위다).
+ */
+gate('RACE-34', '조건 3·4 — 골인 라운드가 1위 8R · 2위 9R · 3위 10R 로 **고정**', () => {
   const bad: string[] = [];
+  const want = [ROUNDS - 2, ROUNDS - 1, ROUNDS];        // 8·9·10
   races.forEach((r, i) => {
-    const first = r.truth[0]!;
-    const at = r.finishRound[first];
-    if (at !== 8 && at !== 9) { bad.push(`시드${i + 1} 골인 ${String(at)}R`); return; }
-    seen[at] = (seen[at] || 0) + 1;
-    // 그 라운드에 정확히 결승선에 닿고, 그 전에는 못 미치고, 그 뒤로는 안 움직인다
-    const on = positionsAtRound(r.moves, at, TRACK)[first]!;
-    const before = positionsAtRound(r.moves, at - 1, TRACK)[first]!;
-    if (on !== TRACK || before >= TRACK) bad.push(`시드${i + 1} ${before}→${on}칸`);
-    for (let k = at; k < ROUNDS; k++) if (r.moves[first]![k] !== 0) bad.push(`시드${i + 1} 골인 뒤 이동`);
-  });
-  return { ok: bad.length === 0, detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ') : `8R ${seen[8] || 0}판 · 9R ${seen[9] || 0}판 (둘 다 나온다)` };
-});
-
-gate('RACE-4', '조건 4 — 2위 ≥ 1위, 3위 ≥ 2위, lastRound = 3위 골인 라운드(9|10)', () => {
-  const seen: Record<number, number> = {};
-  const bad: string[] = [];
-  races.forEach((r, i) => {
-    const [a, b, c] = [r.finishRound[r.truth[0]!], r.finishRound[r.truth[1]!], r.finishRound[r.truth[2]!]];
-    if (a == null || b == null || c == null) { bad.push(`시드${i + 1} 골인 라운드 없음`); return; }
-    if (!(b >= a && b <= ROUNDS && c >= b && c <= ROUNDS)) bad.push(`시드${i + 1} ${a}/${b}/${c}`);
-    if (r.lastRound !== c || (c !== 9 && c !== 10)) bad.push(`시드${i + 1} lastRound ${r.lastRound} vs 3위 ${c}`);
+    for (let rank = 0; rank < 3; rank++) {
+      const code = r.truth[rank]!;
+      const at = r.finishRound[code];
+      if (at !== want[rank]) { bad.push(`시드${i + 1} ${rank + 1}위 골인 ${String(at)}R (${want[rank]}R 이어야)`); continue; }
+      // 그 라운드에 정확히 결승선에 닿고, 그 전에는 못 미치고, 그 뒤로는 안 움직인다
+      const on = positionsAtRound(r.moves, at, TRACK)[code]!;
+      const before = positionsAtRound(r.moves, at - 1, TRACK)[code]!;
+      if (on !== TRACK) bad.push(`시드${i + 1} ${rank + 1}위 ${at}R 에 ${on}칸`);
+      if (before >= TRACK) bad.push(`시드${i + 1} ${rank + 1}위가 ${at - 1}R 에 이미 ${before}칸 — 일찍 들어왔다`);
+      for (let k = at; k < ROUNDS; k++) if (r.moves[code]![k] !== 0) bad.push(`시드${i + 1} ${rank + 1}위 골인 뒤 이동`);
+    }
+    // 셋이 서로 다른 라운드에 들어온다 = 화면에 공동 순위가 안 생긴다
+    const three = [0, 1, 2].map((k) => r.finishRound[r.truth[k]!]);
+    if (new Set(three).size !== 3) bad.push(`시드${i + 1} 골인 라운드 겹침 ${three.join('/')}`);
     // 4~8위는 골인 라운드가 없다 (끝까지 못 들어온다)
     for (let k = 3; k < 8; k++) if (r.finishRound[r.truth[k]!] !== null) bad.push(`시드${i + 1} ${k + 1}위에 골인 라운드`);
-    seen[r.lastRound] = (seen[r.lastRound] || 0) + 1;
   });
-  return { ok: bad.length === 0, detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ') : `lastRound 9R ${seen[9] || 0}판 · 10R ${seen[10] || 0}판 · 4~8위 골인 라운드 전부 null` };
+  return { ok: bad.length === 0, detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ')
+    : `${races.length}판 전부 8/9/10R · 앞 라운드에는 결승선 미만 · 4~8위 골인 라운드 전부 null` };
+});
+
+gate('RACE-LAST', `lastRound 는 항상 ROUNDS(${ROUNDS}) — 9R 정산은 사라졌다`, () => {
+  const seen: Record<number, number> = {};
+  for (const r of races) seen[r.lastRound] = (seen[r.lastRound] || 0) + 1;
+  const bad = races.filter((r) => r.lastRound !== ROUNDS).length;
+  // 3위의 골인 라운드와도 같아야 한다 — 판은 3위가 들어오면 끝난다
+  const mismatch = races.filter((r) => r.finishRound[r.truth[2]!] !== r.lastRound).length;
+  return { ok: bad === 0 && mismatch === 0,
+    detail: bad || mismatch ? `⛔ lastRound ≠ ${ROUNDS} 인 판 ${bad}개 · 3위 골인과 어긋난 판 ${mismatch}개`
+      : `${races.length}판 전부 lastRound ${ROUNDS} (${JSON.stringify(seen)}) · 옛 판의 9 는 이어하기용으로만 남는다` };
 });
 
 gate('RACE-5', '조건 5 — 4~8위는 결승선 미만이고 서로 다른 칸에 선다', () => {
@@ -170,21 +185,37 @@ gate('RACE-7', '조건 7 — 같은 시드면 같은 판 (다른 시드면 다�
   return { ok: same && differ, detail: `시드 1·42·300 재현 ${same} · 다른 시드는 다른 판 ${differ}` };
 });
 
-gate('RACE-TRK', '트랙칸수 설정이 실제로 반영된다 (5~26칸)', () => {
+/**
+ * 설정에서 고를 수 있는 트랙칸수는 **전부** 판이 만들어져야 한다.
+ *
+ * ⚠️ 한 칸이라도 "설정에는 있는데 방 만들기가 실패하는" 값이 있으면 그건 설정이
+ *    거짓말을 하는 것이다 (MIGRATION §5 trackCells 함정). 그래서 상한 하나만 찍어
+ *    보지 않고 5~23 을 **전 범위** 로, 칸마다 시드 5개씩 돌린다.
+ * ⚠️ 상한이 24 가 아니라 23 인 이유: 1위의 골인 라운드가 8 로 고정돼 산술 상한은
+ *    8×3=24 지만, 24칸이면 1위가 1라운드부터 3칸씩 달려야 하고 그러면 1라운드부터
+ *    선두라 조건 6("1위는 4라운드 이후에 처음 선두")을 절대 못 지킨다.
+ */
+gate('RACE-TRK', `트랙칸수 설정 전 범위(${SETTING_RANGE.trackCells!.min}~${SETTING_RANGE.trackCells!.max}칸)에서 판이 만들어진다`, () => {
+  const lo = SETTING_RANGE.trackCells!.min, hi = SETTING_RANGE.trackCells!.max;
   const bad: string[] = [];
-  for (const t of [5, 8, 14, 20, 26]) {
-    const r = planRace(seeded(t * 7), t, ROUNDS);
-    if (!r) { bad.push(`${t}칸 실패`); continue; }
-    const pos = positionsAtRound(r.moves, ROUNDS, t);
-    if (pos[r.truth[0]!] !== t) bad.push(`${t}칸: 1위가 ${pos[r.truth[0]!]}칸`);
-    if (rankByPosition(pos, r.truth).join('') !== r.truth.join('')) bad.push(`${t}칸: 순위 불일치`);
+  for (let t = lo; t <= hi; t++) {
+    for (let k = 0; k < 5; k++) {
+      const r = planRace(seeded(t * 7 + k * 10007), t, ROUNDS);
+      if (!r) { bad.push(`${t}칸 시드${k} 실패`); continue; }
+      const pos = positionsAtRound(r.moves, ROUNDS, t);
+      // 1·2·3위 셋 다 결승선. 순위는 골인 라운드로 갈린다 (셋의 최종 위치는 같다)
+      for (let rank = 0; rank < 3; rank++) {
+        if (pos[r.truth[rank]!] !== t) bad.push(`${t}칸: ${rank + 1}위가 ${pos[r.truth[rank]!]}칸`);
+      }
+      if (rankByPosition(pos, r.truth).join('') !== r.truth.join('')) bad.push(`${t}칸: 순위 불일치`);
+    }
   }
-  // 범위 밖(설정 4~30 안이지만 경주가 성립하지 않는 값)은 조용히 넘어가지 않고 null 이다
-  const tooNarrow = planRace(seeded(1), 4, ROUNDS);   // 4~8위 5마리를 서로 다른 칸에 못 세운다
-  const tooWide = planRace(seeded(1), 28, ROUNDS);    // 전원이 매 라운드 3칸이라 선두가 안 바뀐다
+  // 범위 밖은 조용히 넘어가지 않고 null 이다 — Room.create 가 그때 이유를 말한다
+  const tooNarrow = planRace(seeded(1), lo - 1, ROUNDS);   // 4~8위 5마리를 서로 다른 칸에 못 세운다
+  const tooWide   = planRace(seeded(1), hi + 1, ROUNDS);   // 1위가 1라운드부터 선두라 조건 6 실패
   return { ok: bad.length === 0 && tooNarrow === null && tooWide === null,
-           detail: bad.length ? '⛔ ' + bad.join(', ')
-             : `5·8·14·20·26칸 전부 1위가 결승선 도달 · 4칸/28칸은 null (Room 이 이유를 말한다)` };
+           detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ')
+             : `${lo}~${hi}칸 × 시드 5개 = ${(hi - lo + 1) * 5}판 전부 성공 · ${lo - 1}칸/${hi + 1}칸은 null` };
 });
 
 // ════════════════════════════════════════════════════════════

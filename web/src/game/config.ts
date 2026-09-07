@@ -20,8 +20,10 @@ export const LEVELS = ['쉬움', '보통', '어려움'] as const;
  *
  * ⚠️ 설정에 두지 않는다. 힌트가 라운드×난이도로 짝지어져 있어서(§2-2)
  *    라운드 수가 판마다 달라지면 힌트 30개도 판마다 달라진다.
- *    실제로 몇 라운드에서 끝나는지는 `state.lastRound`(9 또는 10)이고,
- *    그건 학생에게 비공개다.
+ *
+ * 2026-09-07 부터 `state.lastRound` 는 **항상 이 값(10)** 이다. 골인 라운드가
+ * 1위 8R · 2위 9R · 3위 10R 로 고정됐기 때문이다 — 예전에는 3위가 9R 에 들어오면
+ * 10R 없이 정산했다(lastRound 9). 필드는 이어하기(옛 판)를 위해 남아 있다.
  */
 export const ROUNDS = 10;
 
@@ -50,7 +52,11 @@ export type Phase = (typeof PHASES)[keyof typeof PHASES];
 export const SKIPPABLE_PHASES = [PHASES.QUIZ, PHASES.DISCUSS, PHASES.BETTING] as readonly Phase[];
 
 export const DEFAULTS = {
-  initialCoins:    20,
+  // 20 → 30 (2026-09-07 사용자 결정). 라운드당 최대 3코인 × 10라운드 = 30 이라
+  // 20 이면 7라운드째에 지갑이 비고 남은 세 라운드는 힌트를 받아도 걸 것이 없다.
+  // ⚠️ 배포된 D1 `settings` 에는 0002 가 넣은 '20' 이 그대로 있다 —
+  //    여기만 고치면 배포판은 안 바뀐다. `migrations/0008_coins30.sql` 이 같이 간다
+  initialCoins:    30,
   maxBetPerRound:  3,
   seedCoins:       15,   // PDF는 5. 리뷰 C6 — 5면 최대 배당 29.6배라 추론이 복권이 된다
   // ── 시간 (RENEWAL §1 결정표) — 라운드 190초 × 10라운드 ≈ 32분 ──
@@ -82,9 +88,20 @@ export const SETTING_RANGE: Record<string, { min: number; max: number; label: st
   quizSeconds:    { min: 10, max: 900, label: '문제시간초' },
   discussSeconds: { min: 10, max: 900, label: '토론시간초' },
   betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
-  // 5 미만이면 4~8위 다섯 마리를 서로 다른 칸에 못 세우고, 27 이상이면 전원이 매 라운드 3칸이라
-  // 선두가 안 바뀐다 (RENEWAL §2-1 조건 5·6). 게이트 RACE-TRK 가 경계를 지킨다
-  trackCells:     { min: 5,  max: 26,  label: '트랙칸수' },
+  // 5 미만이면 4~8위 다섯 마리를 서로 다른 칸에 못 세운다 (조건 5).
+  //
+  // 상한 26 → 23 (2026-09-07). 1위의 골인 라운드가 **8 로 고정**됐으므로 (조건 3)
+  // 산술 상한은 8라운드 × 3칸 = 24 다. 그런데 24 는 실제로 **한 판도 안 만들어진다** —
+  // 24칸이면 1위가 1라운드부터 매 라운드 3칸씩 달려야 하고, 그러면 1라운드에 이미
+  // (동점 tie-break 이 truth 순이라) 선두가 되어 조건 6("1위는 4라운드 이후에 처음 선두")을
+  // 절대 못 지킨다. 조건 6이 1위의 3라운드 누적을 8칸 이하로 묶으므로 8 + 5라운드×3 = 23 이
+  // 진짜 상한이다.
+  //
+  // ⚠️ 사용자 결정은 "24" 였지만 24 를 열어 두면 그 값을 고른 선생님의 방 만들기가
+  //    매번 SHEET_INVALID 로 실패한다 — 설정이 거짓말을 하는 상태다 (MIGRATION §5).
+  //    그래서 만들어지는 값만 남겼다. 게이트 RACE-TRK 가 5~23 전부를 검사하고,
+  //    24 는 null 이라는 것까지 검사한다 (측정: 5~23 은 시드 2000개 전부 성공)
+  trackCells:     { min: 5,  max: 23,  label: '트랙칸수' },
   // 0 은 '끔' 이라 min 이 0 이다. 다른 시간 설정과 달리 하한이 없다
   autoSkipSeconds: { min: 0, max: 30,  label: '자동단축초' }
 };
@@ -173,4 +190,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2026.09.06';
+export const DEPLOY_VERSION = 'web-2026.09.07';
