@@ -359,6 +359,7 @@ function showHandout(): void {
     drawHandout(d);
     $('s2').classList.add('hidden');
     $('handout').classList.remove('hidden');
+    applyFit();                           // 배포 안내는 스크롤 화면이다
   }).catch(() => toast('서버 응답이 없어요'));
 }
 
@@ -493,6 +494,7 @@ function goPlay(): void {
   $('s1').classList.add('hidden');
   $('handout').classList.add('hidden');   // 암호표를 TV에 남기지 않는다
   $('s2').classList.remove('hidden');
+  applyFit();
   if (playing) return;                    // '다시 보기'에서 돌아온 경우 — 소켓을 두 벌 열지 않는다
   playing = true;
 
@@ -687,6 +689,8 @@ function drawRounds(d: TeacherView): void {
       누구인지 TV 에 뜨면 힌트의 값어치가 교실 전체에 새어 나간다.
    ⚠️ **어느 동물에 걸었는지도 없다.** 남은 코인만 (RENEWAL §1 결정표) */
 function drawTeams(d: TeacherView): void {
+  // 여섯 모둠부터는 한 화면 모드에서 카드를 두 줄로 접는다 (teacher.css .tcards.many)
+  $('prog').classList.toggle('many', d.teams.length > 5);
   $('prog').innerHTML = d.teams.map((t) =>
     '<div class="tcard">' +
       `<span class="tc-name">${esc(teamLabel(t.no, t.name))}</span>` +
@@ -831,6 +835,7 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
         `<div class="lane-pos num" id="lp-${c}"></div></div>`;
     }).join('');
     trackKey = key; wasFinished = {};   // 이어하기로 들어온 판은 처음 위치에서 시작 — 질주 연출 없음
+    fitTrack();                          // 레인 수가 바뀌었으니 한 화면 모드의 레인 높이도 다시
   }
 
   // ⚠️ 트랙 칸 수는 서버가 준 값이다. 10 으로 박아 두면 '설정' 탭의 트랙칸수를 12 로 바꿔도
@@ -866,6 +871,93 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
     }
     runner._pct = pct;
   });
+}
+
+// ────────────────────────────────────────────────────────────
+// 한 화면 모드 + 전체화면 (2026-09-07 — "교사화면을 한 화면에 다 나오게")
+// ────────────────────────────────────────────────────────────
+
+/**
+ * 진행 화면(S2)의 설계 기준. 배치는 언제나 이 크기로 하고, 실제 화면에는 `zoom` 으로 맞춘다
+ * (teacher.css "한 화면 모드" 주석). 폭 기준이 1920 이 아니라 1600 인 이유: 4:3 모니터에서도
+ * 동물 카드 8장이 한 줄에 서야 해서다 — 높이만 보고 줄이면 폭이 모자란다.
+ */
+const FIT_W = 1600;
+const FIT_H = 1080;
+/** 이 밑으로 작은 창은 맞추지 않고 예전처럼 스크롤한다 (노트북에서 작게 띄운 창) */
+const FIT_MIN_W = 900;
+const FIT_MIN_H = 500;
+/** 배율 상한. 2560×1440 모니터에서 1.33 이 되는 것은 좋지만 무한정 키우지는 않는다 */
+const FIT_MAX_Z = 2;
+
+/**
+ * S2 가 보이는 동안 body.fit 을 켜고 배율을 넣는다. 화면 크기·전체화면이 바뀔 때마다 부른다.
+ *
+ * ⚠️ 높이는 CSS 의 100dvh 가 아니라 여기서 px 로 넣는다 — zoom 안의 뷰포트 단위는
+ *    브라우저마다 배율을 곱하기도 안 곱하기도 해서, JS 가 잰 값이 유일하게 믿을 만하다.
+ *    wrap 의 위아래 padding(8+8)만큼 뺀다 (teacher.css body.fit .wrap).
+ */
+function applyFit(): void {
+  const s2 = $('s2');
+  const host = $('race-stage');
+  const w = window.innerWidth, h = window.innerHeight;
+  const on = !s2.classList.contains('hidden') && w >= FIT_MIN_W && h >= FIT_MIN_H;
+  document.body.classList.toggle('fit', on);
+  if (!on) {
+    s2.style.removeProperty('--z');
+    s2.style.removeProperty('--s2h');
+    delete host.dataset.fit;
+    $('track').style.removeProperty('--lane-h');
+    stage?.resize(); stillKey = '';
+    return;
+  }
+  const z = Math.min(FIT_MAX_Z, h / FIT_H, w / FIT_W);
+  s2.style.setProperty('--z', z.toFixed(4));
+  s2.style.setProperty('--s2h', Math.floor((h - 16) / z) + 'px');
+  host.dataset.fit = '1';
+  fitTrack();
+  // 무대는 ResizeObserver 가 호스트 높이 변화를 보고 다시 짓는다 (ensureStage). 여기서 한 번 더
+  // 찔러 두는 것은 관찰자가 없는 브라우저를 위해서다
+  stage?.resize(); stillKey = '';
+}
+
+/**
+ * CSS 폴백 트랙(#track)의 레인 높이. 한 화면 모드에서만 — 남는 높이를 레인 수로 나눈다.
+ * 무대(stage.ts build)가 캔버스에 하는 것과 같은 계산이다. 78 은 원래 CSS 값, 30 은 안전장치
+ */
+function fitTrack(): void {
+  const tr = $('track');
+  const n = tr.children.length;
+  if (!document.body.classList.contains('fit') || !n || tr.classList.contains('hidden')) {
+    tr.style.removeProperty('--lane-h');
+    return;
+  }
+  const pad = parseFloat(getComputedStyle(tr).paddingTop) || 0;    // 관중석 띠 (teacher.css #track)
+  const lane = Math.max(30, Math.min(78, Math.floor((tr.clientHeight - pad) / n)));
+  tr.style.setProperty('--lane-h', lane + 'px');
+}
+
+/** 전체화면 켜고 끄기. 실패(iOS Safari · iframe)해도 조용히 — 연출은 거들 뿐이다 */
+function toggleFullscreen(): void {
+  const p = document.fullscreenElement
+    ? document.exitFullscreen()
+    : document.documentElement.requestFullscreen();
+  p.catch(() => toast('이 브라우저는 전체화면을 지원하지 않아요'));
+}
+
+function syncFullBtn(): void {
+  $('btn-full').textContent = document.fullscreenElement ? '⛶ 나가기' : '⛶ 전체화면';
+}
+
+/** F 키 — 입력란에서 타자 중이면 무시한다. S2 밖에서도 무시한다 (판 만들기 폼에서 F 를 칠 수 있다) */
+function onKey(e: KeyboardEvent): void {
+  if (e.key !== 'f' && e.key !== 'F') return;
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  const t = e.target as HTMLElement | null;
+  if (t && /^(INPUT|SELECT|TEXTAREA)$/.test(t.tagName)) return;
+  if ($('s2').classList.contains('hidden')) return;
+  e.preventDefault();
+  toggleFullscreen();
 }
 
 function pctOf(pos: number, cells: number): number {
@@ -1161,6 +1253,7 @@ function showResult(d: TeacherView): void {
   RES = d;
   $('s2').classList.add('hidden');
   $('s3').classList.remove('hidden');
+  applyFit();                             // 정산 화면은 스크롤 화면이다
   if (step === 0) nextStep();
 }
 
@@ -1318,6 +1411,16 @@ function wire(): void {
   $('btn-round').addEventListener('click', nextRound);
   $('btn-pause').addEventListener('click', togglePause);
   $('btn-skip').addEventListener('click', () => { void skipPhase(); });
+
+  /* 한 화면 모드 + 전체화면 (applyFit 주석). 지원 안 하는 브라우저에서는 버튼을 감춘다 —
+     비활성이 아니라. 눌러도 아무 일도 없는 버튼은 고장으로 읽힌다 */
+  if (!document.fullscreenEnabled) $('btn-full').classList.add('hidden');
+  $('btn-full').addEventListener('click', toggleFullscreen);
+  document.addEventListener('fullscreenchange', () => { syncFullBtn(); applyFit(); });
+  document.addEventListener('keydown', onKey);
+  window.addEventListener('resize', applyFit);
+  // 폴백 트랙 높이가 바뀌면(모둠 카드가 두 줄이 되는 등) 레인을 다시 나눈다
+  if (typeof ResizeObserver !== 'undefined') new ResizeObserver(fitTrack).observe($('track'));
 
   /* 소리 (RENEWAL §4-4). **교사 화면만.**
      ⚠️ 브라우저는 사용자 동작 전에 소리를 못 낸다. 그래서 **아무 클릭에나** 켜 본다 —

@@ -204,7 +204,11 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
    */
   function build(v: TeacherView): void {
     const codes = Object.keys(v.animals) as AnimalCode[];
-    const key = codes.join(',') + '|' + Math.round(width) + '|' + v.trackCells;
+    // 한 화면 모드(teacher.css)에서는 호스트가 높이를 정해 준다 — main.ts applyFit 이 dataset.fit 을
+    // 켠다. 그 밖에서는 0 이다. ⚠️ 표시 없이 clientHeight 를 읽으면 안 된다: 보통 모드에서는
+    //    호스트 높이가 곧 지난번 캔버스 높이라, 지을 때마다 반올림만큼 레인이 조금씩 낮아진다
+    const hostH = host.dataset.fit ? host.clientHeight : 0;
+    const key = codes.join(',') + '|' + Math.round(width) + '|' + v.trackCells + '|' + hostH;
     if (key === laneKey) return;
     laneKey = key;
 
@@ -234,6 +238,12 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     const standsH = Math.round(30 * scale);
     const fenceH = Math.max(4, Math.round(9 * scale));
     const top0 = standsH + fenceH;
+    // 한 화면 모드 — 레인 8줄이 호스트 높이 안에 들어가게 줄인다 (레인 밖 여백 = 관중석·울타리 둘·4px).
+    // 하한 28px 은 안전장치일 뿐이다. 그 근처까지 내려가면 main.ts 가 이 모드를 풀었어야 한다
+    if (hostH > 0) {
+      const spare = hostH - (top0 + fenceH + Math.round(4 * scale));
+      laneH = Math.max(28, Math.min(laneH, Math.floor(spare / Math.max(1, codes.length))));
+    }
 
     // 원근 — 위 레인이 92%, 아래가 100%. 아주 약하게만 (TUNING.perspective 주석 참조)
     const n = codes.length;

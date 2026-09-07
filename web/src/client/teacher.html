@@ -129,7 +129,11 @@
 
   <!-- ══ 구획 1 — 헤더 ══ -->
   <div class="hdr">
-    <div class="hd-name">🐆 애니멀 더비 <span class="hd-room" id="p-room"></span></div>
+    <!-- 방 제목은 길어지면 줄임표. 사기 라운드 배지도 이 줄에 둔다 — 따로 한 줄을 쓰면
+         한 화면 모드(teacher.css "한 화면 모드")에서 그만큼 트랙이 줄어든다.
+         **어느 라운드인지는 여기 없다** — 정산 때까지 서버도 안 알려준다 -->
+    <div class="hd-name">🐆 애니멀 더비 <span class="hd-room" id="p-room"></span>
+      <span id="fraud-badge" class="fraud-badge hidden">🎭 사기 라운드 ON</span></div>
     <!-- 라운드 진행표 ① ② … ⑩ — 지난 라운드는 채우고 지금은 강조한다.
          ⚠️ 칸 수는 ROUNDS(10) 고정이다. lastRound(9|10)로 그리면 안 된다 —
             그건 3등이 언제 들어오는지를 TV 로 알려주는 것이다 (main.ts drawRounds 주석) -->
@@ -142,10 +146,11 @@
       <button class="hdr-btn skip hidden" id="btn-skip">⏩ 빠른 진행</button>
       <!-- 소리는 교사 화면만 (RENEWAL §4-4). 패널 마크업은 shared/audio.ts 가 만든다 -->
       <button class="hdr-btn sound" id="btn-sound" title="소리">🎵</button>
+      <!-- 전체화면 (2026-09-07). 브라우저 UI 가 사라지면 그만큼 트랙이 커진다 — 한 화면 모드가
+           높이를 따라간다 (main.ts applyFit). 지원 안 하는 브라우저(iOS Safari)에서는 감춘다 -->
+      <button class="hdr-btn full" id="btn-full" title="전체화면 (F 키)">⛶ 전체화면</button>
     </div>
   </div>
-  <!-- 사기 라운드가 켜진 판에만. 어느 라운드인지는 정산 때까지 서버도 안 알려준다 -->
-  <div id="fraud-badge" class="fraud-badge hidden">🎭 사기 라운드 ON</div>
 
   <!-- ══ 구획 2 — 경마장 ══
        PixiJS 경주 무대 (teacher/stage.ts). 켜지면 아래 #track 을 숨긴다.
@@ -153,6 +158,8 @@
           **둘은 같은 방향(좌→우)·같은 칸수여야 한다** — 어느 쪽이든 게임은 돈다 (§11-1) -->
   <div class="card track-card">
     <div id="race-stage" class="hidden"></div>
+    <!-- "n라운드 준비" — 트랙 **위에 얹힌** 알약이다 (absolute). 트랙 아래 한 줄로 두면 한 화면
+         모드에서 그 줄만큼 레인이 낮아진다. 관중석 띠 위, 가운데에 떠서 말과 겹치지 않는다 -->
     <div id="phase-note" class="phase-big hidden"></div>
     <div id="track"></div>
   </div>
