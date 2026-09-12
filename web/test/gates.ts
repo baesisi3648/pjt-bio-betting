@@ -21,7 +21,7 @@ import {
   computeOdds, validateBet, settle, planQuestions, makeCode, makeHostKey
 } from '../src/game/rules.ts';
 import type { HintPredicate } from '../src/game/rules.ts';
-import { ANIMAL_CODES, DEFAULTS, LEVELS, ROUNDS, SETTING_RANGE } from '../src/game/config.ts';
+import { ANIMAL_CODES, DEFAULTS, LEVELS, ROUNDS, SETTING_RANGE, noBetStartsAt } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import type { Pool, Positions, Question, Race, Rng } from '../src/game/types.ts';
 
@@ -446,11 +446,12 @@ gate('HINT-PAIR', 'buildHints 와 buildHintPredicates 는 같은 시드에서 �
 // 베팅 · 배당 · 정산 · 문항
 // ════════════════════════════════════════════════════════════
 
-gate('BET-FIN', '골인한 동물에는 못 걸고, 다른 동물은 그대로 통과', () => {
+gate('BET-ZONE', '20칸 기준 16칸은 허용하고 17칸부터 베팅을 막는다', () => {
   const base = { coins: 20, betLocked: {} as Record<number, boolean> };
   const pos = {} as Positions;
   for (const c of ANIMAL_CODES) pos[c] = 3;
-  pos.A = TRACK;             // 골인
+  const noBetAt = noBetStartsAt(TRACK);
+  pos.A = noBetAt;           // 20칸 기준 17칸: 베팅 금지구역 진입
   pos.B = TRACK + 5;         // 넘어선 값이 들어와도 (positionsAtRound 는 클램프하지만)
 
   const finished = validateBet(base, 1, { A: 1 }, DEFAULTS, pos);
@@ -458,12 +459,12 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 다른 동물은 그대로 �
   const mixed = validateBet(base, 1, { C: 1, A: 1 }, DEFAULTS, pos);
   const okBet = validateBet(base, 1, { C: 2 }, DEFAULTS, pos);
   const zero = validateBet(base, 1, { A: 0, C: 1 }, DEFAULTS, pos);   // 0 은 거는 게 아니다
-  const notYet = validateBet(base, 1, { A: 1 }, DEFAULTS, { ...pos, A: TRACK - 1 });
+  const notYet = validateBet(base, 1, { A: 1 }, DEFAULTS, { ...pos, A: noBetAt - 1 });
 
   const codes = [finished, beyond, mixed].map((x) => (x.ok ? 'ok' : x.error)).join('/');
   return {
     ok: codes === 'BET_FINISHED/BET_FINISHED/BET_FINISHED' && okBet.ok && zero.ok && notYet.ok,
-    detail: `골인·초과·섞어 걸기 ${codes} · 안 골인한 동물은 통과 · ${TRACK - 1}칸이면 아직 걸 수 있다`
+    detail: `${noBetAt}칸·초과·섞어 걸기 ${codes} · ${noBetAt - 1}칸은 통과`
   };
 });
 

@@ -19,6 +19,7 @@ export const C = {
   gold: 0xf2b441,
   run: 0x4fc3f7,
   goal: 0xef5350,
+  noBet: 0xc62828,
   ok: 0x66bb6a,
   lane: 0x1e2c3a,
   laneDark: 0x16212c,

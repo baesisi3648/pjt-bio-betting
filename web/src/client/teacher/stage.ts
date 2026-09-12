@@ -47,7 +47,7 @@
  */
 
 import { Application, Container, Graphics, Sprite, Text, Texture } from 'pixi.js';
-import type { AnimalCode } from '../../game/config.ts';
+import { noBetStartsAt, type AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
 import { sfx } from '../shared/audio.ts';
 import { COUNTDOWN_END, RUN_END, beforeOf, raceFrame, raceSeed } from '../shared/race.ts';
@@ -368,6 +368,13 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
       if (k % 2 === 0) continue;
       field.rect(courseX + startW + cellW * k, top0, cellW, grassBottom - top0).fill(C.grassAlt);
     }
+    const noBetStart = noBetStartsAt(cells);
+    const noBetCells = cells - noBetStart;
+    const noBetX = courseX + startW + cellW * noBetStart;
+    field.rect(noBetX, top0, cellW * noBetCells, grassBottom - top0)
+      .fill({ color: C.noBet, alpha: 0.48 });
+    field.rect(noBetX, top0, Math.max(2, 3 * scale), grassBottom - top0)
+      .fill({ color: 0xffcdd2, alpha: 0.9 });
     // 5칸마다 흰 표시 — 8m 밖에서 칸을 셀 때 눈이 짚는 자리 (경마장의 펄롱 표시)
     for (let k = 5; k < cells; k += 5) {
       field.rect(courseX + startW + cellW * k - Math.max(1, scale), top0,
@@ -410,16 +417,17 @@ export async function createStage(host: HTMLElement): Promise<RaceStage | null> 
     }
 
     // START · GOAL 글자와 깃발은 관중석 띠 안에. 잔디 위에 얹으면 말을 가린다
-    const label = (text: string, x: number, anchorX: number): void => {
+    const label = (text: string, x: number, anchorX: number, fill: number = C.rail): void => {
       const t = new Text({
         text,
-        style: { fontFamily: FONT, fontSize: Math.round(19 * scale), fontWeight: '900', fill: C.rail }
+        style: { fontFamily: FONT, fontSize: Math.round(19 * scale), fontWeight: '900', fill }
       });
       t.anchor.set(anchorX, 0.5);
       t.x = x; t.y = standsH / 2;
       fieldText.addChild(t);
     };
     label('START', courseX + Math.round(10 * scale), 0);
+    label('베팅 금지', noBetX + cellW * noBetCells / 2, 0.5, 0xff8a80);
     label('🏁 GOAL', courseX + courseW - Math.round(10 * scale), 1);
 
     // ── 레인 ──

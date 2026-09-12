@@ -11,11 +11,11 @@
  *   node test/room.ts
  */
 
-import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, ROUNDS } from '../src/game/config.ts';
+import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, ROUNDS, isNoBetPosition } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import { computeOdds } from '../src/game/rules.ts';
 import type { GameState, Question, Rng } from '../src/game/types.ts';
-import { allTeamsDone, finishedOf, teacherView, teamView } from '../src/game/views.ts';
+import { allTeamsDone, teacherView, teamView } from '../src/game/views.ts';
 import { Room, restore } from '../src/do/room.ts';
 import type { GameEvent } from '../src/do/room.ts';
 
@@ -136,7 +136,9 @@ function playFullGame(t: Table, teams = 6): number[] {
     }
     t.endPhase();                        // quiz    → discuss
     t.endPhase();                        // discuss → betting
-    const open = ANIMAL_CODES.filter((c) => finishedOf(t.state()).indexOf(c) < 0);
+    const trackCells = t.state().settings.trackCells;
+    const positions = t.view(1).positions;
+    const open = ANIMAL_CODES.filter((c) => !isNoBetPosition(positions[c] ?? 0, trackCells));
     for (let n = 1; n <= teams; n++) {
       const bet = t.room.placeBet(n, { [open[(n + r) % open.length]!]: 1 }, t.pins[n]!);
       if (!bet.ok && bet.error !== 'NOT_ENOUGH_COINS') {
@@ -369,12 +371,12 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 
   const firstFinish = t.state().finishRound[winner]!;   // 8 또는 9라운드 (서버만 안다)
   if (firstFinish >= t.state().lastRound) return { ok: false, detail: '검사할 판을 못 만들었다' };
 
-  // 골인 전 라운드에는 1위에게도 걸 수 있다
+  // 아직 베팅 금지구역에 들어가지 않은 1라운드에는 1위에게도 걸 수 있다
   let early: ReturnType<typeof t.room.placeBet> | null = null;
   for (let r = 1; r <= firstFinish; r++) {
     t.room.advanceRound(t.hostKey);
     t.endPhase(); t.endPhase(); t.endPhase();           // → betting
-    if (r === firstFinish - 1) early = t.room.placeBet(1, { [winner]: 1 }, t.pins[1]!);
+    if (r === 1) early = t.room.placeBet(1, { [winner]: 1 }, t.pins[1]!);
     t.endPhase();                                       // → waiting
   }
 
@@ -387,7 +389,8 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 
   const finished = t.view(1).finished;
   const tvFinished = t.tv().finished;
   const blocked = t.room.placeBet(2, { [winner]: 1 }, t.pins[2]!);
-  const open = ANIMAL_CODES.find((c) => finished.indexOf(c) < 0)!;
+  const current = t.view(1);
+  const open = ANIMAL_CODES.find((c) => !isNoBetPosition(current.positions[c] ?? 0, current.trackCells))!;
   const allowed = t.room.placeBet(2, { [open]: 1 }, t.pins[2]!);
 
   return {

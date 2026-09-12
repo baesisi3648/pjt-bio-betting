@@ -72,8 +72,8 @@ export interface TeamView extends Clock {
    */
   fraudNotice: boolean;
   /**
-   * 이미 골인한 동물. 폰이 그 줄을 잠그는 데 쓴다 (RENEWAL §1 — `BET_FINISHED`).
-   * 비밀이 아니다: 위치가 이미 뷰에 실려 있어 화면에서 그대로 보인다.
+   * 이미 골인한 동물. 골인 순서 표시에 쓴다.
+   * 베팅 금지 여부는 현재 위치와 trackCells로 따로 계산한다.
    */
   finished: AnimalCode[];
   raceMoves?: RaceMoves;

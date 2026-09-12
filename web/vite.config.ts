@@ -11,9 +11,10 @@
  *    그래서 node:path 대신 import.meta.url 을 쓴다.
  */
 
+import { fileURLToPath } from 'node:url';
 import { defineConfig } from 'vite';
 
-const at = (p: string) => new URL(p, import.meta.url).pathname;
+const at = (p: string) => fileURLToPath(new URL(p, import.meta.url));
 
 export default defineConfig({
   root: 'src/client',

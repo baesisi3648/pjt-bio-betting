@@ -160,6 +160,11 @@ th{color:var(--muted);font-size:20px}
 .course::before{content:'';position:absolute;left:0;right:0;top:0;bottom:0;pointer-events:none;
         background:repeating-linear-gradient(90deg,transparent 0 calc(25% - 2px),
                    rgba(238,244,240,.42) calc(25% - 2px) 25%)}
+/* 결승선까지 3칸 남은 구간. 20칸 트랙은 17칸부터 베팅 금지다. */
+.no-bet-zone{position:absolute;top:0;bottom:0;pointer-events:none;
+        left:calc(32px + (100% - 56px) * var(--no-bet-start));right:24px;
+        background:repeating-linear-gradient(135deg,rgba(239,83,80,.48) 0 10px,rgba(183,28,28,.36) 10px 20px);
+        border-left:3px solid rgba(255,205,210,.9)}
 /* 지나온 자국 — **출발선(왼쪽)에 붙어** 말 쪽(오른쪽)으로 자란다.
    ⚠️ 파란 막대를 얹으면 잔디 위에서 "물이 찼다"로 읽힌다. 밟혀 바랜 흰색이다 */
 .covered{position:absolute;left:32px;top:0;bottom:0;width:0;background:rgba(255,255,255,.16);

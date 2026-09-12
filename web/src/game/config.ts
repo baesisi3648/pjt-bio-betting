@@ -27,6 +27,18 @@ export const LEVELS = ['쉬움', '보통', '어려움'] as const;
  */
 export const ROUNDS = 10;
 
+/** 결승선까지 이 거리만 남으면 해당 동물에 더 이상 베팅할 수 없다. */
+export const NO_BET_DISTANCE = 3;
+
+/** 20칸 트랙이면 17칸부터 베팅 금지다. 트랙 설정이 바뀌어도 결승선 기준을 유지한다. */
+export function noBetStartsAt(trackCells: number): number {
+  return Math.max(0, trackCells - NO_BET_DISTANCE);
+}
+
+export function isNoBetPosition(position: number, trackCells: number): boolean {
+  return position >= noBetStartsAt(trackCells);
+}
+
 export type AnimalCode = (typeof ANIMAL_CODES)[number];
 export type Level = (typeof LEVELS)[number];
 
@@ -161,9 +173,8 @@ export const MESSAGES: Record<string, string> = {
   BET_CLOSED:       '베팅 시간이 지났어요. 다음 라운드를 기다려주세요',
   ALREADY_ANSWERED: '이번 라운드는 이미 제출했어요',
   ALREADY_BET:      '이미 확정했어요',
-  // 골인한 동물에는 걸 수 없다 (RENEWAL §1). 1위가 8라운드에 들어와 화면에 보이는
-  // 순간부터 그 줄은 닫힌다 — 안 그러면 마지막 라운드 베팅이 공짜다
-  BET_FINISHED:     '이미 골인한 동물에는 걸 수 없어요',
+  // 결승선 3칸 전부터 그 동물의 베팅 줄은 닫힌다.
+  BET_FINISHED:     '결승선 3칸 전부터는 해당 동물에 걸 수 없어요',
   TOO_MANY_COINS:   '이번 라운드에는 3개까지만 걸 수 있어요',
   NOT_ENOUGH_COINS: '코인이 모자라요',
   BAD_AMOUNT:       '코인 수가 이상해요',

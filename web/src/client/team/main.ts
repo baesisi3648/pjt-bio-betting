@@ -28,7 +28,7 @@
  *    폰이 남의 손에 들어가도 암호는 남지 않는다.
  */
 
-import type { AnimalCode, Level } from '../../game/config.ts';
+import { isNoBetPosition, type AnimalCode, type Level } from '../../game/config.ts';
 import type { Settlement } from '../../game/types.ts';
 import type { TeamView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
@@ -407,21 +407,19 @@ function betHtml(): string {
   for (const k of Object.keys(draft) as AnimalCode[]) used += draft[k] || 0;
   const cap = Math.min(d.maxBet, me.coins);
 
-  const finished = new Set<AnimalCode>((d.finished || []) as AnimalCode[]);
   const rows = (Object.keys(d.animals) as AnimalCode[]).map((c) => {
     const v = draft[c] || 0;
     let chips = '';
     // 건 코인만큼 칩이 쌓인다 — 이게 무게감의 핵심. 방금 얹은 하나만 튀어오른다
     for (let i = 0; i < v; i++) chips += `<span class="chip${c === lastBumped && i === v - 1 ? ' new' : ''}"></span>`;
-    // 골인한 동물은 잠긴다 — 서버(validateBet BET_FINISHED)와 같은 값(finished)을 본다.
-    // 1위가 8라운드에 들어오면 그 라운드 베팅이 공짜가 되던 구멍을 막는 규칙이다 (RENEWAL §1)
-    const fin = finished.has(c);
-    const controls = fin
-      ? '<span class="fin-tag">🏁 골인</span>'
+    // 결승선 3칸 전에 도달한 동물은 잠긴다. 서버와 같은 공통 함수를 쓴다.
+    const noBet = isNoBetPosition(d.positions[c] ?? 0, d.trackCells);
+    const controls = noBet
+      ? '<span class="fin-tag">🚫 베팅 금지</span>'
       : `<button class="step" data-act="bet" data-code="${c}" data-delta="-1"${v ? '' : ' disabled'}>−</button>` +
         `<span class="cnt num">${v}</span>` +
         `<button class="step plus" data-act="bet" data-code="${c}" data-delta="1"${used >= cap ? ' disabled' : ''}>+</button>`;
-    return `<div class="brow${v ? ' has' : ''}${fin ? ' fin' : ''}">` +
+    return `<div class="brow${v ? ' has' : ''}${noBet ? ' fin' : ''}">` +
       `<span class="b-emoji">${d.emojis[c] || ''}</span>` +
       `<span class="b-main"><span class="bname">${esc(d.animals[c])}</span>` +
         `<span class="b-sub"><span class="bodds num">${d.odds[c].toFixed(2)}배</span>` +

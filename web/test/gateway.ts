@@ -15,7 +15,7 @@
  *   node test/gateway.ts
  */
 
-import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES } from '../src/game/config.ts';
+import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, isNoBetPosition } from '../src/game/config.ts';
 import type { AnimalCode } from '../src/game/config.ts';
 import { THROTTLE } from '../src/do/ops.ts';
 import { validateSet } from '../src/server/bank.ts';
@@ -411,7 +411,9 @@ await gate('GW1', '판 생성 → 6모둠 접속 → 진행 → 정산까지 HTT
     // ⚠️ 8라운드쯤부터 1위가 골인해 있다 — 그 동물에 걸면 BET_FINISHED 로 거절된다.
     //    폰이 보는 것과 같은 값(teamView.finished)으로 아직 안 들어온 동물을 고른다
     const view = dataOf(await net.call('GET', `/api/game/${g.code}/state?viewer=team:1`, { headers: pin(g.pins[1]!) }));
-    const open = ANIMAL_CODES.filter((c) => (view.finished as string[]).indexOf(c) < 0);
+    const positions = view.positions as Record<AnimalCode, number>;
+    const trackCells = view.trackCells as number;
+    const open = ANIMAL_CODES.filter((c) => !isNoBetPosition(positions[c] ?? 0, trackCells));
     for (let n = 1; n <= 6; n++) {
       const bet = await net.call('POST', `/api/game/${g.code}/bet`, {
         headers: pin(g.pins[n]!), body: { teamNo: n, bets: { [open[(n + r) % open.length]!]: 1 } }

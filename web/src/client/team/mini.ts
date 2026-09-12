@@ -27,7 +27,7 @@
  *    캔버스 안은 CSS 미디어쿼리가 못 막으므로 여기서 직접 물어본다 (§11-1).
  */
 
-import type { AnimalCode } from '../../game/config.ts';
+import { noBetStartsAt, type AnimalCode } from '../../game/config.ts';
 import type { TeamView } from '../../game/views.ts';
 import { beforeOf, raceFrame, raceSeed } from '../shared/race.ts';
 import { hex, silkOf } from '../shared/theme.ts';
@@ -107,6 +107,12 @@ export function mountMini(host: HTMLElement): Mini | null {
         g.fillStyle = k % 2 ? '#4A9450' : '#3E8144';
         g.fillRect(x0 + cw * k, y + 5, Math.ceil(cw) + 1, LANE_H - 12);
       }
+      const noBetStart = noBetStartsAt(cells);
+      const noBetX = x0 + cw * noBetStart;
+      g.fillStyle = 'rgba(198,40,40,.48)';
+      g.fillRect(noBetX, y + 5, cw * (cells - noBetStart), LANE_H - 12);
+      g.fillStyle = 'rgba(255,205,210,.9)';
+      g.fillRect(noBetX, y + 5, 2, LANE_H - 12);
       // 결승선 — **오른쪽 끝**. 빨간 선은 말이 오는 쪽(왼쪽) 모서리에 둔다
       g.fillStyle = '#16212C';
       g.fillRect(x1 - 7, y + 5, 7, LANE_H - 12);

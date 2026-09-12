@@ -54,7 +54,7 @@
  *    ⚠️ 소리는 `prefers-reduced-motion` 과 무관하다. 끄는 것은 사용자의 🔇 뿐이다.
  */
 
-import { ROUNDS } from '../../game/config.ts';
+import { ROUNDS, noBetStartsAt } from '../../game/config.ts';
 import type { AnimalCode } from '../../game/config.ts';
 import type { TeacherView } from '../../game/views.ts';
 import { audioInit, audioPanel, audioScene, audioTick, audioUnlock, sfx } from '../shared/audio.ts';
@@ -830,6 +830,7 @@ function drawTrack(d: TeacherView, codes: AnimalCode[]): void {
           `<span class="lane-name">${esc(d.animals[c])}</span></div>` +
         '<div class="course">' +
           '<div class="start"></div>' +
+          `<div class="no-bet-zone" style="--no-bet-start:${noBetStartsAt(d.trackCells) / d.trackCells}"></div>` +
           `<div class="covered" id="cv-${c}" style="width:${coveredW(pct)}"></div>` +
           `<div class="runway"><div class="runner" id="rn-${c}" style="left:${pct}%">` +
             // 👑 는 말 기준점 안에 있어서 말과 함께 움직인다. 이모지는 색을 못 바꾸므로

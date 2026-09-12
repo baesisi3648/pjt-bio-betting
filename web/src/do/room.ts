@@ -477,8 +477,8 @@ export class Room {
     if ('error' in t) return t.error;
     const team = t.team;
 
-    // ⚠️ 현재 위치를 넘긴다 — 골인한 동물에는 못 건다 (BET_FINISHED, RENEWAL §1).
-    //    화면이 잠그는 줄과 서버가 거절하는 줄이 **같은 값**을 봐야 한다 (views.finishedOf)
+    // ⚠️ 현재 위치를 넘긴다 — 결승선 3칸 전부터는 베팅할 수 없다.
+    //    화면이 잠그는 줄과 서버가 거절하는 줄이 같은 위치 기준을 봐야 한다.
     const check = validateBet(team, state.round, bets, state.settings, currentPositions(state));
     if (!check.ok) return err(check.error);
 

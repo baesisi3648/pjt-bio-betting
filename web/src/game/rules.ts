@@ -16,7 +16,8 @@
  */
 
 import {
-  ANIMAL_CODES, LEVELS, LIMITS, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH
+  ANIMAL_CODES, LEVELS, LIMITS, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH,
+  isNoBetPosition
 } from './config.ts';
 import type { AnimalCode, Level, Settings } from './config.ts';
 export type { Race } from './types.ts';
@@ -633,9 +634,8 @@ export type BetCheck = { ok: true; sum: number } | { ok: false; error: string };
 /**
  * 베팅이 규칙에 맞는지. 화면에서 막아도 서버가 다시 막는다.
  *
- * ⚠️ `positions` 를 **인자로 받는다.** 골인한 동물에는 걸 수 없기 때문이다 (RENEWAL §1).
- *    1위가 8라운드에 들어와 화면에 보이는 순간부터 그 줄은 닫힌다 — 안 그러면
- *    마지막 라운드 베팅이 "이미 1등이 누군지 보이는" 공짜가 된다.
+ * ⚠️ `positions` 를 **인자로 받는다.** 결승선 3칸 전에 도달한 동물에는 걸 수 없기 때문이다.
+ *    학생 화면에서만 잠그지 않고 서버가 같은 경계를 다시 검사한다.
  *    옵션으로 두지 않은 이유는 trackCells 와 같다: 빼먹으면 컴파일이 안 되게 (MIGRATION §5).
  */
 export function validateBet(
@@ -649,7 +649,9 @@ export function validateBet(
     if (typeof v !== 'number' || !isFinite(v) || v < 0 || v !== Math.floor(v)) {
       return { ok: false, error: 'BAD_AMOUNT' };
     }
-    if (v > 0 && (positions[c] ?? 0) >= settings.trackCells) return { ok: false, error: 'BET_FINISHED' };
+    if (v > 0 && isNoBetPosition(positions[c] ?? 0, settings.trackCells)) {
+      return { ok: false, error: 'BET_FINISHED' };
+    }
     sum += v;
   }
   if (team.betLocked && team.betLocked[round]) return { ok: false, error: 'ALREADY_BET' };
