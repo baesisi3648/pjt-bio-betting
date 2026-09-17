@@ -29,6 +29,7 @@
  */
 
 import { isNoBetPosition, type AnimalCode, type Level } from '../../game/config.ts';
+import { summarizeInvestments } from '../../game/investments.ts';
 import type { Settlement } from '../../game/types.ts';
 import type { TeamView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
@@ -258,8 +259,8 @@ function drawTab(): void {
   (['t0', 't1', 't2'] as const).forEach((id, i) => { $(id).className = i === TAB ? 'on' : ''; });
   const p = $('pane');
   if (!D) { p.innerHTML = ''; stopRace(); return; }
-  // 경주 중에는 문제·베팅 자리에 경주를 띄운다. 힌트는 그대로 읽을 수 있게 둔다
-  if (D.phase === 'moving' && TAB !== 1) {
+  // 경주가 시작되면 문제 탭은 TV를 보게 한다. 베팅 탭은 누적 투자 현황을 직접 확인할 수 있다.
+  if (D.phase === 'moving' && TAB === 0) {
     // ⚠️ 이미 그려져 있으면 다시 짓지 않는다 — innerHTML 로 갈아끼우면 캔버스가 새로
     //    생겨서 20초 경주가 상태 푸시마다 처음부터 다시 시작한다
     if (!maybe('mini-track')) p.innerHTML = racingHtml();
@@ -428,17 +429,38 @@ function buyBonus(box: number, btn: HTMLButtonElement): void {
 }
 
 /* 탭 3 — 베팅 */
+function investmentHtml(d: TeamView): string {
+  const me = d.me!;
+  const summary = summarizeInvestments(me.myBets, d.odds);
+  const coin = (n: number): string => n.toLocaleString('ko-KR', { maximumFractionDigits: 2 });
+  const rows = summary.lines.length
+    ? summary.lines.map(({ animalId, coins, odds, reference }) =>
+      `<div class="investment-row"><span>${esc(d.emojis[animalId])} ${esc(d.animals[animalId])}</span>` +
+      `<span>${coins}코인 × ${odds.toFixed(2)}배 = <b>${coin(reference)}</b></span></div>`
+    ).join('')
+    : '<p class="investment-empty">아직 확정한 베팅이 없어요.</p>';
+  return '<section class="investment-summary" aria-label="우리 모둠 누적 투자 현황">' +
+    '<h2>📊 우리 모둠 누적 투자</h2>' +
+    `<div class="investment-totals"><span>보유 <b>${coin(me.coins)}코인</b></span>` +
+    `<span>투자 <b>${coin(summary.invested)}코인</b></span></div>` +
+    rows +
+    `<div class="investment-reference">현재 배당 기준 단순 합계 <b>${coin(summary.referenceTotal)}코인</b></div>` +
+    '<p class="investment-caution">확정 수익이 아닌 참고값이에요. 최종 수령액은 마지막 배당률과 1·2·3등 순위별 정산률에 따라 달라집니다.</p>' +
+    '</section>';
+}
+
 function betHtml(): string {
   const d = D!, me = d.me;
-  if (d.phase === 'paused') return '<div class="empty">선생님이 잠시 멈췄어요</div>';
   if (!me) return '<div class="empty">모둠 정보를 불러오는 중…</div>';
+  const investment = investmentHtml(d);
+  if (d.phase === 'paused') return investment + '<div class="empty">선생님이 잠시 멈췄어요</div>';
   if (!me.canBet) {
     // ⚠️ 확정 뒤에 이 화면이 시선을 **TV 로 올려 보낸다** (§11-5, 05 §1 "고개 들어 TV를 본다").
     //    여기에 다시 만질 것을 넣으면 학생은 계속 폰을 본다
-    if (me.myBets[d.round]) return '<div class="empty locked">✅ 이번 라운드 베팅을 확정했어요' +
+    if (me.myBets[d.round]) return investment + '<div class="empty locked">✅ 이번 라운드 베팅을 확정했어요' +
       '<div class="watch">📺 TV 를 보세요</div></div>';
-    if (d.phase !== 'betting') return `<div class="empty">지금은 ${PHASE_KO[d.phase] || ''}</div>`;
-    return '<div class="empty">베팅 시간이 지났어요</div>';
+    if (d.phase !== 'betting') return investment + `<div class="empty">지금은 ${PHASE_KO[d.phase] || ''}</div>`;
+    return investment + '<div class="empty">베팅 시간이 지났어요</div>';
   }
 
   let used = 0;
@@ -464,7 +486,7 @@ function betHtml(): string {
         `<span class="chips">${chips}</span></span></span>` + controls + '</div>';
   }).join('');
 
-  return '<div class="bet-head"><span>이번 라운드에 걸 코인</span>' +
+  return investment + '<div class="bet-head"><span>이번 라운드에 걸 코인</span>' +
     `<span><b class="num">${used}</b> / ${cap}</span></div>` +
     rows + `<div class="used">보유 ${me.coins}코인</div>` +
     `<button class="big commit" data-act="commit"${used ? '' : ' disabled'}>` +

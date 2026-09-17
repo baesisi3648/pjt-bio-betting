@@ -79,6 +79,16 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 #mini-track{margin-top:14px;min-height:96px;border-radius:12px;background:#E9EFF5}
 
 /* 베팅 — 코인을 "거는" 감각이 있어야 한다. 숫자만 오르내리면 아무것도 안 건 것 같다 */
+.investment-summary{margin-bottom:18px;padding:15px;border:1px solid #D7E2ED;border-radius:13px;background:#F6FAFD}
+.investment-summary h2{font-size:18px;margin:0 0 10px}
+.investment-totals{display:flex;gap:12px;flex-wrap:wrap;margin-bottom:10px;font-size:14px;color:#4B5D6E}
+.investment-totals b{color:var(--text-dark)}
+.investment-row{display:flex;justify-content:space-between;gap:8px;padding:6px 0;border-top:1px solid #E2EAF1;font-size:14px}
+.investment-row span:last-child{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.investment-empty{margin:6px 0;color:#67788A;font-size:14px}
+.investment-reference{display:flex;justify-content:space-between;gap:8px;padding-top:10px;border-top:2px solid #C7D7E5;font-size:15px;font-weight:700}
+.investment-reference b{font-size:19px;color:#946400;font-variant-numeric:tabular-nums;white-space:nowrap}
+.investment-caution{margin:8px 0 0;color:#647789;font-size:12px;line-height:1.5}
 .bet-head{display:flex;justify-content:space-between;align-items:baseline;
           padding-bottom:10px;margin-bottom:4px;border-bottom:2px solid #E7EDF3}
 .bet-head span{font-size:14px;color:#5A6B7C}
