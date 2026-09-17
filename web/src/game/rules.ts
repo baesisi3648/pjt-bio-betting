@@ -62,11 +62,30 @@ import type {
 export function planRace(
   rng: Rng = Math.random, trackCells: number, rounds: number = ROUNDS
 ): Race | null {
+  // 첫 유효 판을 바로 쓰면 선두 교체가 최소치(2번)에 머무는 경우가 많다.
+  // 여러 유효 판을 비교하되 시도 횟수는 제한하고, 좁은 트랙에서 목표에 못 미쳐도
+  // 기존 조건을 만족하는 판을 반환한다. 최종 순위와 골인 라운드는 건드리지 않는다.
+  let best: Race | null = null;
+  let bestScore = -1;
+  let validCount = 0;
   for (let attempt = 0; attempt < LIMITS.reverseAttempts; attempt++) {
     const race = tryPlanRace(rng, trackCells, rounds);
-    if (race) return race;
+    if (!race) continue;
+    validCount++;
+    const leaders = leaderSequence(race.moves, race.truth, trackCells, rounds);
+    let changes = 0;
+    let lateChanges = 0;
+    for (let i = 1; i < leaders.length; i++) {
+      if (leaders[i] === leaders[i - 1]) continue;
+      changes++;
+      if (i >= rounds - 6 && i <= rounds - 3) lateChanges++; // 10R 기준 5~8R
+    }
+    const score = changes * 10 + lateChanges * 3;
+    if (score > bestScore) { best = race; bestScore = score; }
+    if (changes >= 4 && lateChanges >= 2) return race;
+    if (validCount >= 30) break;
   }
-  return null;                                   // 호출자가 한 번 더 시도한다 (Room.create)
+  return best;                                   // 유효 판이 없으면 호출자가 한 번 더 시도한다 (Room.create)
 }
 
 /** 한 번 굴려 본다. 조건 6을 못 맞추면 null */

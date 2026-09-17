@@ -178,6 +178,24 @@ gate('RACE-6', '조건 6 — 선두가 2번 이상 바뀌고, 1위는 4라운드
     : `최소 교체 ${minChanges}회 · 1위의 첫 선두 최소 ${minFirst}R · 예: ${sample[0]}` };
 });
 
+gate('RACE-DRAMA', '대부분의 판에서 선두가 4번 이상 바뀌고 후반(5~8R)에도 역전된다', () => {
+  let frequent = 0, late = 0, both = 0;
+  for (const r of races) {
+    const leaders = leaderSequence(r.moves, r.truth, TRACK, ROUNDS);
+    let changes = 0, lateChanges = 0;
+    for (let i = 1; i < leaders.length; i++) {
+      if (leaders[i] === leaders[i - 1]) continue;
+      changes++;
+      if (i >= 4 && i <= 7) lateChanges++;
+    }
+    if (changes >= 4) frequent++;
+    if (lateChanges >= 2) late++;
+    if (changes >= 4 && lateChanges >= 2) both++;
+  }
+  return { ok: both >= Math.ceil(races.length * 0.85),
+    detail: `300판 중 선두 교체 4회 이상 ${frequent}판 · 5~8R 교체 2회 이상 ${late}판 · 둘 다 ${both}판` };
+});
+
 gate('RACE-7', '조건 7 — 같은 시드면 같은 판 (다른 시드면 다른 판)', () => {
   const same = [1, 42, 300].every((s) =>
     JSON.stringify(planRace(seeded(s), TRACK, ROUNDS)) === JSON.stringify(planRace(seeded(s), TRACK, ROUNDS)));
