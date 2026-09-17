@@ -44,6 +44,15 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 .result{padding:18px;border-radius:12px;font-size:18px;font-weight:700;line-height:1.6}
 .result.o{background:#E6F4EA;color:#1E7E34}
 .result.x{background:#FDECEA;color:#B3261E}
+.prediction{background:#FFF8E7;border:2px solid #E8C66A;border-radius:14px;padding:18px}
+.prediction h2{font-size:20px;margin:0 0 8px}
+.prediction p{font-size:14px;line-height:1.6;margin:0 0 14px;color:#5C4A1C}
+.prediction-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.prediction-grid button{padding:13px 8px;background:#fff;border:2px solid #E8C66A;border-radius:10px;
+  color:var(--text-dark);font-size:16px;font-weight:700;line-height:1.5}
+.prediction-grid button:hover,.prediction-grid button:focus-visible{background:#FFF0BE;border-color:#B8860B}
+.prediction-recap{background:#FFF8E7;border:1px solid #E8C66A;border-radius:10px;padding:10px 12px;
+  margin-bottom:12px;font-size:14px;font-weight:700;color:#5C4A1C}
 
 /* 힌트 — 이 앱에서 제일 많이 읽히는 화면 */
 .tagline{color:#67788A;font-size:13px;margin:-2px 0 12px}

@@ -12,7 +12,7 @@
  * ⚠️ 응답에 Date 객체를 넣지 않는다. 전부 숫자(ms) 다 (MIGRATION §5).
  */
 
-import { ANIMAL_CODES, BONUS_COST, BONUS_SECONDS, DEPLOY_VERSION, PHASES, SKIPPABLE_PHASES } from './config.ts';
+import { ANIMAL_CODES, BONUS_COST, BONUS_SECONDS, DEPLOY_VERSION, PHASES, PREDICTION_BONUS, SKIPPABLE_PHASES } from './config.ts';
 import type { AnimalCode, Level, Phase } from './config.ts';
 import { computeOdds, positionsAtRound, rankByPosition } from './rules.ts';
 import type {
@@ -61,6 +61,8 @@ export interface TeamView extends Clock {
   emojis: Record<AnimalCode, string>;
   maxBet: number;
   bonusCost: number;
+  predictionBonus: number;
+  predictionOpen: boolean;
   teamProgress: TeamProgress[];
   isOver: boolean;
   deployVersion: string;
@@ -88,6 +90,8 @@ export interface TeamView extends Clock {
     canBet: boolean;
     bonusBox: number | null;
     canBuyBonus: boolean;
+    predictedWinner: AnimalCode | null;
+    canPredictWinner: boolean;
   };
   question?: { text: string; choices: string[] };
   truth?: AnimalCode[];
@@ -127,6 +131,8 @@ export interface TeacherView extends Clock {
   seedCoins: number;
   bonusCost: number;
   bonusBoughtCount: number;
+  predictionBonus: number;
+  predictionCount: number;
   animals: Record<AnimalCode, string>;
   emojis: Record<AnimalCode, string>;
   teams: TeacherTeamRow[];
@@ -327,6 +333,8 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
     emojis: state.emojis,
     maxBet: state.settings.maxBetPerRound,
     bonusCost: BONUS_COST,
+    predictionBonus: PREDICTION_BONUS,
+    predictionOpen: state.phase === PHASES.WAITING && state.round === 1 && !state.roundStarted && !state.isOver,
     teamProgress: state.teams.map((t) => ({
       no: t.no, name: t.name,
       answered: !!t.answered[state.round],
@@ -353,7 +361,9 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
       canAnswer: state.phase === PHASES.QUIZ && !ans,
       canBet: state.phase === PHASES.BETTING && !me.betLocked[state.round],
       bonusBox: me.bonusBox ?? null,
-      canBuyBonus: state.phase === PHASES.BONUS && !state.pausedAt && !me.bonusBox && me.coins >= BONUS_COST
+      canBuyBonus: state.phase === PHASES.BONUS && !state.pausedAt && !me.bonusBox && me.coins >= BONUS_COST,
+      predictedWinner: me.predictedWinner ?? null,
+      canPredictWinner: v.predictionOpen && !me.predictedWinner
     };
     // 답을 낸 모둠은 해설을 보는 동안 문제 본문을 계속 봐야 한다. 정답(answer)은 안 담는다
     if (state.phase === PHASES.QUIZ && ans && ans.level && !ans.timeout) {
@@ -408,6 +418,8 @@ export function teacherView(state: GameState, now: number): TeacherView {
     seedCoins: state.settings.seedCoins,
     bonusCost: BONUS_COST,
     bonusBoughtCount: state.teams.filter((t) => !!t.bonusBox).length,
+    predictionBonus: PREDICTION_BONUS,
+    predictionCount: state.teams.filter((t) => !!t.predictedWinner).length,
     animals: state.animals,
     emojis: state.emojis,
     teams: state.teams.map((t) => ({

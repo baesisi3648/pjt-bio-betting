@@ -639,7 +639,9 @@ function render(d: TeacherView): void {
     note.textContent = `🎁 추가 단서 구입! · ${d.bonusCost}코인 · ${d.bonusBoughtCount}/${d.teams.length}모둠 선택`;
     note.classList.remove('hidden');
   } else if (waiting) {
-    note.textContent = `${next}라운드 준비`;
+    note.textContent = !d.roundStarted
+      ? `🏆 우승 예측 · ${d.predictionCount}/${d.teams.length}모둠 선택 · ROUND 1 시작 시 마감`
+      : `${next}라운드 준비`;
     note.classList.remove('hidden');
   } else {
     note.classList.add('hidden');
@@ -1240,7 +1242,16 @@ async function host(op: string, btn?: HTMLButtonElement): Promise<unknown | null
   }
 }
 
-function nextRound(): void { void host('advanceRound', $('btn-round') as HTMLButtonElement); }
+function nextRound(): void {
+  const button = $('btn-round') as HTMLButtonElement;
+  if (LAST && !LAST.roundStarted && LAST.predictionCount < LAST.teams.length) {
+    confirmBox(`${LAST.teams.length - LAST.predictionCount}모둠이 아직 우승 동물을 예측하지 않았어요.\n1라운드를 시작하면 예측이 마감됩니다. 계속할까요?`, () => {
+      void host('advanceRound', button);
+    });
+    return;
+  }
+  void host('advanceRound', button);
+}
 function togglePause(): void { void host('togglePause', $('btn-pause') as HTMLButtonElement); }
 
 /** 응답을 기다리는 동안 또 눌리는 것만 막는다 (파일 머리 4번 — 확인 대화상자는 없다) */
@@ -1355,16 +1366,17 @@ function nextStep(): void {
     const list = d.settlement || [];
     body.innerHTML = '<div class="card"><h2>모둠별 계산</h2>' + list.map((s) =>
       `<details><summary>${s.teamNo}모둠 ${esc(s.teamName)} — ` +
-      `<span class="tally num" id="sc-${s.teamNo}">${s.finalCoins - s.gained}</span>코인</summary>` +
+      `<span class="tally num" id="sc-${s.teamNo}">${s.finalCoins - s.gained - (s.predictionBonus || 0)}</span>코인</summary>` +
       s.lines.map((l) =>
         `<div class="line">${esc(d.animals[l.animalCode])} (${l.finalRank}등) ${l.coins}코인 × ` +
         `${l.odds.toFixed(2)}배 × ${Math.round(l.payoutRate * 100)}% = <b>${l.gained}</b></div>`).join('') +
-      `<div class="line">획득 합계 ${s.gained}코인</div></details>`).join('') + '</div>';
+      `<div class="line">베팅 획득 ${s.gained}코인</div>` +
+      `<div class="line">사전 우승 예측 ${s.predictedWinner ? esc(d.animals[s.predictedWinner]) : '선택 안 함'}: +${s.predictionBonus || 0}코인</div></details>`).join('') + '</div>';
     // 폰의 coinPop 감각을 TV 로 (§11-4). 딴 건지 잃은 건지가 숫자가 움직이는 방향으로 보인다
     list.forEach((s, i) => {
       const el = maybe('sc-' + s.teamNo);
-      if (el && s.gained !== 0) el.classList.add(s.gained > 0 ? 'up' : 'down');
-      window.setTimeout(() => roll('sc-' + s.teamNo, s.finalCoins - s.gained, s.finalCoins, 0, ''), 120 * i);
+      if (el && s.gained + (s.predictionBonus || 0) !== 0) el.classList.add('up');
+      window.setTimeout(() => roll('sc-' + s.teamNo, s.finalCoins - s.gained - (s.predictionBonus || 0), s.finalCoins, 0, ''), 120 * i);
     });
     $('r-next').textContent = '우승 발표';
     return;

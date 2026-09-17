@@ -83,6 +83,8 @@ export interface Team {
   hints: Hint[];
   /** 5라운드 추가 단서 상자. 과거 판에는 없다. */
   bonusBox?: number;
+  /** Free, irreversible winner prediction made before round one starts. */
+  predictedWinner?: AnimalCode;
   answered: Record<number, AnswerRecord>;   // 라운드 → 기록
   bets: Record<number, Bets>;               // 라운드 → 베팅
   betLocked: Record<number, boolean>;
@@ -105,6 +107,8 @@ export interface Settlement {
   teamName: string;
   lines: SettlementLine[];
   gained: number;
+  predictedWinner: AnimalCode | null;
+  predictionBonus: number;
   finalCoins: number;
   rank?: number;
 }

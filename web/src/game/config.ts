@@ -29,6 +29,7 @@ export const ROUNDS = 10;
 export const BONUS_ROUND = 5;
 export const BONUS_COST = 5;
 export const BONUS_SECONDS = 45;
+export const PREDICTION_BONUS = 15;
 
 /** 결승선까지 이 거리만 남으면 해당 동물에 더 이상 베팅할 수 없다. */
 export const NO_BET_DISTANCE = 3;
@@ -186,6 +187,8 @@ export const MESSAGES: Record<string, string> = {
   NOT_ENOUGH_COINS: '코인이 모자라요',
   BAD_AMOUNT:       '코인 수가 이상해요',
   BAD_ANIMAL:       '그런 동물이 없어요',
+  PREDICTION_CLOSED: '1라운드가 시작되어 우승 예측이 마감됐어요',
+  PREDICTION_LOCKED: '우승 동물은 이미 예측했어요. 변경할 수 없어요',
   PAUSED:           '선생님이 잠시 멈췄어요',
   // '지금 넘어가기' 는 문제·토론·베팅에서만 쓴다. 경주 중이거나 대기·종료 상태면 끝낼 게 없다
   NOT_SKIPPABLE:    '지금은 넘어갈 수 있는 단계가 아니에요',
@@ -208,4 +211,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2026.09.17-hints';
+export const DEPLOY_VERSION = 'web-2026.09.17-prediction';

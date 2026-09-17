@@ -57,7 +57,7 @@ export function err(code: string, message?: string): Err {
   return { ok: false, error: code, message: message || MESSAGES[code] || '문제가 생겼어요' };
 }
 
-export type EventKind = 'answer' | 'bonus' | 'bet' | 'round_start' | 'pause' | 'skip';
+export type EventKind = 'answer' | 'bonus' | 'prediction' | 'bet' | 'round_start' | 'pause' | 'skip';
 
 /**
  * 이벤트 로그 한 줄 (MIGRATION §8-4).
@@ -446,6 +446,27 @@ export class Room {
     });
   }
 
+  /** A free, one-time prediction; the teacher's first start closes this gate atomically. */
+  predictWinner(teamNo: number, animalId: AnimalCode, pin: string): Envelope<TeamView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    const checked = this.checkTeam(state, teamNo, pin);
+    if ('error' in checked) return checked.error;
+    if (state.phase !== PHASES.WAITING || state.round !== 1 || state.roundStarted || state.isOver) {
+      return err('PREDICTION_CLOSED');
+    }
+    if (!ANIMAL_CODES.includes(animalId)) return err('BAD_ANIMAL');
+    const team = checked.team;
+    if (team.predictedWinner) return err('PREDICTION_LOCKED');
+    team.predictedWinner = animalId;
+    this.event('prediction', teamNo, { animalId });
+    state.stateVersion++;
+    this.deps.persist(state);
+    this.deps.changed();
+    return ok(teamView(state, teamNo, this.deps.now()));
+  }
+
   /** 상자 선택과 5코인 결제를 서버에서 원자적으로 처리한다. */
   buyBonusHint(teamNo: number, box: number, pin: string): Envelope<TeamView> {
     const g = this.live();
@@ -816,6 +837,9 @@ export function restore(snapshot: GameState, events: GameEvent[]): GameState {
         team.coins -= BONUS_COST;
         team.hints.push(hint);
       }
+    } else if (ev.kind === 'prediction' && team) {
+      const animalId = ev.payload.animalId as AnimalCode;
+      if (!team.predictedWinner && ANIMAL_CODES.includes(animalId)) team.predictedWinner = animalId;
     } else if (ev.kind === 'bet' && team) {
       const bets = (ev.payload.bets || {}) as Bets;
       team.bets = team.bets || {};

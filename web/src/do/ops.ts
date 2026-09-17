@@ -12,7 +12,7 @@
  *    뷰를 두 벌 만들었다가 정답이 새던 것과 같은 함정입니다 (MIGRATION §5).
  */
 
-import type { Level, Settings } from '../game/config.ts';
+import type { AnimalCode, Level, Settings } from '../game/config.ts';
 import type { Bets, Question } from '../game/types.ts';
 import { Room, err } from './room.ts';
 import type { AnimalTable, CreateConfig, Envelope } from './room.ts';
@@ -37,6 +37,7 @@ export function dispatch(room: Room, op: string, a: unknown[]): Envelope<unknown
     case 'chooseLevel':  return room.chooseLevel(Number(a[0]), a[1] as Level, String(a[2]));
     case 'submitAnswer': return room.submitAnswer(Number(a[0]), a[1] as Level, Number(a[2]), String(a[3]));
     case 'buyBonusHint': return room.buyBonusHint(Number(a[0]), Number(a[1]), String(a[2]));
+    case 'predictWinner': return room.predictWinner(Number(a[0]), a[1] as AnimalCode, String(a[2]));
     case 'placeBet':     return room.placeBet(Number(a[0]), a[1] as Bets, String(a[2]));
     case 'advanceRound': return room.advanceRound(String(a[0]));
     case 'togglePause':  return room.togglePause(String(a[0]));
@@ -81,6 +82,7 @@ export function credentialKey(op: string, a: unknown[]): string | null {
     case 'chooseLevel':
     case 'submitAnswer':
     case 'buyBonusHint':
+    case 'predictWinner':
     case 'placeBet':
       return 'team:' + Number(a[0]);
     case 'getState': {

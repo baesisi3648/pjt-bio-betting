@@ -11,7 +11,7 @@
  *   node test/room.ts
  */
 
-import { ANIMAL_CODES, BONUS_COST, BONUS_ROUND, DEFAULTS, LEVELS, PHASES, ROUNDS, isNoBetPosition } from '../src/game/config.ts';
+import { ANIMAL_CODES, BONUS_COST, BONUS_ROUND, DEFAULTS, LEVELS, PHASES, PREDICTION_BONUS, ROUNDS, isNoBetPosition } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
 import { computeOdds, positionsAtRound } from '../src/game/rules.ts';
 import type { GameState, Question, Rng } from '../src/game/types.ts';
@@ -180,6 +180,41 @@ console.log('\n=== 방 코어 통합 게이트 (가짜 시계 · 가짜 알람) 
 
 const T = new Table();
 const created = T.open(6);
+
+gate('PREDICT-1', '1라운드 전 무료 예측은 한 번만 받고 시작 후 잠근다', () => {
+  const t = new Table();
+  t.open(3, 'PRED');
+  const winner = t.state().truth[0]!;
+  const loser = t.state().truth[1]!;
+  const initialCoins = t.state().teams[0]!.coins;
+  const wrongPin = t.room.predictWinner(1, winner, '0000');
+  const invalid = t.room.predictWinner(1, 'Z' as AnimalCode, t.pins[1]!);
+  const first = t.room.predictWinner(1, winner, t.pins[1]!);
+  const repeat = t.room.predictWinner(1, loser, t.pins[1]!);
+  const second = t.room.predictWinner(2, loser, t.pins[2]!);
+  const before = t.view(1);
+  const other = t.view(3);
+  const recovered = restore(t.snapshots[0]!, t.events);
+  t.room.advanceRound(t.hostKey);
+  const late = t.room.predictWinner(3, winner, t.pins[3]!);
+  const fin = t.room.finalize(t.hostKey);
+  const winnerLine = fin.ok ? fin.data.settlement.find((s) => s.teamNo === 1) : null;
+  const loserLine = fin.ok ? fin.data.settlement.find((s) => s.teamNo === 2) : null;
+  const absentLine = fin.ok ? fin.data.settlement.find((s) => s.teamNo === 3) : null;
+  return { ok: !wrongPin.ok && wrongPin.error === 'WRONG_PIN' &&
+      !invalid.ok && invalid.error === 'BAD_ANIMAL' && first.ok && second.ok &&
+      !repeat.ok && repeat.error === 'PREDICTION_LOCKED' &&
+      before.predictionOpen && before.me?.predictedWinner === winner && !before.me.canPredictWinner &&
+      other.me?.predictedWinner === null && other.me.canPredictWinner &&
+      t.tv().predictionCount === 2 && recovered.teams[0]?.predictedWinner === winner &&
+      recovered.teams[1]?.predictedWinner === loser &&
+      t.state().teams[0]?.coins === initialCoins && !t.view(1).predictionOpen && !late.ok && late.error === 'PREDICTION_CLOSED' &&
+      winnerLine?.predictionBonus === PREDICTION_BONUS &&
+      winnerLine.finalCoins === initialCoins + winnerLine.gained + PREDICTION_BONUS &&
+      winnerLine.rank === 1 &&
+      loserLine?.predictionBonus === 0 && absentLine?.predictionBonus === 0,
+    detail: `PIN·동물 검증, 재선택·늦은 선택 차단, 복구, 정답 +${PREDICTION_BONUS}코인 확인` };
+});
 
 gate('SIM1', '판 생성 — 6모둠, 암호 발급, 대기 단계에서 시작', () => {
   const s = T.state();

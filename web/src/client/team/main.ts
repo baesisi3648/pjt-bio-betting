@@ -310,6 +310,13 @@ function quizHtml(): string {
   const d = D!, me = d.me;
   if (d.phase === 'paused') return '<div class="empty">선생님이 잠시 멈췄어요</div>';
   if (!me) return '<div class="empty">모둠 정보를 불러오는 중…</div>';
+  if (d.predictionOpen) {
+    const chosen = me.predictedWinner;
+    if (chosen) return `<section class="prediction"><h2>🏆 우승 예측 완료</h2><p>${esc(d.emojis[chosen])} ${esc(d.animals[chosen])}을 선택했어요. 1등을 맞히면 최종 코인에 ${d.predictionBonus}코인이 추가됩니다.</p></section>`;
+    if (!me.canPredictWinner) return '<div class="empty">우승 예측이 마감됐어요</div>';
+    return `<section class="prediction"><h2>🏆 1등 동물 미리 예측하기</h2><p>무료로 한 마리를 선택하세요. 한 번 확정하면 바꿀 수 없고, 맞히면 최종 코인 +${d.predictionBonus}!</p>` +
+      `<div class="prediction-grid">${Object.keys(d.animals).map((id) => `<button type="button" data-act="predict" data-code="${id}">${esc(d.emojis[id as AnimalCode])}<br>${esc(d.animals[id as AnimalCode])}</button>`).join('')}</div></section>`;
+  }
 
   // 이번 라운드에 낸 답이 있으면 결과를 계속 보여준다 (오답 해설 포함)
   const mine = answered && answered.round === d.round ? answered : null;
@@ -384,14 +391,24 @@ function fraudNote(): string {
 function hintHtml(): string {
   const h = D && D.me ? D.me.hints : [];
   const shop = D && D.phase === 'bonus' ? bonusHtml(D) : '';
-  if (!h.length) return shop + fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
-  return shop + fraudNote() + h.slice().reverse().map((x) => {
+  const prediction = D?.me?.predictedWinner && !D.predictionOpen
+    ? `<div class="prediction-recap">🏆 사전 우승 예측: ${esc(D.emojis[D.me.predictedWinner])} ${esc(D.animals[D.me.predictedWinner])} · 적중 시 +${D.predictionBonus}코인</div>`
+    : '';
+  if (!h.length) return shop + prediction + fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
+  return shop + prediction + fraudNote() + h.slice().reverse().map((x) => {
     const icons = x.animalIds?.length
       ? `<div class="meta">${x.animalIds.map((id) => `${esc(D!.emojis[id])} ${esc(D!.animals[id])}`).join(' · ')}</div>`
       : '';
     return `<div class="hint"><div class="meta">${x.round}라운드 · ${esc(x.level)}</div>` +
       icons + `<div class="txt">${esc(x.text)}</div></div>`;
   }).join('');
+}
+
+function predictWinner(animalId: AnimalCode, btn: HTMLButtonElement): void {
+  if (!D?.me?.canPredictWinner) return;
+  confirmBox(`${D.animals[animalId]}을 1등으로 예측할까요?\n확정하면 바꿀 수 없어요.`, () => {
+    void act('predictWinner', [TEAM, animalId, PIN], btn);
+  });
 }
 
 function bonusHtml(d: TeamView): string {
@@ -535,6 +552,7 @@ function showResult(d: TeamView): void {
       `<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">${l.gained ? '✅' : '❌'} ` +
       `${esc(d.animals[l.animalCode])} (${l.finalRank}등) ${l.coins}코인 → <b>${l.gained}코인</b></div>`
     ).join('') +
+      `<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">🏆 사전 우승 예측: ${mine.predictedWinner ? `${esc(d.emojis[mine.predictedWinner])} ${esc(d.animals[mine.predictedWinner])}` : '선택 안 함'} → <b>+${mine.predictionBonus || 0}코인</b></div>` +
       `<div style="margin-top:14px;font-size:20px;font-weight:800">최종 ${mine.finalCoins}코인 · 전체 ${mine.rank}위</div></div>`;
   }
   r.innerHTML = html;
@@ -575,6 +593,7 @@ function wire(): void {
       case 'pick':   sel = Number(b.dataset.choice); drawTab(); break;
       case 'submit': submit(b); break;
       case 'bonus':  buyBonus(Number(b.dataset.box), b); break;
+      case 'predict': predictWinner(b.dataset.code as AnimalCode, b); break;
       case 'bet':    bet(b.dataset.code as AnimalCode, Number(b.dataset.delta)); break;
       case 'commit': confirmBet(b); break;
     }

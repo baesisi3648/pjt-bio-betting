@@ -16,7 +16,7 @@
  */
 
 import {
-  ANIMAL_CODES, LEVELS, LIMITS, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH,
+  ANIMAL_CODES, LEVELS, LIMITS, PREDICTION_BONUS, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH,
   isNoBetPosition
 } from './config.ts';
 import type { AnimalCode, Level, Settings } from './config.ts';
@@ -684,7 +684,7 @@ export function validateBet(
  * 베팅 시점 고정으로 바꿀 때 과거 판도 다시 계산할 수 있다.
  */
 export function settle(
-  teams: Pick<Team, 'no' | 'name' | 'coins' | 'bets'>[],
+  teams: Pick<Team, 'no' | 'name' | 'coins' | 'bets' | 'predictedWinner'>[],
   finalOrder: AnimalCode[], odds: Odds, settings: Settings
 ): Settlement[] {
   const rank: Partial<Record<AnimalCode, number>> = {};
@@ -710,7 +710,10 @@ export function settle(
     }
     lines.sort((a, b) => a.finalRank - b.finalRank);
 
-    return { teamNo: team.no, teamName: team.name, lines, gained, finalCoins: team.coins + gained };
+    const predictedWinner = team.predictedWinner ?? null;
+    const predictionBonus = predictedWinner === finalOrder[0] ? PREDICTION_BONUS : 0;
+    return { teamNo: team.no, teamName: team.name, lines, gained, predictedWinner,
+      predictionBonus, finalCoins: team.coins + gained + predictionBonus };
   }).sort((a, b) => b.finalCoins - a.finalCoins)
     .map((s, i) => ({ ...s, rank: i + 1 }));
 }

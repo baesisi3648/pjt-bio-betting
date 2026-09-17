@@ -17,6 +17,7 @@
 
 import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, isNoBetPosition } from '../src/game/config.ts';
 import type { AnimalCode } from '../src/game/config.ts';
+import type { TeamView } from '../src/game/views.ts';
 import { THROTTLE } from '../src/do/ops.ts';
 import { validateSet } from '../src/server/bank.ts';
 import type { ApiResponse, RecentGame } from '../src/server/ports.ts';
@@ -175,6 +176,22 @@ await gate('SEC11', '암호 없이 남의 모둠 코인을 못 건다', async ()
     ok: stolen === 'WRONG_PIN' && coinsMid === DEFAULTS.initialCoins && own.body.ok,
     detail: `남의 암호 ${stolen} (코인 ${coinsMid} 그대로) · 제 암호로는 성공`
   };
+});
+
+await gate('GW-PREDICT', 'HTTP 우승 예측은 자기 PIN으로만, 1라운드 전 한 번만', async () => {
+  const net = new Net();
+  const g = await open(net, '유전', 2);
+  const url = `/api/game/${g.code}/prediction`;
+  const body = { teamNo: 1, animalId: 'A' };
+  const wrong = errOf(await net.call('POST', url, { body }));
+  const chosen = await net.call('POST', url, { headers: pin(g.pins[1]!), body });
+  const repeat = errOf(await net.call('POST', url, { headers: pin(g.pins[1]!), body: { ...body, animalId: 'B' } }));
+  const other = dataOf(await net.call('GET', `/api/game/${g.code}/state?viewer=team:2`, { headers: pin(g.pins[2]!) })) as unknown as TeamView;
+  await net.call('POST', `/api/game/${g.code}/advance`, { headers: host(g.hostKey), body: {} });
+  const late = errOf(await net.call('POST', url, { headers: pin(g.pins[2]!), body: { teamNo: 2, animalId: 'A' } }));
+  return { ok: wrong === 'WRONG_PIN' && chosen.body.ok && repeat === 'PREDICTION_LOCKED' &&
+      other.me?.predictedWinner === null && !allKeys(other).has('truth') && late === 'PREDICTION_CLOSED',
+    detail: `PIN ${wrong} · 첫 선택 ${chosen.body.ok} · 재선택 ${repeat} · 시작 뒤 ${late}` };
 });
 
 // ════════════════════════════════════════════════════════════
