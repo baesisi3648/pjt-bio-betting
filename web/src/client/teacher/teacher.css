@@ -299,6 +299,8 @@ th{color:var(--muted);font-size:20px}
 details{margin:10px 0;background:#16202B;border-radius:10px;padding:12px}
 summary{font-size:26px;font-weight:700;cursor:pointer}
 details .line{font-size:20px;color:var(--muted);margin:6px 0 0 14px}
+.settlement-note{font-size:19px;color:var(--muted);margin:4px 0 16px}
+details .settlement-total{color:var(--gold);font-weight:800;margin-top:12px}
 
 /* ══════════════════════════════════════════════════════════
    4b 연출 (MIGRATION §11). 여기부터는 전부 "거들 뿐"이다 —

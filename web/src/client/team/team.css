@@ -44,6 +44,9 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 .result{padding:18px;border-radius:12px;font-size:18px;font-weight:700;line-height:1.6}
 .result.o{background:#E6F4EA;color:#1E7E34}
 .result.x{background:#FDECEA;color:#B3261E}
+.settlement-note{font-size:14px;line-height:1.5;color:#67788A;margin:4px 0 12px}
+.settlement-line{padding:10px 0;border-bottom:1px solid #EEF2F6;font-size:15px;line-height:1.6;overflow-wrap:anywhere}
+.settlement-total{margin-top:12px;padding:10px;border-radius:8px;background:#FFF8E7;font-size:15px;font-weight:700;line-height:1.6}
 .prediction{background:#FFF8E7;border:2px solid #E8C66A;border-radius:14px;padding:18px}
 .prediction h2{font-size:20px;margin:0 0 8px}
 .prediction p{font-size:14px;line-height:1.6;margin:0 0 14px;color:#5C4A1C}

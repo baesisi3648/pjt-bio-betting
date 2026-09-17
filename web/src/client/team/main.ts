@@ -30,6 +30,7 @@
 
 import { isNoBetPosition, type AnimalCode, type Level } from '../../game/config.ts';
 import { summarizeInvestments } from '../../game/investments.ts';
+import { settlementEquation, settlementTotalEquation } from '../../game/settlement-display.ts';
 import type { Settlement } from '../../game/types.ts';
 import type { TeamView } from '../../game/views.ts';
 import { ServerClock } from '../shared/clock.ts';
@@ -570,11 +571,12 @@ function showResult(d: TeamView): void {
     '</div>' + (fr ? `<div class="fraudnote" style="margin-top:12px">🎭 ${fr}라운드 힌트가 거짓이었습니다</div>` : '') + '</div>';
 
   if (mine) {
-    html += '<div class="card"><h1>우리 모둠</h1>' + mine.lines.map((l) =>
-      `<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">${l.gained ? '✅' : '❌'} ` +
-      `${esc(d.animals[l.animalCode])} (${l.finalRank}등) ${l.coins}코인 → <b>${l.gained}코인</b></div>`
+    html += '<div class="card"><h1>우리 모둠</h1>' +
+      '<p class="settlement-note">동물별 계산 결과는 반올림해 정수 코인으로 받습니다.</p>' + mine.lines.map((l) =>
+      `<div class="settlement-line">${l.gained ? '✅' : '❌'} <b>${esc(d.animals[l.animalCode])}</b><br>${settlementEquation(l)}</div>`
     ).join('') +
       `<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">🏆 사전 우승 예측: ${mine.predictedWinner ? `${esc(d.emojis[mine.predictedWinner])} ${esc(d.animals[mine.predictedWinner])}` : '선택 안 함'} → <b>+${mine.predictionBonus || 0}코인</b></div>` +
+      `<div class="settlement-total">${settlementTotalEquation(mine)}</div>` +
       `<div style="margin-top:14px;font-size:20px;font-weight:800">최종 ${mine.finalCoins}코인 · 전체 ${mine.rank}위</div></div>`;
   }
   r.innerHTML = html;
