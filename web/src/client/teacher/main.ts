@@ -590,7 +590,7 @@ function applyState(d: TeacherView): void {
 }
 
 const PHASE_KO: Record<string, string> = {
-  waiting: '준비', moving: '이동 중', quiz: '문제 푸는 중',
+  waiting: '준비', moving: '이동 중', quiz: '문제 푸는 중', bonus: '추가 단서 구입!',
   discuss: '모둠 토론 중', betting: '베팅 중', paused: '일시정지', done: '종료'
 };
 
@@ -635,6 +635,9 @@ function render(d: TeacherView): void {
       note.textContent = '🏇 경주 중';
       note.classList.remove('hidden');
     }
+  } else if (d.phase === 'bonus') {
+    note.textContent = `🎁 추가 단서 구입! · ${d.bonusCost}코인 · ${d.bonusBoughtCount}/${d.teams.length}모둠 선택`;
+    note.classList.remove('hidden');
   } else if (waiting) {
     note.textContent = `${next}라운드 준비`;
     note.classList.remove('hidden');
@@ -760,7 +763,7 @@ function sound(d: TeacherView, left: number | null): void {
   }
 
   // 마지막 10초 초침 — 문제·베팅만. 토론은 조용해야 한다 (MIGRATION §1)
-  audioTick((d.phase === 'quiz' || d.phase === 'betting') && left != null && left <= 10 && left > 0);
+  audioTick((d.phase === 'quiz' || d.phase === 'bonus' || d.phase === 'betting') && left != null && left <= 10 && left > 0);
 }
 
 /**

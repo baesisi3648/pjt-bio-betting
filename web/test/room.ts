@@ -11,9 +11,9 @@
  *   node test/room.ts
  */
 
-import { ANIMAL_CODES, DEFAULTS, LEVELS, PHASES, ROUNDS, isNoBetPosition } from '../src/game/config.ts';
+import { ANIMAL_CODES, BONUS_COST, BONUS_ROUND, DEFAULTS, LEVELS, PHASES, ROUNDS, isNoBetPosition } from '../src/game/config.ts';
 import type { AnimalCode, Level } from '../src/game/config.ts';
-import { computeOdds } from '../src/game/rules.ts';
+import { computeOdds, positionsAtRound } from '../src/game/rules.ts';
 import type { GameState, Question, Rng } from '../src/game/types.ts';
 import { allTeamsDone, teacherView, teamView } from '../src/game/views.ts';
 import { Room, restore } from '../src/do/room.ts';
@@ -134,7 +134,8 @@ function playFullGame(t: Table, teams = 6): number[] {
       // 4모둠은 맞히고 2모둠은 틀린다 — 힌트가 골고루 나가야 검사가 의미 있다
       t.room.submitAnswer(n, lv, n <= 4 ? answerOf(t, r, lv) : 99, t.pins[n]!);
     }
-    t.endPhase();                        // quiz    → discuss
+    t.endPhase();                        // quiz    → bonus(5R) 또는 discuss
+    if (r === BONUS_ROUND) t.endPhase(); // bonus   → discuss
     t.endPhase();                        // discuss → betting
     const trackCells = t.state().settings.trackCells;
     const positions = t.view(1).positions;
@@ -253,7 +254,7 @@ gate('SIM1c', '옛 판(lastRound 9)을 이어 열면 9라운드에서 끝난다'
     t.room.advanceRound(t.hostKey);
     if (t.state().phase === PHASES.DONE) break;
     seen.push(t.state().round);
-    t.endPhase(); t.endPhase(); t.endPhase(); t.endPhase();   // moving→quiz→discuss→betting→waiting
+    while (t.state().phase !== PHASES.WAITING) t.endPhase(); // 5R bonus 포함
   }
   return {
     ok: t.state().phase === PHASES.DONE && t.state().round === 9 && seen.length === 9,
@@ -309,6 +310,44 @@ gate('SIM4', '단계 순서 moving→quiz→discuss→betting→waiting', () => 
   ok: phaseLog.join(',') === 'moving,quiz,discuss,betting,waiting',
   detail: phaseLog.join(' → ') + '  (앱스 스크립트판에는 moving 이 없었다)'
 }));
+
+gate('BONUS-5', '5라운드 문제 뒤 추가 단서 구입: 5코인·세 상자·모둠별 비밀', () => {
+  const t = new Table();
+  t.open(3, 'BON5');
+  for (let r = 1; r < BONUS_ROUND; r++) {
+    t.room.advanceRound(t.hostKey);
+    for (let step = 0; step < 4; step++) t.endPhase();
+  }
+  t.room.advanceRound(t.hostKey);
+  t.endPhase(); // moving → quiz
+  const early = t.room.buyBonusHint(1, 1, t.pins[1]!);
+  t.endPhase(); // quiz → bonus
+  const phaseOk = t.state().phase === PHASES.BONUS && t.tv().bonusBoughtCount === 0;
+  const secrets = t.state().bonusHints!;
+  const first = t.state().truth[0]!, second = t.state().truth[1]!;
+  const positions = positionsAtRound(t.state().moves, 6, t.state().settings.trackCells);
+  const rank = 1 + ANIMAL_CODES.filter((code) => positions[code] > positions[first]).length;
+  const trueHints = secrets[0].includes(t.state().animals[second]) &&
+    secrets[1].includes(t.state().animals[first]) && secrets[2].includes(`${rank}등`);
+  const hidden = !JSON.stringify(t.view(1)).includes('bonusHints') &&
+    !JSON.stringify(t.tv()).includes('bonusHints') &&
+    secrets.every((secret) => !JSON.stringify(t.view(1)).includes(secret) && !JSON.stringify(t.tv()).includes(secret));
+  const wrongPin = t.room.buyBonusHint(1, 1, '0000');
+  const buys = [1, 2, 3].map((box) => t.room.buyBonusHint(box, box, t.pins[box]!));
+  const again = t.room.buyBonusHint(1, 2, t.pins[1]!);
+  const costOk = t.state().teams.every((team) => team.coins === DEFAULTS.initialCoins - BONUS_COST && team.hints.some((hint) => hint.level === '추가 단서'));
+  const boxOk = buys.every((buy) => buy.ok) && t.tv().bonusBoughtCount === 3 && t.state().teams.every((team, i) => team.bonusBox === i + 1);
+  const privateOk = t.state().teams.every((team) => {
+    const view = t.view(team.no);
+    return view.me?.hints.length === team.hints.length && view.me?.bonusBox === team.bonusBox && !JSON.stringify(view).includes('bonusBoxes');
+  });
+  t.endPhase(); // bonus → discuss
+  const late = t.room.buyBonusHint(1, 3, t.pins[1]!);
+  return { ok: phaseOk && trueHints && hidden && !early.ok && !wrongPin.ok && wrongPin.error === 'WRONG_PIN' &&
+    boxOk && costOk && privateOk && !again.ok && again.error === 'BONUS_BOUGHT' &&
+    t.state().phase === PHASES.DISCUSS && !late.ok && late.error === 'BONUS_CLOSED',
+    detail: `phase=${phaseOk}, truth=${trueHints}, boxes=${boxOk}, cost=${costOk}, private=${privateOk}, late=${late.ok ? 'ok' : late.error}` };
+});
 
 // ── 라운드 진행 · 정산 ────────────────────────────────────
 
@@ -375,7 +414,7 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 
   let early: ReturnType<typeof t.room.placeBet> | null = null;
   for (let r = 1; r <= firstFinish; r++) {
     t.room.advanceRound(t.hostKey);
-    t.endPhase(); t.endPhase(); t.endPhase();           // → betting
+    while (t.state().phase !== PHASES.BETTING) t.endPhase();
     if (r === 1) early = t.room.placeBet(1, { [winner]: 1 }, t.pins[1]!);
     t.endPhase();                                       // → waiting
   }
@@ -385,7 +424,7 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 
   const atGoal = pos === t.state().settings.trackCells;
 
   t.room.advanceRound(t.hostKey);
-  t.endPhase(); t.endPhase(); t.endPhase();              // 다음 라운드 betting
+  while (t.state().phase !== PHASES.BETTING) t.endPhase();
   const finished = t.view(1).finished;
   const tvFinished = t.tv().finished;
   const blocked = t.room.placeBet(2, { [winner]: 1 }, t.pins[2]!);
@@ -410,7 +449,7 @@ gate('HINT-ROUND', '힌트는 (라운드, 난이도)로 정해진다 — 같은 
     if (new Set(t.hints.map((h) => h.text)).size !== t.hints.length) bad.push(`${t.no}모둠 중복`);
     for (const h of t.hints) {
       // 저장된 hintPool 의 그 자리와 **글자 하나까지** 같아야 한다
-      if (st.hintPool[h.level][h.round - 1] !== h.text) bad.push(`${t.no}모둠 ${h.round}R ${h.level} 자리 어긋남`);
+      if (h.level !== '추가 단서' && st.hintPool[h.level][h.round - 1] !== h.text) bad.push(`${t.no}모둠 ${h.round}R ${h.level} 자리 어긋남`);
     }
   }
   // 같은 라운드에 같은 난이도를 고른 두 모둠은 **같은 힌트**를 받는다 (RENEWAL §1)

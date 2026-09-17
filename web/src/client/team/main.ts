@@ -181,7 +181,7 @@ function applyState(d: TeamView): void {
 
 const PHASE_KO: Record<string, string> = {
   waiting: '다음 라운드를 기다려요', moving: '동물들이 달리는 중',
-  quiz: '문제 풀 때예요', discuss: '힌트 보고 이야기할 때예요', betting: '베팅할 때예요',
+  quiz: '문제 풀 때예요', bonus: '추가 단서 구입!', discuss: '힌트 보고 이야기할 때예요', betting: '베팅할 때예요',
   paused: '선생님이 잠시 멈췄어요', done: '게임 끝!'
 };
 
@@ -198,6 +198,7 @@ function render(d: TeamView): void {
   }
   // 경주 20초 동안은 문제 탭 자리에서 경주를 알린다 — 이때 폰에는 조작할 것이 없다
   if (d.phase === 'moving' && lastPhaseSeen !== 'moving') TAB = 0;
+  if (d.phase === 'bonus' && lastPhaseSeen !== 'bonus') TAB = 1;
   lastPhaseSeen = d.phase;
 
   const me = d.me;
@@ -244,7 +245,7 @@ function tick(): void {
   bar.style.width = (clock.progress(d) * 100) + '%';
 
   // 마감 10초 전엔 막대가 빨개지고 뛴다 — 폰을 안 보고 있어도 곁눈에 걸리게
-  const urgent = left != null && left <= 10 && (d.phase === 'betting' || d.phase === 'quiz');
+  const urgent = left != null && left <= 10 && (d.phase === 'betting' || d.phase === 'quiz' || d.phase === 'bonus');
   bar.parentElement!.classList.toggle('urgent', urgent);
 
   const n = $('now');
@@ -382,11 +383,28 @@ function fraudNote(): string {
 
 function hintHtml(): string {
   const h = D && D.me ? D.me.hints : [];
-  if (!h.length) return fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
-  return fraudNote() + h.slice().reverse().map((x) =>
+  const shop = D && D.phase === 'bonus' ? bonusHtml(D) : '';
+  if (!h.length) return shop + fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
+  return shop + fraudNote() + h.slice().reverse().map((x) =>
     `<div class="hint"><div class="meta">${x.round}라운드 · ${esc(x.level)}</div>` +
     `<div class="txt">${esc(x.text)}</div></div>`
   ).join('');
+}
+
+function bonusHtml(d: TeamView): string {
+  const me = d.me;
+  if (!me) return '';
+  if (me.bonusBox) return `<section class="bonus-shop"><h2>🎁 추가 단서 구입 완료</h2><p>${me.bonusBox}번 상자를 열었습니다. 받은 단서는 아래에서 확인하세요.</p></section>`;
+  if (!me.canBuyBonus) return `<section class="bonus-shop"><h2>🎁 추가 단서 구입!</h2><p>구입에는 ${d.bonusCost}코인이 필요합니다. 현재 ${me.coins}코인이라 구입할 수 없어요.</p></section>`;
+  return `<section class="bonus-shop"><h2>🎁 추가 단서 구입!</h2><p>${d.bonusCost}코인을 내고 비밀 상자 하나를 고르세요. 세 상자에는 서로 다른 참 단서가 숨어 있습니다.</p>` +
+    `<div class="bonus-boxes">${[1, 2, 3].map((box) => `<button type="button" data-act="bonus" data-box="${box}" aria-label="${box}번 비밀 상자 선택"><span>🎁</span><b>${box}번 상자</b></button>`).join('')}</div></section>`;
+}
+
+function buyBonus(box: number, btn: HTMLButtonElement): void {
+  if (!D?.me?.canBuyBonus) return;
+  confirmBox(`${box}번 비밀 상자를 열까요?\n${D.bonusCost}코인이 차감되며 다시 고를 수 없어요.`, () => {
+    void act('buyBonusHint', [TEAM, box, PIN], btn);
+  });
 }
 
 /* 탭 3 — 베팅 */
@@ -553,6 +571,7 @@ function wire(): void {
       case 'level':  chooseLevel(b.dataset.level as Level, b); break;
       case 'pick':   sel = Number(b.dataset.choice); drawTab(); break;
       case 'submit': submit(b); break;
+      case 'bonus':  buyBonus(Number(b.dataset.box), b); break;
       case 'bet':    bet(b.dataset.code as AnimalCode, Number(b.dataset.delta)); break;
       case 'commit': confirmBet(b); break;
     }

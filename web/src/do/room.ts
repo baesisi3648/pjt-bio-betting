@@ -24,12 +24,12 @@
  */
 
 import {
-  ANIMAL_CODES, DEFAULTS, LEVELS, MESSAGES, PHASES, ROUNDS, SETTING_RANGE
+  ANIMAL_CODES, BONUS_COST, BONUS_ROUND, BONUS_SECONDS, DEFAULTS, LEVELS, MESSAGES, PHASES, ROUNDS, SETTING_RANGE
 } from '../game/config.ts';
 import type { AnimalCode, Level, Settings } from '../game/config.ts';
 import {
-  buildFraudRound, buildHintPlan, computeOdds, makeCode, makeHostKey, makePin,
-  planQuestions, planRace, positionsAtRound, rankByPosition, settle, validateBet
+  buildBonusHints, buildFraudRound, buildHintPlan, computeOdds, makeCode, makeHostKey, makePin,
+  planQuestions, planRace, positionsAtRound, rankByPosition, settle, shuffle, validateBet
 } from '../game/rules.ts';
 import type {
   AnswerRecord, Bets, GameState, Hint, Question, Rng, Team
@@ -56,7 +56,7 @@ export function err(code: string, message?: string): Err {
   return { ok: false, error: code, message: message || MESSAGES[code] || '문제가 생겼어요' };
 }
 
-export type EventKind = 'answer' | 'bet' | 'round_start' | 'pause' | 'skip';
+export type EventKind = 'answer' | 'bonus' | 'bet' | 'round_start' | 'pause' | 'skip';
 
 /**
  * 이벤트 로그 한 줄 (MIGRATION §8-4).
@@ -261,6 +261,7 @@ export class Room {
 
     const teamCount = Math.max(1, Math.floor(Number(config.teamCount) || 0));
     const teams: Team[] = [];
+    const bonusBoxes: NonNullable<GameState['bonusBoxes']> = {};
     for (let i = 0; i < teamCount; i++) {
       teams.push({
         no: i + 1,
@@ -269,6 +270,7 @@ export class Room {
         coins: settings.initialCoins,
         hints: [], answered: {}, bets: {}, betLocked: {}
       });
+      bonusBoxes[i + 1] = shuffle([0, 1, 2], this.rng) as [number, number, number];
     }
 
     const pool = {} as GameState['pool'];
@@ -297,6 +299,8 @@ export class Room {
       emojis: animals.emojis,
       // 사기 라운드 자리는 이미 거짓 문장으로 치환돼 있다 — 지급할 때 다시 따지지 않는다
       hintPool: hintPlan.texts,
+      bonusHints: buildBonusHints(race.truth, race.moves, settings.trackCells, animals.names, this.rng),
+      bonusBoxes,
       // ⚠️ lastRound 가 아니라 ROUNDS(10)만큼 배정한다. 지금은 둘이 같지만(골인 8·9·10 고정)
       //    옛 규칙에서는 9라운드 분만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가
       //    드러났다. 배정 기준은 계속 ROUNDS 다 (§4-1)
@@ -449,6 +453,34 @@ export class Room {
     const pool = this.state!.hintPool[level] || [];
     const text = pool[round - 1];
     return text ? { round, level, text } : null;
+  }
+
+  /** 상자 선택과 5코인 결제를 서버에서 원자적으로 처리한다. */
+  buyBonusHint(teamNo: number, box: number, pin: string): Envelope<TeamView> {
+    const g = this.live();
+    if ('error' in g) return g.error;
+    const state = g.state;
+    if (state.pausedAt) return err('PAUSED');
+    const checked = this.checkTeam(state, teamNo, pin);
+    if ('error' in checked) return checked.error;
+    if (state.phase !== PHASES.BONUS || state.round !== BONUS_ROUND || this.closedByClock(state)) return err('BONUS_CLOSED');
+    if (!Number.isInteger(box) || box < 1 || box > 3) return err('BAD_BOX');
+    const team = checked.team;
+    if (team.bonusBox) return err('BONUS_BOUGHT');
+    if (team.coins < BONUS_COST) return err('NOT_ENOUGH_COINS');
+    const hintIndex = state.bonusBoxes?.[teamNo]?.[box - 1];
+    const text = hintIndex == null ? null : state.bonusHints?.[hintIndex];
+    if (!text) return err('SHEET_INVALID', '추가 단서를 불러오지 못했어요');
+
+    const hint: Hint = { round: BONUS_ROUND, level: '추가 단서', text };
+    team.coins -= BONUS_COST;
+    team.bonusBox = box;
+    team.hints.push(hint);
+    this.event('bonus', teamNo, { box, hint, cost: BONUS_COST });
+    state.stateVersion++;
+    this.deps.persist(state);
+    this.deps.changed();
+    return ok(teamView(state, teamNo, this.deps.now()));
   }
 
   /**
@@ -694,7 +726,7 @@ export class Room {
   /**
    * 단계 전환이 일어나는 **유일한** 곳.
    *
-   *   waiting ─(교사)→ moving(20초) → quiz(90초) → discuss(180초) → betting(60초) → waiting
+   *   waiting → moving → quiz → [5라운드만 bonus] → discuss → betting → waiting
    *
    * ⚠️ 알람은 예정보다 일찍 깨어날 수 있고(다른 이유로 걸린 알람, 재개 직후 등),
    *    늦게 올 수도 있다. 일찍 왔으면 **아무것도 바꾸지 않고 다시 건다.**
@@ -721,6 +753,12 @@ export class Room {
           t.answered[state.round] = { level: null, choice: null, correct: false, timeout: true };
         }
       }
+      if (state.round === BONUS_ROUND && state.bonusHints && state.bonusBoxes) {
+        this.setPhase(PHASES.BONUS, BONUS_SECONDS);
+      } else {
+        this.setPhase(PHASES.DISCUSS, state.settings.discussSeconds);
+      }
+    } else if (state.phase === PHASES.BONUS) {
       this.setPhase(PHASES.DISCUSS, state.settings.discussSeconds);
     } else if (state.phase === PHASES.DISCUSS) {
       this.setPhase(PHASES.BETTING, state.settings.betSeconds);
@@ -778,6 +816,14 @@ export function restore(snapshot: GameState, events: GameEvent[]): GameState {
       if (rec.correct && rec.hint) {
         team.hints = team.hints || [];
         team.hints.push(rec.hint);
+      }
+    } else if (ev.kind === 'bonus' && team) {
+      const box = Number(ev.payload.box);
+      const hint = ev.payload.hint as Hint;
+      if (!team.bonusBox && Number.isInteger(box) && box >= 1 && box <= 3 && hint) {
+        team.bonusBox = box;
+        team.coins -= BONUS_COST;
+        team.hints.push(hint);
       }
     } else if (ev.kind === 'bet' && team) {
       const bets = (ev.payload.bets || {}) as Bets;

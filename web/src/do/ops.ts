@@ -36,6 +36,7 @@ export function dispatch(room: Room, op: string, a: unknown[]): Envelope<unknown
     case 'getState':     return room.getState(a[0] as string | null, a[1] as string | null, a[2] as string | null);
     case 'chooseLevel':  return room.chooseLevel(Number(a[0]), a[1] as Level, String(a[2]));
     case 'submitAnswer': return room.submitAnswer(Number(a[0]), a[1] as Level, Number(a[2]), String(a[3]));
+    case 'buyBonusHint': return room.buyBonusHint(Number(a[0]), Number(a[1]), String(a[2]));
     case 'placeBet':     return room.placeBet(Number(a[0]), a[1] as Bets, String(a[2]));
     case 'advanceRound': return room.advanceRound(String(a[0]));
     case 'togglePause':  return room.togglePause(String(a[0]));
@@ -79,6 +80,7 @@ export function credentialKey(op: string, a: unknown[]): string | null {
     case 'join':
     case 'chooseLevel':
     case 'submitAnswer':
+    case 'buyBonusHint':
     case 'placeBet':
       return 'team:' + Number(a[0]);
     case 'getState': {

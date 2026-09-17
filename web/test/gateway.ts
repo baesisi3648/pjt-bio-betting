@@ -406,7 +406,14 @@ await gate('GW1', '판 생성 → 6모둠 접속 → 진행 → 정산까지 HTT
         body: { teamNo: n, level: lv, choice: n <= 4 ? answerOf(net, g.code, r, lv) : 99 }
       });
     }
-    net.endPhase(g.code);                        // quiz → discuss
+    net.endPhase(g.code);                        // quiz → bonus(5R) 또는 discuss
+    if (r === 5) {
+      const bonus = await net.call('POST', `/api/game/${g.code}/bonus`, {
+        headers: pin(g.pins[1]!), body: { teamNo: 1, box: 1 }
+      });
+      if (!bonus.body.ok) return { ok: false, detail: `5R 추가 단서 ${errOf(bonus)}` };
+      net.endPhase(g.code);                      // bonus → discuss
+    }
     net.endPhase(g.code);                        // discuss → betting
     // ⚠️ 8라운드쯤부터 1위가 골인해 있다 — 그 동물에 걸면 BET_FINISHED 로 거절된다.
     //    폰이 보는 것과 같은 값(teamView.finished)으로 아직 안 들어온 동물을 고른다

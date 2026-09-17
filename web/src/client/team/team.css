@@ -115,6 +115,18 @@ input{width:100%;padding:16px;font-size:26px;text-align:center;letter-spacing:8p
 /* 미니 트랙 캔버스 (team/mini.ts). TV 와 **같은 경주**를 작게 그린다 */
 #mini-track canvas{border-radius:10px;background:#F3F7FB}
 
+/* 5라운드 추가 단서: 내용은 결제 전까지 서버에만 있다 */
+.bonus-shop{margin:0 0 18px;padding:18px;border:2px solid #D99A25;border-radius:16px;
+            background:linear-gradient(145deg,#FFF5D8,#FFFDF4);box-shadow:0 4px 0 #D9A63E}
+.bonus-shop h2{margin:0 0 8px;font-size:22px;color:#66430A}
+.bonus-shop p{margin:0 0 14px;font-size:15px;line-height:1.55;color:#5B4B32}
+.bonus-boxes{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px}
+.bonus-boxes button{min-height:118px;display:flex;flex-direction:column;align-items:center;
+                     justify-content:center;gap:6px;border:2px solid #A87319;border-radius:14px;
+                     background:#FFE6A4;color:#4B3210;box-shadow:0 4px 0 #A87319}
+.bonus-boxes button span{font-size:38px}.bonus-boxes button b{font-size:14px}
+.bonus-boxes button:active{transform:translateY(3px);box-shadow:0 1px 0 #A87319}
+
 /* 베팅 확정 — 시선을 TV 로 올려 보내는 한 줄 (§11-5) */
 .empty.locked{color:#1E7E34}
 .empty .watch{margin-top:12px;font-size:20px;font-weight:800;color:var(--text-dark)}

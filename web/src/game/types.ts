@@ -57,7 +57,7 @@ export interface Question {
 
 export interface Hint {
   round: number;
-  level: Level;
+  level: Level | '추가 단서';
   text: string;
 }
 
@@ -75,6 +75,8 @@ export interface Team {
   pin: string;
   coins: number;
   hints: Hint[];
+  /** 5라운드 추가 단서 상자. 과거 판에는 없다. */
+  bonusBox?: number;
   answered: Record<number, AnswerRecord>;   // 라운드 → 기록
   bets: Record<number, Bets>;               // 라운드 → 베팅
   betLocked: Record<number, boolean>;
@@ -147,6 +149,9 @@ export interface GameState {
    *    "같은 힌트를 두 번" 이라는 상태 자체가 없다 (RENEWAL §2-2).
    */
   hintPool: Record<Level, string[]>;
+  /** 추가 단서 원문과 모둠별 비밀 상자 순서. 학생 뷰에는 공개하지 않는다. */
+  bonusHints?: [string, string, string];
+  bonusBoxes?: Record<number, [number, number, number]>;
 
   questionPlan: QuestionPlan;
   questionById: Record<number, Question>;   // 배정된 문항의 내용을 굳혀 둔다

@@ -143,6 +143,9 @@ export async function handle(req: ApiRequest, ports: Ports): Promise<ApiResponse
     if (what === 'answer' && method === 'POST') {
       return reply(await room.op('submitAnswer', [Number(body.teamNo), body.level, Number(body.choice), pinOf(req, body)]));
     }
+    if (what === 'bonus' && method === 'POST') {
+      return reply(await room.op('buyBonusHint', [Number(body.teamNo), Number(body.box), pinOf(req, body)]));
+    }
     if (what === 'bet' && method === 'POST') {
       return reply(await room.op('placeBet', [Number(body.teamNo), body.bets, pinOf(req, body)]));
     }

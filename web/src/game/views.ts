@@ -12,7 +12,7 @@
  * ⚠️ 응답에 Date 객체를 넣지 않는다. 전부 숫자(ms) 다 (MIGRATION §5).
  */
 
-import { ANIMAL_CODES, DEPLOY_VERSION, PHASES, SKIPPABLE_PHASES } from './config.ts';
+import { ANIMAL_CODES, BONUS_COST, BONUS_SECONDS, DEPLOY_VERSION, PHASES, SKIPPABLE_PHASES } from './config.ts';
 import type { AnimalCode, Level, Phase } from './config.ts';
 import { computeOdds, positionsAtRound, rankByPosition } from './rules.ts';
 import type {
@@ -60,6 +60,7 @@ export interface TeamView extends Clock {
   animals: Record<AnimalCode, string>;
   emojis: Record<AnimalCode, string>;
   maxBet: number;
+  bonusCost: number;
   teamProgress: TeamProgress[];
   isOver: boolean;
   deployVersion: string;
@@ -85,6 +86,8 @@ export interface TeamView extends Clock {
     answerResult: { correct: boolean } | null;
     canAnswer: boolean;
     canBet: boolean;
+    bonusBox: number | null;
+    canBuyBonus: boolean;
   };
   question?: { text: string; choices: string[] };
   truth?: AnimalCode[];
@@ -122,6 +125,8 @@ export interface TeacherView extends Clock {
   odds: Odds;
   pool: Pool;
   seedCoins: number;
+  bonusCost: number;
+  bonusBoughtCount: number;
   animals: Record<AnimalCode, string>;
   emojis: Record<AnimalCode, string>;
   teams: TeacherTeamRow[];
@@ -229,6 +234,7 @@ export function phaseSecondsOf(state: GameState): number | null {
   switch (state.phase) {
     case PHASES.MOVING:  return s.moveSeconds;
     case PHASES.QUIZ:    return s.quizSeconds;
+    case PHASES.BONUS:   return BONUS_SECONDS;
     case PHASES.DISCUSS: return s.discussSeconds;
     case PHASES.BETTING: return s.betSeconds;
     default:             return null;
@@ -320,6 +326,7 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
     animals: state.animals,
     emojis: state.emojis,
     maxBet: state.settings.maxBetPerRound,
+    bonusCost: BONUS_COST,
     teamProgress: state.teams.map((t) => ({
       no: t.no, name: t.name,
       answered: !!t.answered[state.round],
@@ -344,7 +351,9 @@ export function teamView(state: GameState, teamNo: number, now: number): TeamVie
       chosenLevel: ans ? ans.level : null,
       answerResult: ans && ans.level ? { correct: ans.correct } : null,
       canAnswer: state.phase === PHASES.QUIZ && !ans,
-      canBet: state.phase === PHASES.BETTING && !me.betLocked[state.round]
+      canBet: state.phase === PHASES.BETTING && !me.betLocked[state.round],
+      bonusBox: me.bonusBox ?? null,
+      canBuyBonus: state.phase === PHASES.BONUS && !state.pausedAt && !me.bonusBox && me.coins >= BONUS_COST
     };
     // 답을 낸 모둠은 해설을 보는 동안 문제 본문을 계속 봐야 한다. 정답(answer)은 안 담는다
     if (state.phase === PHASES.QUIZ && ans && ans.level && !ans.timeout) {
@@ -397,6 +406,8 @@ export function teacherView(state: GameState, now: number): TeacherView {
     odds: computeOdds(state.pool),
     pool: state.pool,
     seedCoins: state.settings.seedCoins,
+    bonusCost: BONUS_COST,
+    bonusBoughtCount: state.teams.filter((t) => !!t.bonusBox).length,
     animals: state.animals,
     emojis: state.emojis,
     teams: state.teams.map((t) => ({

@@ -26,6 +26,9 @@ export const LEVELS = ['쉬움', '보통', '어려움'] as const;
  * 10R 없이 정산했다(lastRound 9). 필드는 이어하기(옛 판)를 위해 남아 있다.
  */
 export const ROUNDS = 10;
+export const BONUS_ROUND = 5;
+export const BONUS_COST = 5;
+export const BONUS_SECONDS = 45;
 
 /** 결승선까지 이 거리만 남으면 해당 동물에 더 이상 베팅할 수 없다. */
 export const NO_BET_DISTANCE = 3;
@@ -46,6 +49,7 @@ export const PHASES = {
   WAITING: 'waiting',
   MOVING:  'moving',
   QUIZ:    'quiz',
+  BONUS:   'bonus',
   DISCUSS: 'discuss',
   BETTING: 'betting',
   PAUSED:  'paused',
@@ -61,7 +65,7 @@ export type Phase = (typeof PHASES)[keyof typeof PHASES];
  *    건너뛰면 말이 순간이동한 것처럼 보입니다. `waiting`·`done` 은 애초에 시간이
  *    흐르지 않아 끝낼 것이 없습니다 (`phaseEndsAt` 이 null 이다).
  */
-export const SKIPPABLE_PHASES = [PHASES.QUIZ, PHASES.DISCUSS, PHASES.BETTING] as readonly Phase[];
+export const SKIPPABLE_PHASES = [PHASES.QUIZ, PHASES.BONUS, PHASES.DISCUSS, PHASES.BETTING] as readonly Phase[];
 
 export const DEFAULTS = {
   // 20 → 30 (2026-09-07 사용자 결정). 라운드당 최대 3코인 × 10라운드 = 30 이라
@@ -171,6 +175,9 @@ export const MESSAGES: Record<string, string> = {
   WRONG_PIN:        '암호가 달라요. 모둠장에게 확인해주세요',
   QUIZ_CLOSED:      '제출 시간이 지났어요',
   BET_CLOSED:       '베팅 시간이 지났어요. 다음 라운드를 기다려주세요',
+  BONUS_CLOSED:     '추가 단서 구입 시간이 아니에요',
+  BONUS_BOUGHT:     '이미 추가 단서를 구입했어요',
+  BAD_BOX:          '비밀 상자 번호를 다시 확인해주세요',
   ALREADY_ANSWERED: '이번 라운드는 이미 제출했어요',
   ALREADY_BET:      '이미 확정했어요',
   // 결승선 3칸 전부터 그 동물의 베팅 줄은 닫힌다.
@@ -201,4 +208,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2026.09.07';
+export const DEPLOY_VERSION = 'web-2026.09.17-bonus';

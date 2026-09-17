@@ -255,6 +255,24 @@ export function leaderSequence(
 
 export type HintPredicate = (order: AnimalCode[]) => boolean;
 
+/** 5라운드 유료 상자 세 개. 모두 실제 경주 계획에서 계산한 참 단서다. */
+export function buildBonusHints(
+  truth: AnimalCode[], moves: Moves, trackCells: number,
+  names: Partial<Record<AnimalCode, string>>, rng: Rng = Math.random
+): [string, string, string] {
+  const name = (code: AnimalCode) => names[code] || code;
+  const first = truth[0]!;
+  const contenders = shuffle([first, ...shuffle(truth.slice(1), rng).slice(0, 2)], rng);
+  const positions = positionsAtRound(moves, 6, trackCells);
+  const rank = 1 + ANIMAL_CODES.filter((code) => positions[code] > positions[first]).length;
+  const tied = ANIMAL_CODES.some((code) => code !== first && positions[code] === positions[first]);
+  return [
+    `최종 2등으로 들어오는 동물은 ${name(truth[1]!)}입니다.`,
+    `최종 1등으로 들어오는 동물은 ${contenders.map(name).join(', ')} 중 하나입니다.`,
+    `6라운드가 끝나고 ${tied ? '공동 ' : ''}${rank}등을 달리고 있는 동물이 최종 1등입니다.`
+  ];
+}
+
 /**
  * 힌트 한 줄의 설계도. **문장과 논리식이 여기 하나에서 같이 나온다.**
  *
