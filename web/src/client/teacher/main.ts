@@ -67,6 +67,7 @@ import type { Rank } from '../shared/rank.ts';
 import { crownTier, rankPlain, ranksOf } from '../shared/rank.ts';
 import { GameSocket } from '../shared/socket.ts';
 import { $, confirmBox, esc, hideConn, maybe, reducedMotion, showConn, toast } from '../shared/ui.ts';
+import { phaseCue } from './phase-cue.ts';
 import type { RaceStage } from './stage.ts';
 
 // ────────────────────────────────────────────────────────────
@@ -710,12 +711,46 @@ function drawTeams(d: TeacherView): void {
 /** 타이머가 튄 것을 알아보기 위해 지난 초를 기억한다 (아래 tick 주석) */
 let prevLeft: number | null = null;
 let prevPhase = '';
+let waitingCueKey = '';
+let waitingCueAt = 0;
+
+function drawPhaseOverlay(d: TeacherView, left: number | null): void {
+  const overlay = $('phase-overlay');
+  if (d.phase === 'waiting') {
+    const key = `${d.round}:${d.roundStarted}`;
+    if (key !== waitingCueKey) { waitingCueKey = key; waitingCueAt = Date.now(); }
+  } else waitingCueKey = '';
+  const elapsed = d.phase === 'waiting' ? (Date.now() - waitingCueAt) / 1000 : clock.elapsed(d);
+  const elapsedSeconds = d.phase === 'waiting' ? elapsed
+    : elapsed == null || d.phaseSeconds == null ? null : elapsed * d.phaseSeconds;
+  const cue = $('s2').classList.contains('hidden') || (d.phase === 'moving' && stage !== null)
+    ? null : phaseCue(d.phase, left, elapsedSeconds, d.bonusCost);
+  if (!cue) {
+    overlay.classList.add('hidden');
+    overlay.dataset.cue = '';
+    return;
+  }
+  const key = `${d.round}:${d.phase}:${cue.kind}:${cue.number ?? ''}`;
+  if (overlay.dataset.cue === key) return;
+  overlay.dataset.cue = key;
+  overlay.classList.toggle('countdown', cue.kind === 'countdown');
+  $('phase-overlay-title').textContent = cue.kind === 'intro' ? `ROUND ${d.round}` : cue.title;
+  $('phase-overlay-main').textContent = cue.kind === 'intro' ? cue.title : String(cue.number);
+  $('phase-overlay-instruction').textContent = cue.instruction;
+  overlay.classList.remove('hidden', 'pulse');
+  void overlay.offsetWidth; // Replay the number's pop only when its value changes.
+  overlay.classList.add('pulse');
+}
 
 /** 1초마다. 서버 시각으로 다시 센다 (폴링이 아니다) */
 function tick(): void {
   const d = LAST;
-  if (!d || d.isOver) return;
+  if (!d || d.isOver) {
+    $('phase-overlay').classList.add('hidden');
+    return;
+  }
   const left = clock.secondsLeft(d);
+  drawPhaseOverlay(d, left);
   const t = $('p-timer');
   t.textContent = (PHASE_KO[d.phase] || '') + (left != null ? `  ⏱ ${left}` : '');
   // ⚠️ className 을 통째로 다시 쓰지 않는다 — 아래에서 붙인 pop 이 다음 상태 푸시에

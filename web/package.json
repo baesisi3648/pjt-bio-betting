@@ -8,6 +8,7 @@
     "gates": "node test/gates.ts",
     "hint-engine": "node test/hint-engine.ts",
     "investments": "node test/investments.ts",
+    "phase-cue": "node test/phase-cue.ts",
     "room": "node test/room.ts",
     "gateway": "node test/gateway.ts",
     "admin": "node test/admin.ts",
@@ -17,7 +18,7 @@
     "seed": "node scripts/import-questions.ts",
     "build": "vite build",
     "dev": "npm run build && wrangler dev",
-    "test": "npm run typecheck && npm run gates && npm run hint-engine && npm run investments && npm run room && npm run gateway && npm run admin && npm run cleanup && npm run qr && npm run race",
+    "test": "npm run typecheck && npm run gates && npm run hint-engine && npm run investments && npm run phase-cue && npm run room && npm run gateway && npm run admin && npm run cleanup && npm run qr && npm run race",
     "typecheck": "tsc -p tsconfig.json && tsc -p tsconfig.test.json && tsc -p tsconfig.client.json"
   },
   "devDependencies": {

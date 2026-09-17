@@ -91,6 +91,20 @@ th{color:var(--muted);font-size:20px}
 .timer{font-size:42px;font-weight:900;color:var(--gold);white-space:nowrap}
 .timer.urgent{color:var(--goal)}
 
+/* TV 중앙 단계 안내. 한 화면 zoom 밖에 두어 브라우저 크기와 관계없이 진짜 중앙에 뜬다. */
+.phase-overlay{position:fixed;inset:0;z-index:90;display:flex;align-items:center;justify-content:center;
+               padding:24px;background:rgba(5,12,20,.68);pointer-events:none;text-align:center}
+.phase-overlay-card{width:min(1100px,94vw);padding:42px 36px;border:3px solid rgba(242,180,65,.85);
+                    border-radius:28px;background:rgba(10,22,34,.96);box-shadow:0 22px 90px rgba(0,0,0,.6)}
+.phase-overlay-title{font-size:clamp(24px,3vw,42px);font-weight:900;color:var(--gold);letter-spacing:.06em}
+.phase-overlay-main{font-size:clamp(64px,8vw,138px);line-height:1.12;font-weight:900;color:#fff;
+                    text-shadow:0 6px 28px rgba(0,0,0,.7);margin:12px 0}
+.phase-overlay-instruction{font-size:clamp(25px,3vw,46px);line-height:1.3;font-weight:800;color:#DFEAF3}
+.phase-overlay.countdown .phase-overlay-main{font-size:clamp(150px,24vw,340px);line-height:.95;color:var(--gold)}
+.phase-overlay.pulse .phase-overlay-main{animation:phaseCuePop .65s cubic-bezier(.2,1.35,.3,1)}
+@keyframes phaseCuePop{from{opacity:.4;transform:scale(.66)}to{opacity:1;transform:scale(1)}}
+@media (prefers-reduced-motion:reduce){.phase-overlay.pulse .phase-overlay-main{animation:none}}
+
 /* 사기 라운드가 켜진 판. **어느 라운드인지는 여기 없다** — 정산 때 공개된다 (§2-3) */
 .fraud-badge{display:inline-block;flex:none;background:#3A2E12;border:2px solid var(--gold);color:var(--gold);
              border-radius:999px;padding:3px 12px;font-size:17px;font-weight:800}
