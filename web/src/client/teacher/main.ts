@@ -169,7 +169,7 @@ interface RecentRow { code: string; className: string; unit: string; createdAt: 
 interface SetInfo { name: string; total: number; byLevel: Record<string, number> }
 
 /** 사기 라운드 스위치 값. 배포 안내 화면의 안내 상자가 이걸 본다 */
-let fraudOn = true;
+let fraudOn = false;
 
 function loadUnits(): void {
   Promise.all([api('/api/units'), api('/api/sets')]).then(([envU, envS]) => {
@@ -250,7 +250,7 @@ function create(): void {
   for (let i = 1; i <= n; i++) names.push((($(`tn${i}`) as HTMLInputElement).value || '').trim());
 
   const setName = ($('unit') as HTMLSelectElement).value;   // '' = 전체 은행
-  fraudOn = ($('fraud') as HTMLInputElement).checked;
+  fraudOn = false;
 
   const pw = adminPw();
   if (!pw) {
@@ -273,7 +273,7 @@ function create(): void {
     headers: { 'X-Admin-Password': pw },
     body: {
       roomTitle: ($('cls') as HTMLInputElement).value || '우리 방',
-      setName, teamCount: n, teamNames: names, fraudEnabled: fraudOn
+      setName, teamCount: n, teamNames: names
     }
   }).then((env) => {
     if (!isOk(env)) {
@@ -1435,12 +1435,6 @@ function wire(): void {
   $('tab-resume').addEventListener('click', () => pane('resume'));
   ($('cnt') as HTMLSelectElement).addEventListener('change', drawNames);
   ($('unit') as HTMLSelectElement).addEventListener('change', checkSheets);
-  ($('fraud') as HTMLInputElement).addEventListener('change', () => {
-    const on = ($('fraud') as HTMLInputElement).checked;
-    $('fraud-desc').textContent = on
-      ? '2~4라운드 중 한 라운드는 힌트가 거짓입니다 — 학생에게 공지됩니다'
-      : '모든 힌트가 참입니다';
-  });
   $('btn-reload').addEventListener('click', loadUnits);
   $('btn-create').addEventListener('click', create);
   $('btn-resume').addEventListener('click', resume);

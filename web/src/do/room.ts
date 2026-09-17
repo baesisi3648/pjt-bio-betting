@@ -28,14 +28,15 @@ import {
 } from '../game/config.ts';
 import type { AnimalCode, Level, Settings } from '../game/config.ts';
 import {
-  buildBonusHints, buildFraudRound, buildHintPlan, computeOdds, makeCode, makeHostKey, makePin,
+  buildBonusHints, computeOdds, makeCode, makeHostKey, makePin,
   planQuestions, planRace, positionsAtRound, rankByPosition, settle, shuffle, validateBet
 } from '../game/rules.ts';
+import { generateHint } from '../game/hint-engine.ts';
 import type {
   AnswerRecord, Bets, GameState, Hint, Question, Rng, Team
 } from '../game/types.ts';
 import {
-  allTeamsDone, canSkipNow, currentPositions, finalizeView, handoutView, lobbyView,
+  allTeamsDone, canSkipNow, currentPositions, finishedOf, finalizeView, handoutView, lobbyView,
   revealView, teacherView, teamView
 } from '../game/views.ts';
 import type {
@@ -248,12 +249,9 @@ export class Room {
       return err('SHEET_INVALID', `경주를 만들지 못했어요. '설정'의 트랙칸수를 5~23 사이로 해주세요 (지금 ${settings.trackCells}).`);
     }
 
-    // 사기 라운드는 2·3·4 중 하나. 스위치를 끄면 없다 (RENEWAL §1)
-    const fraudEnabled = config.fraudEnabled !== false;
-    const fraudRound = fraudEnabled ? buildFraudRound(this.rng) : null;
-    // ⚠️ 문장과 논리식이 **한 번의 호출**에서 같이 나온다. 따로 부르면 무작위 선택이
-    //    갈라져 게이트가 다른 문장을 검증하게 된다 (rules.buildHintPlan 주석)
-    const hintPlan = buildHintPlan(race.truth, animals.names, this.rng, { fraudRound, rounds: ROUNDS });
+    // 새 판의 일반 힌트는 정답 제출 시점에 참 문장으로 만든다.
+    const fraudEnabled = false;
+    const fraudRound = null;
 
     const byLevel: Partial<Record<Level, Question[]>> = {};
     for (const lv of LEVELS) byLevel[lv] = [];
@@ -297,8 +295,6 @@ export class Room {
       finishRound: race.finishRound,
       animals: animals.names,
       emojis: animals.emojis,
-      // 사기 라운드 자리는 이미 거짓 문장으로 치환돼 있다 — 지급할 때 다시 따지지 않는다
-      hintPool: hintPlan.texts,
       bonusHints: buildBonusHints(race.truth, race.moves, settings.trackCells, animals.names, this.rng),
       bonusBoxes,
       // ⚠️ lastRound 가 아니라 ROUNDS(10)만큼 배정한다. 지금은 둘이 같지만(골인 8·9·10 고정)
@@ -422,7 +418,7 @@ export class Room {
     if (!q) return err('SHEET_INVALID');
 
     const correct = Number(choice) === Number(q.answer);
-    const hint = correct ? this.hintFor(state.round, level) : null;
+    const hint = correct ? this.hintFor(state.round, level, team) : null;
     const record: AnswerRecord = { level, choice: Number(choice), correct, hint };
 
     team.answered[state.round] = record;
@@ -438,21 +434,16 @@ export class Room {
     return ok({ correct, answer: q.answer, explanation: q.explanation, newHint: hint });
   }
 
-  /**
-   * 이 라운드·이 난이도의 힌트. **라운드와 난이도만으로 정해진다** (RENEWAL §2-2).
-   *
-   * ⚠️ 예전에는 모둠마다 '이미 준 힌트' 목록(`hintGiven`)을 들고 다음 것을 꺼냈고,
-   *    복구할 때 그 목록을 빠뜨려 같은 힌트가 두 번 나갔다 (옛 게이트 D6b).
-   *    이제 그 상태 자체가 없다 — 같은 라운드에 같은 난이도를 고른 모둠은 **같은 힌트**를
-   *    받고(RENEWAL §1), 한 라운드에 한 번만 제출할 수 있으므로(ALREADY_ANSWERED)
-   *    같은 모둠이 같은 힌트를 두 번 받을 길이 없다.
-   * ⚠️ 사기 라운드 판단을 여기서 다시 하지 않는다. hintPool 에 이미 거짓 문장이
-   *    들어 있다 — 판단이 두 벌이면 한쪽만 고치는 날 참 힌트가 나간다 (MIGRATION §5).
-   */
-  private hintFor(round: number, level: Level): Hint | null {
-    const pool = this.state!.hintPool[level] || [];
-    const text = pool[round - 1];
-    return text ? { round, level, text } : null;
+  /** 현재 골인 상태와 이 모둠의 기록으로 새로운 참 힌트를 만든다. */
+  private hintFor(round: number, level: Level, team: Team): Hint | null {
+    const state = this.state!;
+    return generateHint(round, level, {
+      truth: state.truth,
+      finishedAnimalIds: finishedOf(state),
+      history: team.hints,
+      names: state.animals,
+      rng: this.rng
+    });
   }
 
   /** 상자 선택과 5코인 결제를 서버에서 원자적으로 처리한다. */

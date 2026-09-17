@@ -642,13 +642,13 @@ await gate('GW-TITLE', '방 제목·문제 세트·사기 스위치 — 옛 이�
   const hostKey = String(dataOf(oldName).hostKey);
   const tv = dataOf(await net.call('GET', `/api/game/${code}/state?viewer=teacher`, { headers: host(hostKey) }));
   if (tv.roomTitle !== '옛이름 반' || tv.setName !== '유전') bad.push('교사 뷰 이름');
-  if (tv.fraudEnabled !== true) bad.push('사기 스위치 기본값이 켬이 아니다');
+  if (tv.fraudEnabled !== false) bad.push('새 판에 사기 라운드가 켜졌다');
 
   // 새 이름도 받고, 스위치를 끄면 꺼진 채로 만들어진다
   const off = await open(net, '유전', 2, '새이름 반', false);
   const tv2 = dataOf(await net.call('GET', `/api/game/${off.code}/state?viewer=teacher`, { headers: host(off.hostKey) }));
   if (tv2.roomTitle !== '새이름 반') bad.push('roomTitle 본문이 안 먹음');
-  if (tv2.fraudEnabled !== false || net.state(off.code).fraudRound !== null) bad.push('스위치를 껐는데 사기 라운드가 있다');
+  if (tv2.fraudEnabled !== false || net.state(off.code).fraudRound !== null) bad.push('거짓 힌트가 활성화됐다');
 
   const team = dataOf(await net.call('GET', `/api/game/${off.code}/state?viewer=team:1`, { headers: pin(off.pins[1]!) }));
   if (team.fraudNotice !== false) bad.push('끈 판인데 폰에 안내가 뜬다');
@@ -660,7 +660,7 @@ await gate('GW-TITLE', '방 제목·문제 세트·사기 스위치 — 옛 이�
 
   return { ok: bad.length === 0,
            detail: bad.length ? '⛔ ' + bad.join(', ')
-             : 'className·roomTitle 둘 다 받아 roomTitle 로 저장 · 로비·교사·폰 뷰에 새 이름 · 스위치 기본 켬, 끄면 fraudRound null' };
+             : 'className·roomTitle 둘 다 받아 roomTitle 로 저장 · 로비·교사·폰 뷰에 새 이름 · 거짓 힌트 없음' };
 });
 
 await gate('LEAK-moving', 'moving 뷰에는 이번 라운드 이동량만 실린다', async () => {

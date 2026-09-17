@@ -195,16 +195,15 @@ gate('SIM1', '판 생성 — 6모둠, 암호 발급, 대기 단계에서 시작'
 gate('SIM1b', `판이 ${ROUNDS}라운드로 만들어진다 — lastRound = ${ROUNDS}, 문항도 ${ROUNDS}라운드 분`, () => {
   const s = T.state();
   const plans = Object.keys(s.questionPlan).length;
-  const hints = LEVELS.map((lv) => s.hintPool[lv].length);
   // ⚠️ 문항을 lastRound 만큼만 배정하면 "10라운드에 문제가 없다"로 마지막 라운드가 샌다.
   //    지금은 lastRound 가 언제나 ROUNDS 라 둘이 같지만, 기준은 계속 ROUNDS 다
   const finish = [0, 1, 2].map((k) => s.finishRound[s.truth[k]!]);
   return {
     ok: s.lastRound === ROUNDS && finish.join('/') === `${ROUNDS - 2}/${ROUNDS - 1}/${ROUNDS}` &&
         plans === ROUNDS &&
-        hints.every((n) => n === ROUNDS) && s.settings.trackCells === DEFAULTS.trackCells,
+        !s.hintPool && s.settings.trackCells === DEFAULTS.trackCells,
     detail: `lastRound ${s.lastRound} (학생 비공개) · 1·2·3위 골인 ${finish.join('/')}R · ` +
-            `문항 배정 ${plans}라운드 분 · 힌트 ${hints.join('/')} · 트랙 ${s.settings.trackCells}칸`
+            `문항 배정 ${plans}라운드 분 · 힌트는 정답 시 생성 · 트랙 ${s.settings.trackCells}칸`
   };
 });
 
@@ -262,21 +261,17 @@ gate('SIM1c', '옛 판(lastRound 9)을 이어 열면 9라운드에서 끝난다'
   };
 });
 
-gate('FRAUD-ROOM', '사기 라운드는 2~4 중 하나이고, 스위치를 끄면 null', () => {
+gate('FRAUD-ROOM', '새 판에는 거짓 힌트가 생성되지 않는다', () => {
   const on = T.state();
   const off = new Table();
   off.open(2, 'NOFR', false);
   const so = off.state();
   const bad: string[] = [];
-  if (!on.fraudEnabled || on.fraudRound == null || on.fraudRound < 2 || on.fraudRound > 4) {
-    bad.push(`켠 판 fraudRound=${String(on.fraudRound)}`);
-  }
+  if (on.fraudEnabled || on.fraudRound !== null) bad.push(`기본 판 fraudRound=${String(on.fraudRound)}`);
   if (so.fraudEnabled || so.fraudRound !== null) bad.push(`끈 판 fraudRound=${String(so.fraudRound)}`);
-  // 30문장은 어느 쪽이든 서로 다르다
-  const all = LEVELS.flatMap((lv) => on.hintPool[lv]);
-  if (new Set(all).size !== 30) bad.push(`중복 문장 ${30 - new Set(all).size}개`);
+  if (on.hintPool || so.hintPool) bad.push('미리 생성된 힌트 풀 존재');
   return { ok: bad.length === 0,
-           detail: bad.length ? '⛔ ' + bad.join(', ') : `켠 판 ${on.fraudRound}라운드 · 끈 판 null · 30문장 전부 다름` };
+           detail: bad.length ? '⛔ ' + bad.join(', ') : '두 판 모두 거짓 힌트 없음' };
 });
 
 gate('SIM2', '모둠 접속', () => {
@@ -442,33 +437,18 @@ gate('BET-FIN', '골인한 동물에는 못 걸고, 폰 뷰의 finished 에 그 
   };
 });
 
-gate('HINT-ROUND', '힌트는 (라운드, 난이도)로 정해진다 — 같은 걸 두 번 받는 일이 없다', () => {
+gate('HINT-ROUND', '모둠별 힌트가 저장되고 같은 정보는 반복되지 않는다', () => {
   const st = FULL.state();
   const bad: string[] = [];
   for (const t of st.teams) {
     if (new Set(t.hints.map((h) => h.text)).size !== t.hints.length) bad.push(`${t.no}모둠 중복`);
     for (const h of t.hints) {
-      // 저장된 hintPool 의 그 자리와 **글자 하나까지** 같아야 한다
-      if (h.level !== '추가 단서' && st.hintPool[h.level][h.round - 1] !== h.text) bad.push(`${t.no}모둠 ${h.round}R ${h.level} 자리 어긋남`);
+      if (h.level !== '추가 단서' && (!h.key || !h.animalIds || !h.tags)) bad.push(`${t.no}모둠 힌트 메타데이터 없음`);
     }
   }
-  // 같은 라운드에 같은 난이도를 고른 두 모둠은 **같은 힌트**를 받는다 (RENEWAL §1)
-  const shared: string[] = [];
-  for (let r = 1; r <= st.lastRound; r++) {
-    const byLevel: Record<string, Set<string>> = {};
-    for (const t of st.teams) {
-      const h = t.hints.find((x) => x.round === r);
-      if (h) (byLevel[h.level] ||= new Set()).add(h.text);
-    }
-    for (const lv of Object.keys(byLevel)) {
-      if (byLevel[lv]!.size > 1) bad.push(`${r}R ${lv} 모둠마다 다른 힌트`);
-      else shared.push(`${r}R${lv}`);
-    }
-  }
-  return { ok: bad.length === 0 && shared.length > 0,
+  return { ok: bad.length === 0,
            detail: bad.length ? '⛔ ' + bad.slice(0, 4).join(', ')
-             : FULL.state().teams.map((t) => `${t.no}모둠 ${t.hints.length}개`).join(', ') +
-               ` · 같은 라운드·난이도는 모둠끼리 같은 문장 (${shared.length}자리 확인)` };
+             : FULL.state().teams.map((t) => `${t.no}모둠 ${t.hints.length}개`).join(', ') };
 });
 
 gate('HINT-ONCE', '한 라운드에 두 번 제출할 수 없다 — 그래서 힌트가 두 번 갈 길이 없다', () => {
@@ -566,7 +546,7 @@ gate('LEAK', '어떤 단계에서도 정산 전에 truth·moves·lastRound·frau
       }
       if (json.includes(truthStr)) bad.push(`모둠뷰(${phase}) 정답 문자열`);
       // 스위치가 켜졌다는 것만 알린다 — 어느 라운드인지는 아니다
-      if (t.view(n).fraudNotice !== true) bad.push(`모둠뷰(${phase}).fraudNotice`);
+      if (t.view(n).fraudNotice !== false) bad.push(`모둠뷰(${phase}).fraudNotice`);
     }
   };
 
@@ -584,10 +564,10 @@ gate('LEAK', '어떤 단계에서도 정산 전에 truth·moves·lastRound·frau
 
   return { ok: bad.length === 0,
            detail: bad.length ? '⛔ ' + bad.join(', ')
-             : `${seen.join('·')} — 6개 단계 × 3개 뷰에서 0건 · 실제 사기 라운드는 ${fraudRound}R (안 나갔다) · fraudNotice 켬 true / 끔 false` };
+             : `${seen.join('·')} — 6개 단계 × 3개 뷰에서 0건 · 사기 라운드 ${fraudRound} · fraudNotice false` };
 });
 
-gate('REVEAL-FRAUD', '정산 뒤에야 사기 라운드가 뜬다 (교사·모둠 뷰 모두, 정산 전에는 열쇠 자체가 없다)', () => {
+gate('REVEAL-FRAUD', '거짓 힌트 없는 판은 정산 뒤에도 사기 라운드가 없다', () => {
   const t = new Table();
   t.open(2, 'RVFR');
   const secret = t.state().fraudRound;
@@ -599,7 +579,7 @@ gate('REVEAL-FRAUD', '정산 뒤에야 사기 라운드가 뜬다 (교사·모�
   // 학생 결과 화면이 "N라운드 힌트가 거짓이었습니다" 를 띄운다 (RENEWAL §4-3) — 정산 뒤에만
   const teamAfter = t.view(1).fraudRound;
   return {
-    ok: before === null && after === secret && secret !== null && !teamBefore.has('fraudRound') && teamAfter === secret,
+    ok: before === null && after === null && secret === null && !teamBefore.has('fraudRound') && teamAfter === null,
     detail: `정산 전 교사 ${String(before)}·모둠 열쇠 없음 → 정산 후 교사 ${String(after)}·모둠 ${String(teamAfter)}라운드 공개`
   };
 });
@@ -699,7 +679,7 @@ gate('D6b', 'restore 가 힌트를 되살리고, 복구 뒤에도 같은 자리�
 
   return {
     ok: restoredHints === 1 && noGiven && secondHint !== firstHint &&
-        secondHint === rec.hintPool['어려움'][1],
+        !!second.data.newHint?.key,
     detail: `복구된 힌트 ${restoredHints}개 · hintGiven 필드 없음 ${noGiven} · ` +
             `2라운드에 다시 맞히니 ` + (secondHint === firstHint ? '⛔ 같은 힌트' : '그 라운드 자리의 힌트가 나갔다')
   };

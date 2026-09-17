@@ -248,7 +248,7 @@ async function createRoute(req: ApiRequest, ports: Ports): Promise<ApiResponse> 
   const teamCount = Math.floor(Number(body.teamCount));
   const teamNames = Array.isArray(body.teamNames) ? body.teamNames.map((x) => String(x ?? '')) : undefined;
   // 사기 라운드 스위치는 **기본이 켬**이다 (RENEWAL §1). 안 보내면 켜진 판이 만들어진다
-  const fraudEnabled = body.fraudEnabled === undefined ? true : !!body.fraudEnabled;
+  const fraudEnabled = false;
 
   if (!roomTitle) return fail('BAD_REQUEST', '방 제목을 넣어주세요');
   if (!(teamCount >= 1 && teamCount <= MAX_TEAMS)) {

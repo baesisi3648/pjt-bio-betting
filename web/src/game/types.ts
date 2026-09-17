@@ -59,6 +59,12 @@ export interface Hint {
   round: number;
   level: Level | '추가 단서';
   text: string;
+  /** Ordinary hints use stable animal IDs; older/paid hints may omit metadata. */
+  key?: string;
+  type?: string;
+  difficulty?: 'easy' | 'medium' | 'hard';
+  animalIds?: AnimalCode[];
+  tags?: string[];
 }
 
 export interface AnswerRecord {
@@ -139,16 +145,8 @@ export interface GameState {
   animals: Record<AnimalCode, string>;
   emojis: Record<AnimalCode, string>;
 
-  /**
-   * 난이도별 힌트 10개 (라운드 r 의 힌트는 hintPool[난이도][r-1]).
-   *
-   * ⚠️ 사기 라운드 자리는 **거짓 문장으로 이미 치환된 채** 저장된다.
-   *    지급할 때 "이 라운드가 사기인가"를 다시 따지면 판단이 두 벌이 되고,
-   *    그중 하나만 고치는 날 참 힌트가 나간다 (MIGRATION §5).
-   * ⚠️ hintGiven 은 없앴다. 힌트는 이제 (라운드, 난이도)로 결정되므로
-   *    "같은 힌트를 두 번" 이라는 상태 자체가 없다 (RENEWAL §2-2).
-   */
-  hintPool: Record<Level, string[]>;
+  /** Legacy pre-generated hints, retained only when restoring an older room. */
+  hintPool?: Record<Level, string[]>;
   /** 추가 단서 원문과 모둠별 비밀 상자 순서. 학생 뷰에는 공개하지 않는다. */
   bonusHints?: [string, string, string];
   bonusBoxes?: Record<number, [number, number, number]>;

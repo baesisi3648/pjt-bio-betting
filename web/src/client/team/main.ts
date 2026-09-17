@@ -385,10 +385,13 @@ function hintHtml(): string {
   const h = D && D.me ? D.me.hints : [];
   const shop = D && D.phase === 'bonus' ? bonusHtml(D) : '';
   if (!h.length) return shop + fraudNote() + '<div class="empty">문제를 맞히면 힌트를 받아요</div>';
-  return shop + fraudNote() + h.slice().reverse().map((x) =>
-    `<div class="hint"><div class="meta">${x.round}라운드 · ${esc(x.level)}</div>` +
-    `<div class="txt">${esc(x.text)}</div></div>`
-  ).join('');
+  return shop + fraudNote() + h.slice().reverse().map((x) => {
+    const icons = x.animalIds?.length
+      ? `<div class="meta">${x.animalIds.map((id) => `${esc(D!.emojis[id])} ${esc(D!.animals[id])}`).join(' · ')}</div>`
+      : '';
+    return `<div class="hint"><div class="meta">${x.round}라운드 · ${esc(x.level)}</div>` +
+      icons + `<div class="txt">${esc(x.text)}</div></div>`;
+  }).join('');
 }
 
 function bonusHtml(d: TeamView): string {
