@@ -7,7 +7,7 @@
 
 import type { AnimalCode, Level, Phase, Settings } from './config.ts';
 
-/** 동물별 라운드별 이동량(0~3) */
+/** 동물별 라운드별 이동량(기본 0~3, 한 번뿐인 스퍼트는 4) */
 export type Moves = Record<AnimalCode, number[]>;
 
 /** 골인 라운드. 1·2·3위만 숫자, 4~8위는 끝까지 못 들어오므로 null */
@@ -109,6 +109,8 @@ export interface Settlement {
   gained: number;
   predictedWinner: AnimalCode | null;
   predictionBonus: number;
+  /** 옛 판의 저장된 정산 결과에는 없을 수 있다. */
+  finalQuizBonus?: number;
   finalCoins: number;
   rank?: number;
 }

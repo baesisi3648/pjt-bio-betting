@@ -1403,17 +1403,18 @@ function nextStep(): void {
     body.innerHTML = '<div class="card"><h2>모둠별 계산</h2>' +
       '<p class="settlement-note">투자 코인 × 최종 배당률 × 순위별 정산 배수. 동물별 결과를 반올림해 지급합니다.</p>' + list.map((s) =>
       `<details><summary>${s.teamNo}모둠 ${esc(s.teamName)} — ` +
-      `<span class="tally num" id="sc-${s.teamNo}">${s.finalCoins - s.gained - (s.predictionBonus || 0)}</span>코인</summary>` +
+      `<span class="tally num" id="sc-${s.teamNo}">${s.finalCoins - s.gained - (s.predictionBonus || 0) - (s.finalQuizBonus || 0)}</span>코인</summary>` +
       s.lines.map((l) =>
         `<div class="line"><b>${esc(d.animals[l.animalCode])}</b>: ${settlementEquation(l)}</div>`).join('') +
       `<div class="line">베팅 획득 ${s.gained}코인</div>` +
       `<div class="line">사전 우승 예측 ${s.predictedWinner ? esc(d.animals[s.predictedWinner]) : '선택 안 함'}: +${s.predictionBonus || 0}코인</div>` +
+      `<div class="line">10라운드 정답 보너스: +${s.finalQuizBonus || 0}코인</div>` +
       `<div class="line settlement-total">${settlementTotalEquation(s)}</div></details>`).join('') + '</div>';
     // 폰의 coinPop 감각을 TV 로 (§11-4). 딴 건지 잃은 건지가 숫자가 움직이는 방향으로 보인다
     list.forEach((s, i) => {
       const el = maybe('sc-' + s.teamNo);
-      if (el && s.gained + (s.predictionBonus || 0) !== 0) el.classList.add('up');
-      window.setTimeout(() => roll('sc-' + s.teamNo, s.finalCoins - s.gained - (s.predictionBonus || 0), s.finalCoins, 0, ''), 120 * i);
+      if (el && s.gained + (s.predictionBonus || 0) + (s.finalQuizBonus || 0) !== 0) el.classList.add('up');
+      window.setTimeout(() => roll('sc-' + s.teamNo, s.finalCoins - s.gained - (s.predictionBonus || 0) - (s.finalQuizBonus || 0), s.finalCoins, 0, ''), 120 * i);
     });
     $('r-next').textContent = '우승 발표';
     return;

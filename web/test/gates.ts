@@ -91,13 +91,15 @@ gate('RACE-1', '조건 1 — 10라운드 끝 순위 = 정답 순위 (truth)', ()
   return { ok: hit === races.length, detail: `${hit}/${races.length} 일치 · 서로 다른 정답 순위 ${uniq.size}가지` };
 });
 
-gate('RACE-2', '조건 2 — 이동량은 라운드마다 0~3, 길이는 10', () => {
-  let bad = 0, lenBad = 0;
+gate('RACE-2', '조건 2 — 이동량은 0~3, 4칸 스퍼트는 동물당 최대 한 번', () => {
+  let bad = 0, lenBad = 0, sprintBad = 0;
   for (const r of races) for (const c of ANIMAL_CODES) {
     if (r.moves[c].length !== ROUNDS) lenBad++;
-    for (const m of r.moves[c]) if (!Number.isInteger(m) || m < 0 || m > 3) bad++;
+    for (const m of r.moves[c]) if (!Number.isInteger(m) || m < 0 || m > 4) bad++;
+    if (r.moves[c].filter((m) => m === 4).length > 1) sprintBad++;
   }
-  return { ok: bad === 0 && lenBad === 0, detail: `범위 밖 ${bad}개 · 길이가 ${ROUNDS} 아닌 줄 ${lenBad}개` };
+  return { ok: bad === 0 && lenBad === 0 && sprintBad === 0,
+    detail: `범위 밖 ${bad}개 · 중복 스퍼트 ${sprintBad}마리 · 길이가 ${ROUNDS} 아닌 줄 ${lenBad}개` };
 });
 
 /**
@@ -196,6 +198,23 @@ gate('RACE-DRAMA', '대부분의 판에서 선두가 4번 이상 바뀌고 후�
     detail: `300판 중 선두 교체 4회 이상 ${frequent}판 · 5~8R 교체 2회 이상 ${late}판 · 둘 다 ${both}판` };
 });
 
+gate('RACE-SPRINT', '3등은 9R에 결승선 4칸 전이고 10R에 4칸 스퍼트한다', () => {
+  const bad = races.filter((r) => {
+    const third = r.truth[2]!;
+    const ninth = positionsAtRound(r.moves, 9, TRACK)[third];
+    return ninth !== TRACK - 4 || ninth >= noBetStartsAt(TRACK) || r.moves[third][9] !== 4;
+  });
+  return { ok: bad.length === 0, detail: `${races.length}판 중 불일치 ${bad.length}판` };
+});
+
+gate('RACE-COMEBACK', '대부분의 판에서 9R 4등 후보가 3등보다 앞서다가 추월당한다', () => {
+  const count = races.filter((r) => {
+    const pos = positionsAtRound(r.moves, 9, TRACK);
+    return pos[r.truth[3]!] > pos[r.truth[2]!];
+  }).length;
+  return { ok: count >= Math.ceil(races.length * 0.8), detail: `${races.length}판 중 ${count}판` };
+});
+
 gate('RACE-7', '조건 7 — 같은 시드면 같은 판 (다른 시드면 다른 판)', () => {
   const same = [1, 42, 300].every((s) =>
     JSON.stringify(planRace(seeded(s), TRACK, ROUNDS)) === JSON.stringify(planRace(seeded(s), TRACK, ROUNDS)));
@@ -209,9 +228,8 @@ gate('RACE-7', '조건 7 — 같은 시드면 같은 판 (다른 시드면 다�
  * ⚠️ 한 칸이라도 "설정에는 있는데 방 만들기가 실패하는" 값이 있으면 그건 설정이
  *    거짓말을 하는 것이다 (MIGRATION §5 trackCells 함정). 그래서 상한 하나만 찍어
  *    보지 않고 5~23 을 **전 범위** 로, 칸마다 시드 5개씩 돌린다.
- * ⚠️ 상한이 24 가 아니라 23 인 이유: 1위의 골인 라운드가 8 로 고정돼 산술 상한은
- *    8×3=24 지만, 24칸이면 1위가 1라운드부터 3칸씩 달려야 하고 그러면 1라운드부터
- *    선두라 조건 6("1위는 4라운드 이후에 처음 선두")을 절대 못 지킨다.
+ * 상한 23은 기존 설정을 유지한다. 4칸 스퍼트로 산술상 더 긴 트랙도 가능하지만
+ * 사용자에게 제공하는 범위 변경은 별도 결정이다.
  */
 gate('RACE-TRK', `트랙칸수 설정 전 범위(${SETTING_RANGE.trackCells!.min}~${SETTING_RANGE.trackCells!.max}칸)에서 판이 만들어진다`, () => {
   const lo = SETTING_RANGE.trackCells!.min, hi = SETTING_RANGE.trackCells!.max;
@@ -224,6 +242,9 @@ gate('RACE-TRK', `트랙칸수 설정 전 범위(${SETTING_RANGE.trackCells!.min
       // 1·2·3위 셋 다 결승선. 순위는 골인 라운드로 갈린다 (셋의 최종 위치는 같다)
       for (let rank = 0; rank < 3; rank++) {
         if (pos[r.truth[rank]!] !== t) bad.push(`${t}칸: ${rank + 1}위가 ${pos[r.truth[rank]!]}칸`);
+      }
+      if (positionsAtRound(r.moves, 9, t)[r.truth[2]!] !== t - 4 || r.moves[r.truth[2]!][9] !== 4) {
+        bad.push(`${t}칸: 3위의 마지막 스퍼트 불일치`);
       }
       if (rankByPosition(pos, r.truth).join('') !== r.truth.join('')) bad.push(`${t}칸: 순위 불일치`);
     }
@@ -516,6 +537,19 @@ gate('H9', '정산 계산', () => {
   const out = settle([{ no: 1, name: 'A', coins: 8, bets: { 1: { A: 4 }, 2: { D: 2 } } }], order, odds, DEFAULTS);
   return { ok: out[0]!.gained === 6 && out[0]!.finalCoins === 14,
            detail: `획득 ${out[0]!.gained} (기대 6), 최종 ${out[0]!.finalCoins} (기대 14)` };
+});
+
+gate('FINAL-QUIZ', '10라운드 정답 보너스만 최종 코인에 더한다', () => {
+  const order = [...ANIMAL_CODES];
+  const odds = Object.fromEntries(ANIMAL_CODES.map((c) => [c, 1])) as Record<AnimalCode, number>;
+  const teams = (['쉬움', '보통', '어려움'] as Level[]).map((level, i) => ({
+    no: i + 1, name: level, coins: 10, bets: {}, answered: { 10: { level, choice: 1, correct: true } }
+  }));
+  teams.push({ no: 4, name: '어려움', coins: 10, bets: {}, answered: { 10: { level: '어려움', choice: 2, correct: false } } });
+  const settled = settle(teams, order, odds, DEFAULTS);
+  const bonuses = settled.sort((a, b) => a.teamNo - b.teamNo).map((s) => s.finalQuizBonus);
+  return { ok: bonuses.join(',') === '3,5,7,0' && settled.every((s) => s.finalCoins === 10 + (s.finalQuizBonus || 0)),
+    detail: `쉬움/보통/어려움/오답 ${bonuses.join('/')}코인` };
 });
 
 gate('M6', '최대 배당률이 16배 이하 (시드 15)', () => {

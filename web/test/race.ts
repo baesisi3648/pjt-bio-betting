@@ -41,7 +41,7 @@ const CELLS = 10;
 
 interface Case { seed: string; before: Positions; after: Positions; moves: Record<AnimalCode, number> }
 
-/** 이동량 0~3, 위치는 trackCells 에서 잘린다 — rules.positionsAtRound 와 같은 모양 */
+/** 이동량은 기본 0~3, 스퍼트는 4; 위치는 trackCells 에서 잘린다 — rules.positionsAtRound 와 같은 모양 */
 function makeCase(i: number): Case {
   const rng = mulberry32(1000 + i);
   const before = {} as Positions;

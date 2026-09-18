@@ -28,7 +28,7 @@
  *    폰이 남의 손에 들어가도 암호는 남지 않는다.
  */
 
-import { isNoBetPosition, type AnimalCode, type Level } from '../../game/config.ts';
+import { FINAL_QUIZ_BONUS, ROUNDS, isNoBetPosition, type AnimalCode, type Level } from '../../game/config.ts';
 import { summarizeInvestments } from '../../game/investments.ts';
 import { settlementEquation, settlementTotalEquation } from '../../game/settlement-display.ts';
 import type { Settlement } from '../../game/types.ts';
@@ -61,7 +61,7 @@ let openQuestion: { text: string; choices: string[] } | null = null;
 let openLevel: Level | null = null;
 
 /** 제출 결과 — 오답 해설을 그 라운드 내내 보여주기 위해 라운드와 함께 기억한다 */
-let answered: { round: number; correct: boolean; answer: number; explanation: string } | null = null;
+let answered: { round: number; level: Level; correct: boolean; answer: number; explanation: string } | null = null;
 
 const clock = new ServerClock();
 let sock: GameSocket | null = null;
@@ -320,27 +320,35 @@ function quizHtml(): string {
       `<div class="prediction-grid">${Object.keys(d.animals).map((id) => `<button type="button" data-act="predict" data-code="${id}">${esc(d.emojis[id as AnimalCode])}<br>${esc(d.animals[id as AnimalCode])}</button>`).join('')}</div></section>`;
   }
 
+  const finalReward = d.round === ROUNDS
+    ? `<div class="result o" style="margin-bottom:12px">🎯 마지막 문제 정답 보너스 · 쉬움 ${FINAL_QUIZ_BONUS.쉬움} / 보통 ${FINAL_QUIZ_BONUS.보통} / 어려움 ${FINAL_QUIZ_BONUS.어려움}코인<br><small>최종 정산에 더해집니다.</small></div>`
+    : '';
+
   // 이번 라운드에 낸 답이 있으면 결과를 계속 보여준다 (오답 해설 포함)
   const mine = answered && answered.round === d.round ? answered : null;
   if (mine) {
-    return mine.correct
-      ? '<div class="result o">⭕ 정답! 힌트 탭을 보세요</div>'
+    return finalReward + (mine.correct
+      ? `<div class="result o">⭕ 정답! ${d.round === ROUNDS ? `최종 정산에 +${FINAL_QUIZ_BONUS[mine.level]}코인` : '힌트 탭을 보세요'}</div>`
       : `<div class="result x">❌ 오답 — 정답은 ${mine.answer}번<br>` +
-        `<span style="font-weight:400;font-size:15px">${esc(mine.explanation)}</span></div>`;
+        `<span style="font-weight:400;font-size:15px">${esc(mine.explanation)}</span></div>`);
   }
 
   if (d.phase !== 'quiz') {
     if (me.answerResult) return `<div class="result ${me.answerResult.correct ? 'o' : 'x'}">` +
-      (me.answerResult.correct ? '⭕ 정답! 힌트를 받았어요' : '❌ 오답이었어요') + '</div>';
+      (me.answerResult.correct
+        ? d.round === ROUNDS ? `⭕ 정답! 최종 정산에 +${FINAL_QUIZ_BONUS[me.chosenLevel!]}코인` : '⭕ 정답! 힌트를 받았어요'
+        : '❌ 오답이었어요') + '</div>';
     return `<div class="empty">지금은 ${PHASE_KO[d.phase] || ''}</div>`;
   }
   if (!me.canAnswer) {
     if (me.answerResult) return `<div class="result ${me.answerResult.correct ? 'o' : 'x'}">` +
-      (me.answerResult.correct ? '⭕ 정답! 힌트 탭을 보세요' : '❌ 오답 — 다음 라운드를 기다려요') + '</div>';
+      (me.answerResult.correct
+        ? d.round === ROUNDS ? `⭕ 정답! 최종 정산에 +${FINAL_QUIZ_BONUS[me.chosenLevel!]}코인` : '⭕ 정답! 힌트 탭을 보세요'
+        : '❌ 오답 — 다음 라운드를 기다려요') + '</div>';
     return '<div class="empty">시간이 지났어요</div>';
   }
   if (!me.chosenLevel && !openQuestion) {
-    return '<p class="sub">어려울수록 좋은 힌트를 받아요</p><div class="levels">' +
+    return finalReward + '<p class="sub">어려울수록 좋은 힌트를 받아요</p><div class="levels">' +
       '<button class="lv-easy" data-act="level" data-level="쉬움">쉬움 · 힌트 약</button>' +
             // ⚠️ 난이도 값은 서버의 LEVELS 와 **글자 하나까지 같아야** 문제가 배정된다.
       //    '중간' → '보통' (RENEWAL §1). 화면 문구 자체는 3단계에서 손댄다
@@ -350,7 +358,7 @@ function quizHtml(): string {
   // 답을 낸 뒤에도 문제 본문은 서버가 보내준다 (views.ts teamView — 정답은 안 담긴다)
   const q = openQuestion || d.question;
   if (!q) return '<div class="empty">문제를 불러오는 중…</div>';
-  return `<div class="q">${esc(q.text)}</div>` + q.choices.map((c, i) =>
+  return finalReward + `<div class="q">${esc(q.text)}</div>` + q.choices.map((c, i) =>
     `<button class="choice${sel === i + 1 ? ' sel' : ''}" data-act="pick" data-choice="${i + 1}">${i + 1}. ${esc(c)}</button>`
   ).join('') + `<button class="big" data-act="submit"${sel ? '' : ' disabled'}>제출하기</button>`;
 }
@@ -370,10 +378,11 @@ function chooseLevel(lv: Level, btn: HTMLButtonElement): void {
 function submit(btn: HTMLButtonElement): void {
   if (!sel || !openLevel) return;
   const round = D ? D.round : -1;
+  const level = openLevel;
   void act('submitAnswer', [TEAM, openLevel, sel, PIN], btn).then((d) => {
     if (!d) return;
     const r = d as { correct: boolean; answer: number; explanation: string };
-    answered = { round, correct: r.correct, answer: r.answer, explanation: r.explanation || '' };
+    answered = { round, level, correct: r.correct, answer: r.answer, explanation: r.explanation || '' };
     openQuestion = null; openLevel = null; sel = null;
     drawTab();
   });
@@ -576,6 +585,7 @@ function showResult(d: TeamView): void {
       `<div class="settlement-line">${l.gained ? '✅' : '❌'} <b>${esc(d.animals[l.animalCode])}</b><br>${settlementEquation(l)}</div>`
     ).join('') +
       `<div style="padding:8px 0;border-bottom:1px solid #EEF2F6">🏆 사전 우승 예측: ${mine.predictedWinner ? `${esc(d.emojis[mine.predictedWinner])} ${esc(d.animals[mine.predictedWinner])}` : '선택 안 함'} → <b>+${mine.predictionBonus || 0}코인</b></div>` +
+      `<div class="settlement-line">🎯 10라운드 정답 보너스 → <b>+${mine.finalQuizBonus || 0}코인</b></div>` +
       `<div class="settlement-total">${settlementTotalEquation(mine)}</div>` +
       `<div style="margin-top:14px;font-size:20px;font-weight:800">최종 ${mine.finalCoins}코인 · 전체 ${mine.rank}위</div></div>`;
   }

@@ -191,7 +191,7 @@ export function currentPositions(state: GameState): Positions {
 }
 
 /**
- * 이번 라운드에 각 말이 몇 칸 갔는가 (0~3). **moving 단계에서만 내보낸다.**
+ * 이번 라운드에 각 말이 몇 칸 갔는가 (기본 0~3, 한 번뿐인 스퍼트는 4). **moving 단계에서만 내보낸다.**
  *
  * 이건 비밀이 아니다 — 20초 뒤 위치로 어차피 드러난다.
  * 비밀인 것은 state.moves 전체(라운드×동물)다. 그건 lastRound 를 역산시킨다 (§4-1).

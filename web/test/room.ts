@@ -536,7 +536,10 @@ gate('H9c', '최종 = 남은 보유 + 획득, 그리고 정산 규칙과 일치'
     for (const c of Object.keys(byAnimal) as AnimalCode[]) {
       gained += Math.round(byAnimal[c]! * odds[c] * (st.settings.payout[rankOf[c]!] || 0));
     }
-    if (gained !== s.gained || s.finalCoins !== team.coins + s.gained) allOk = false;
+    const answer = team.answered[ROUNDS];
+    const expectedQuizBonus = answer?.correct && answer.level ? { 쉬움: 3, 보통: 5, 어려움: 7 }[answer.level] : 0;
+    if (gained !== s.gained || s.finalQuizBonus !== expectedQuizBonus ||
+        s.finalCoins !== team.coins + s.gained + s.predictionBonus + expectedQuizBonus) allOk = false;
   }
   return { ok: allOk, detail: `6모둠 전부 일치 — 총 획득 ${fin.data.settlement.reduce((a, s) => a + s.gained, 0)}코인` };
 });
@@ -619,14 +622,14 @@ gate('REVEAL-FRAUD', '거짓 힌트 없는 판은 정산 뒤에도 사기 라운
   };
 });
 
-gate('H4f-raceMoves', 'moving 뷰의 raceMoves 는 동물 8개, 값 0~3 뿐', () => {
+gate('H4f-raceMoves', 'moving 뷰의 raceMoves 는 동물 8개, 값 0~4 뿐', () => {
   const t = new Table();
   t.open(2, 'H4F');
   t.room.advanceRound(t.hostKey);
   const v = t.view(1), tv = t.tv();
   const okShape = (m: Record<string, number> | undefined) =>
     !!m && Object.keys(m).length === 8 &&
-    ANIMAL_CODES.every((c) => Number.isInteger(m[c]) && m[c]! >= 0 && m[c]! <= 3);
+    ANIMAL_CODES.every((c) => Number.isInteger(m[c]) && m[c]! >= 0 && m[c]! <= 4);
   const gone = (() => { t.endPhase(); return t.view(1).raceMoves === undefined && t.tv().raceMoves === undefined; })();
   return { ok: okShape(v.raceMoves) && okShape(tv.raceMoves) && gone,
            detail: `moving: ${ANIMAL_CODES.map((c) => v.raceMoves![c]).join('')} (8개) · quiz 로 넘어가면 사라짐: ${gone}` };

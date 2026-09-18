@@ -689,7 +689,7 @@ await gate('LEAK-moving', 'moving 뷰에는 이번 라운드 이동량만 실린
   const shape = (m: unknown) => {
     const r = m as Record<string, number> | undefined;
     return !!r && Object.keys(r).length === 8 &&
-      ANIMAL_CODES.every((c) => Number.isInteger(r[c]) && r[c]! >= 0 && r[c]! <= 3);
+      ANIMAL_CODES.every((c) => Number.isInteger(r[c]) && r[c]! >= 0 && r[c]! <= 4);
   };
   return {
     ok: shape(team.raceMoves) && shape(tv.raceMoves),

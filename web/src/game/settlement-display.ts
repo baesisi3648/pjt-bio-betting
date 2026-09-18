@@ -6,6 +6,7 @@ export function settlementEquation(line: SettlementLine): string {
 }
 
 export function settlementTotalEquation(settlement: Settlement): string {
-  const remaining = settlement.finalCoins - settlement.gained - settlement.predictionBonus;
-  return `남은 코인 ${remaining} + 베팅 획득 ${settlement.gained} + 우승 예측 보너스 ${settlement.predictionBonus} = 최종 ${settlement.finalCoins}코인`;
+  const finalQuizBonus = settlement.finalQuizBonus ?? 0;
+  const remaining = settlement.finalCoins - settlement.gained - settlement.predictionBonus - finalQuizBonus;
+  return `남은 코인 ${remaining} + 베팅 획득 ${settlement.gained} + 우승 예측 보너스 ${settlement.predictionBonus} + 10라운드 정답 보너스 ${finalQuizBonus} = 최종 ${settlement.finalCoins}코인`;
 }

@@ -45,6 +45,8 @@ export function isNoBetPosition(position: number, trackCells: number): boolean {
 
 export type AnimalCode = (typeof ANIMAL_CODES)[number];
 export type Level = (typeof LEVELS)[number];
+/** 10라운드 문제 정답은 베팅 잔액이 아니라 최종 정산에만 더한다. */
+export const FINAL_QUIZ_BONUS: Record<Level, number> = { 쉬움: 3, 보통: 5, 어려움: 7 };
 
 export const PHASES = {
   WAITING: 'waiting',
@@ -107,17 +109,8 @@ export const SETTING_RANGE: Record<string, { min: number; max: number; label: st
   betSeconds:     { min: 10, max: 900, label: '베팅시간초' },
   // 5 미만이면 4~8위 다섯 마리를 서로 다른 칸에 못 세운다 (조건 5).
   //
-  // 상한 26 → 23 (2026-09-07). 1위의 골인 라운드가 **8 로 고정**됐으므로 (조건 3)
-  // 산술 상한은 8라운드 × 3칸 = 24 다. 그런데 24 는 실제로 **한 판도 안 만들어진다** —
-  // 24칸이면 1위가 1라운드부터 매 라운드 3칸씩 달려야 하고, 그러면 1라운드에 이미
-  // (동점 tie-break 이 truth 순이라) 선두가 되어 조건 6("1위는 4라운드 이후에 처음 선두")을
-  // 절대 못 지킨다. 조건 6이 1위의 3라운드 누적을 8칸 이하로 묶으므로 8 + 5라운드×3 = 23 이
-  // 진짜 상한이다.
-  //
-  // ⚠️ 사용자 결정은 "24" 였지만 24 를 열어 두면 그 값을 고른 선생님의 방 만들기가
-  //    매번 SHEET_INVALID 로 실패한다 — 설정이 거짓말을 하는 상태다 (MIGRATION §5).
-  //    그래서 만들어지는 값만 남겼다. 게이트 RACE-TRK 가 5~23 전부를 검사하고,
-  //    24 는 null 이라는 것까지 검사한다 (측정: 5~23 은 시드 2000개 전부 성공)
+  // 23칸 상한은 기존 설정을 유지한다. 4칸 스퍼트로 산술상 더 긴 트랙도 가능해졌지만
+  // 범위를 넓히는 것은 별도 결정이다. 게이트 RACE-TRK 가 5~23 전부를 검사한다.
   trackCells:     { min: 5,  max: 23,  label: '트랙칸수' },
   // 0 은 '끔' 이라 min 이 0 이다. 다른 시간 설정과 달리 하한이 없다
   autoSkipSeconds: { min: 0, max: 30,  label: '자동단축초' }
@@ -211,4 +204,4 @@ export const MESSAGES: Record<string, string> = {
 };
 
 /** 화면 하단에 표시 — 재배포 누락 감지용 (apps-script 의 DEPLOY_VERSION 자리) */
-export const DEPLOY_VERSION = 'web-2026.09.17-race-comebacks';
+export const DEPLOY_VERSION = 'web-2026.09.18-final-sprint-bonus';

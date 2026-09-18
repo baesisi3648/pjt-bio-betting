@@ -16,7 +16,7 @@
  */
 
 import {
-  ANIMAL_CODES, LEVELS, LIMITS, PREDICTION_BONUS, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH,
+  ANIMAL_CODES, LEVELS, LIMITS, PREDICTION_BONUS, FINAL_QUIZ_BONUS, SETTING_RANGE, ROUNDS, CODE_ALPHABET, CODE_LENGTH, PIN_LENGTH, HOST_KEY_LENGTH,
   isNoBetPosition
 } from './config.ts';
 import type { AnimalCode, Level, Settings } from './config.ts';
@@ -39,7 +39,7 @@ import type {
  *
  * ── RENEWAL §2-1 의 조건 7가지 ──
  *   1. truth 는 무작위 순열이고, 10라운드 끝 위치로 매긴 순위가 truth 와 같다
- *   2. 이동량은 라운드마다 0~3
+ *   2. 이동량은 라운드마다 0~3, 동물당 최대 한 번만 4칸 스퍼트 가능
  *   3. 1위는 **8라운드**에 골인하고 그 뒤로는 0
  *   4. 2위는 **9라운드**, 3위는 **10라운드**에 골인한다. lastRound = 10 (항상)
  *   5. 4~8위는 10라운드 끝에 결승선 미만이고 **서로 다른 칸**에 선다
@@ -80,9 +80,11 @@ export function planRace(
       changes++;
       if (i >= rounds - 6 && i <= rounds - 3) lateChanges++; // 10R 기준 5~8R
     }
-    const score = changes * 10 + lateChanges * 3;
+    const beforeFinal = positionsAtRound(race.moves, rounds - 1, trackCells);
+    const lateOvertake = beforeFinal[race.truth[3]!] > beforeFinal[race.truth[2]!];
+    const score = changes * 10 + lateChanges * 3 + (lateOvertake ? 15 : 0);
     if (score > bestScore) { best = race; bestScore = score; }
-    if (changes >= 4 && lateChanges >= 2) return race;
+    if (changes >= 4 && lateChanges >= 2 && lateOvertake) return race;
     if (validCount >= 30) break;
   }
   return best;                                   // 유효 판이 없으면 호출자가 한 번 더 시도한다 (Room.create)
@@ -97,11 +99,8 @@ function tryPlanRace(rng: Rng, track: number, rounds: number): Race | null {
   const first  = rounds - 2;                     // 1위 8R
   const second = rounds - 1;                     // 2위 9R
   const third  = rounds;                         // 3위 10R
-  // 1위가 8라운드에 닿을 수 없는 트랙(3×8 = 24 초과)이면 이 판은 성립하지 않는다.
-  // SETTING_RANGE.trackCells.max(23) 가 먼저 막지만, planRace 는 인자로 오는 값을
-  // 믿지 않는다 — 설정을 거치지 않는 호출자(게이트·스크립트)가 있다.
-  // 24 자체도 결국 조건 6에서 걸린다(1위가 1라운드부터 3칸 = 곧바로 선두). config.ts 참조
-  if (track > 3 * first) return null;
+  // 설정을 거치지 않는 게이트·스크립트도 있으므로 허용 트랙 범위를 여기서 지킨다.
+  if (track < SETTING_RANGE.trackCells.min || track > SETTING_RANGE.trackCells.max) return null;
   const lastRound = rounds;                      // 항상 ROUNDS. 3위가 10R 에 들어온다
 
   const moves = {} as Moves;
@@ -114,7 +113,10 @@ function tryPlanRace(rng: Rng, track: number, rounds: number): Race | null {
   for (let rank = 1; rank <= 3; rank++) {
     const at = arrive[rank - 1]!;
     // 1위만 '늦게 붙는' 페이스다. 그래야 초반 선두를 남에게 내준다 (조건 6)
-    const parts = planOneAnimal(track, at, rounds, rng, rank === 1 ? 'slow' : 'even');
+    // 최종 3위는 9R 끝에 결승선 4칸 전(20칸 트랙이면 16칸)에 있다가
+    // 10R에 한 번뿐인 4칸 스퍼트로 골인한다. 다른 동물도 최대 한 번 가능하다.
+    const sprintAt = rank === 3 ? at : rng() < 0.4 ? 1 + Math.floor(rng() * at) : undefined;
+    const parts = planOneAnimal(track, at, rounds, rng, rank === 1 ? 'slow' : 'even', true, sprintAt);
     if (!parts) return null;
     moves[truth[rank - 1]!] = parts;
     finishRound[truth[rank - 1]!] = at;
@@ -127,7 +129,9 @@ function tryPlanRace(rng: Rng, track: number, rounds: number): Race | null {
     const rank = i + 4;
     // 4·5위는 초반에 튀어나간다 — 끝내 못 들어오는 말이 초반 선두를 잡는 그림 (조건 6)
     // mustArrive=false: 이 말들은 결승선에 닿지 않는다. 마지막 라운드에 꼭 움직일 이유가 없다
-    const parts = planOneAnimal(tail[i]!, lastRound, rounds, rng, i < 2 ? 'fast' : 'even', false);
+    const sprintAt = tail[i]! >= 4 && rng() < 0.4 ? 1 + Math.floor(rng() * rounds) : undefined;
+    const parts = planOneAnimal(tail[i]!, lastRound, rounds, rng, i < 2 ? 'fast' : 'even', false, sprintAt)
+      ?? planOneAnimal(tail[i]!, lastRound, rounds, rng, i < 2 ? 'fast' : 'even', false);
     if (!parts) return null;
     moves[truth[rank - 1]!] = parts;
     finishRound[truth[rank - 1]!] = null;
@@ -171,7 +175,7 @@ function tailPositions(track: number, rng: Rng): number[] | null {
 export type Pace = 'slow' | 'even' | 'fast';
 
 /**
- * 한 동물의 라운드별 이동량(0~3)을 만든다. 길이는 언제나 `rounds`.
+ * 한 동물의 라운드별 이동량(기본 0~3, 선택한 한 번은 4)을 만든다. 길이는 언제나 `rounds`.
  *
  * `arriveAt` 라운드에 정확히 `total` 칸이 되고 그 뒤는 0이다. **그 전 라운드에는
  * 반드시 total 미만**이다 — 마지막 이동이 0이 아니어야 하므로. 이 성질이 조건 3·4
@@ -186,13 +190,17 @@ export type Pace = 'slow' | 'even' | 'fast';
  */
 export function planOneAnimal(
   total: number, arriveAt: number, rounds: number, rng: Rng = Math.random,
-  pace: Pace = 'even', mustArrive = true
+  pace: Pace = 'even', mustArrive = true, sprintAt?: number
 ): number[] | null {
   if (total < 0 || arriveAt < 1 || arriveAt > rounds) return null;
+  if (sprintAt !== undefined && (total < 4 || sprintAt < 1 || sprintAt > arriveAt)) return null;
 
   for (let attempt = 0; attempt < LIMITS.reverseAttempts; attempt++) {
-    const parts = splitIntoMoves(total, arriveAt, rng, pace);
+    const parts = sprintAt === undefined
+      ? splitIntoMoves(total, arriveAt, rng, pace)
+      : splitIntoMoves(total - 4, arriveAt - 1, rng, pace);
     if (!parts) continue;
+    if (sprintAt !== undefined) parts.splice(sprintAt - 1, 0, 4);
     // 그 라운드에 움직여서 도착한다 (= 그 전 라운드에는 결승선 미만이다)
     if (mustArrive && total > 0 && parts[parts.length - 1] === 0) continue;
     while (parts.length < rounds) parts.push(0);                // 도착 후 정지
@@ -703,7 +711,7 @@ export function validateBet(
  * 베팅 시점 고정으로 바꿀 때 과거 판도 다시 계산할 수 있다.
  */
 export function settle(
-  teams: Pick<Team, 'no' | 'name' | 'coins' | 'bets' | 'predictedWinner'>[],
+  teams: (Pick<Team, 'no' | 'name' | 'coins' | 'bets' | 'predictedWinner'> & Partial<Pick<Team, 'answered'>>)[],
   finalOrder: AnimalCode[], odds: Odds, settings: Settings
 ): Settlement[] {
   const rank: Partial<Record<AnimalCode, number>> = {};
@@ -731,8 +739,10 @@ export function settle(
 
     const predictedWinner = team.predictedWinner ?? null;
     const predictionBonus = predictedWinner === finalOrder[0] ? PREDICTION_BONUS : 0;
+    const lastAnswer = team.answered?.[ROUNDS];
+    const finalQuizBonus = lastAnswer?.correct && lastAnswer.level ? FINAL_QUIZ_BONUS[lastAnswer.level] : 0;
     return { teamNo: team.no, teamName: team.name, lines, gained, predictedWinner,
-      predictionBonus, finalCoins: team.coins + gained + predictionBonus };
+      predictionBonus, finalQuizBonus, finalCoins: team.coins + gained + predictionBonus + finalQuizBonus };
   }).sort((a, b) => b.finalCoins - a.finalCoins)
     .map((s, i) => ({ ...s, rank: i + 1 }));
 }
