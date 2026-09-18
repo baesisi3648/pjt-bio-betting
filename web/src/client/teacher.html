@@ -16,6 +16,7 @@
 <div id="s1">
   <h1>🐆 애니멀 더비 <span id="ver-badge" style="font-size:18px;color:var(--muted);font-weight:400">버전 확인 중…</span></h1>
   <p class="tagline">문제를 풀고 힌트를 모아 우승 동물을 예측하는 전략 퀴즈 게임</p>
+  <p class="creator-credit">제작. 용인삼계고 교사 배성용</p>
   <div class="tabs">
     <button id="tab-new" class="on" data-pane="new">새 판 만들기</button>
     <button id="tab-resume" data-pane="resume">판 코드로 이어하기</button>
@@ -87,6 +88,7 @@
 <!-- ══ 배포 안내 ══ -->
 <div id="handout" class="hidden">
   <div class="card">
+    <p class="creator-credit">제작. 용인삼계고 교사 배성용</p>
     <div class="room-title" id="out-title"></div>
     <h2>칠판에 적어주세요</h2>
     <div class="code" id="out-code"></div>
@@ -126,8 +128,11 @@
     <!-- 방 제목은 길어지면 줄임표. 사기 라운드 배지도 이 줄에 둔다 — 따로 한 줄을 쓰면
          한 화면 모드(teacher.css "한 화면 모드")에서 그만큼 트랙이 줄어든다.
          **어느 라운드인지는 여기 없다** — 정산 때까지 서버도 안 알려준다 -->
-    <div class="hd-name">🐆 애니멀 더비 <span class="hd-room" id="p-room"></span>
-      <span id="fraud-badge" class="fraud-badge hidden">🎭 사기 라운드 ON</span></div>
+    <div class="hd-brand">
+      <div class="hd-name">🐆 애니멀 더비 <span class="hd-room" id="p-room"></span>
+        <span id="fraud-badge" class="fraud-badge hidden">🎭 사기 라운드 ON</span></div>
+      <div class="creator-credit">제작. 용인삼계고 교사 배성용</div>
+    </div>
     <!-- 라운드 진행표 ① ② … ⑩ — 지난 라운드는 채우고 지금은 강조한다.
          ⚠️ 칸 수는 ROUNDS(10) 고정이다. lastRound 로 그리면 안 된다 (지금은 늘 10 이지만 옛 판은 9) —
             그건 3등이 언제 들어오는지를 TV 로 알려주는 것이다 (main.ts drawRounds 주석) -->
@@ -201,6 +206,7 @@
 <!-- ══ S3 정산 화면 ══ -->
 <div id="s3" class="hidden">
   <h1>🏁 최종 결과</h1>
+  <p class="creator-credit">제작. 용인삼계고 교사 배성용</p>
   <div class="card"><div class="step" id="r-step"></div>
     <button class="btn-red" id="r-next">다음</button></div>
   <div id="r-body"></div>

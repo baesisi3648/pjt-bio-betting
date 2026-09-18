@@ -2,6 +2,7 @@
    폰용 — 4~5명이 한 대를 가운데 놓고 같이 본다 */
 body{background:var(--bg-light);color:var(--text-dark);font-size:16px}
 .wrap{max-width:520px;margin:0 auto;padding:12px 12px 40px}
+.creator-credit{color:#67788A;font-size:12px;line-height:1.4;margin:0 0 8px;text-align:right}
 .card{background:var(--card-light);border-radius:14px;padding:18px;margin-bottom:12px;
       box-shadow:0 2px 8px rgba(0,0,0,.07)}
 h1{font-size:22px;margin-bottom:6px}

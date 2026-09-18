@@ -18,6 +18,7 @@ input,select{width:100%;padding:14px;font-size:22px;border-radius:8px;border:2px
    선을 그어 묶어 둔다. 첫 label 의 margin-top 은 상자 자체가 대신한다 */
 .admin-row{border-bottom:1px solid #33475A;padding-bottom:16px;margin-bottom:6px}
 .tagline{color:var(--muted);font-size:20px;margin:-6px 0 14px}
+.creator-credit{color:var(--muted);font-size:16px;font-weight:500;margin:0 0 12px}
 /* 첫 단계 카드 — 문제 준비. 링크 하나뿐이고 관리 코드는 이 번들에 없다 (admin.html 별도 진입점) */
 .startcard{display:flex;align-items:center;gap:16px;margin:16px 0 6px;padding:16px 18px;border-radius:12px;
   background:#16212C;border:2px solid #2C3D4E;color:var(--text);text-decoration:none}
@@ -67,6 +68,8 @@ th{color:var(--muted);font-size:20px}
 
 /* ── 구획 1 헤더 ── */
 .hdr{display:grid;grid-template-columns:minmax(0,auto) 1fr auto;align-items:center;gap:18px;margin-bottom:10px}
+.hd-brand{min-width:0}
+.hd-brand .creator-credit{font-size:14px;line-height:1.2;margin:2px 0 0 2px}
 /* 이름 칸은 방 제목부터 줄인다 — 진행표·타이머는 절대 밀려나면 안 된다 */
 .hd-name{font-size:26px;font-weight:800;white-space:nowrap;display:flex;align-items:center;gap:10px;min-width:0}
 .hd-room{color:var(--muted);font-weight:600;flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis}
