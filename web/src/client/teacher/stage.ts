@@ -162,6 +162,8 @@ function nameOf(v: TeacherView, c: AnimalCode): string {
 }
 
 export async function createStage(host: HTMLElement): Promise<RaceStage | null> {
+  // PixiJS text is rasterized once, so load the local font before creating labels.
+  try { await document.fonts.load('700 16px "Pretendard Variable"'); } catch { /* system font fallback */ }
   const app = new Application();
   try {
     await app.init({

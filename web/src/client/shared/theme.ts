@@ -54,7 +54,7 @@ export const MEDAL = { gold: 0xf2b441, silver: 0xd8e0e8, bronze: 0xcd7f32 } as c
 export const SILK = [0xf2b441, 0x4fc3f7, 0x8bc34a, 0xef5350, 0xba68c8, 0xff8a65, 0x4db6ac, 0xdce775];
 
 /** 05-design-system §3 — 외부 글꼴을 부르지 않는다. 학교망에서 막히면 글자가 깨진다 */
-export const FONT = 'system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
+export const FONT = '"Pretendard Variable", system-ui, -apple-system, "Apple SD Gothic Neo", "Malgun Gothic", "Noto Sans KR", sans-serif';
 
 export function silkOf(i: number): number {
   return SILK[i % SILK.length] as number;

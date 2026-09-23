@@ -95,7 +95,7 @@ export function mountMini(host: HTMLElement): Mini | null {
       g.roundRect(bx, y + 2, TAG_W - 6, LANE_H - 6, 5);
       g.fill();
       g.fillStyle = '#0F1720';
-      g.font = '700 11px system-ui, sans-serif';
+      g.font = '700 11px "Pretendard Variable", system-ui, sans-serif';
       g.textAlign = 'center';
       g.textBaseline = 'middle';
       g.fillText(String(i + 1), bx + (TAG_W - 6) / 2, mid);
@@ -146,7 +146,7 @@ export function mountMini(host: HTMLElement): Mini | null {
 
       // 현재 칸 — GOAL 옆(오른쪽 끝). ⚠️ 등수가 아니라 골인 여부만 (§4-1)
       g.fillStyle = p >= 1 ? '#B8860B' : '#5A6B7C';
-      g.font = '700 10px system-ui, sans-serif';
+      g.font = '700 10px "Pretendard Variable", system-ui, sans-serif';
       g.textAlign = 'left';
       g.fillText(p >= 1 ? '골인' : `${Math.floor(pos[c] ?? 0)}/${cells}`, x1 + 4, mid);
     });

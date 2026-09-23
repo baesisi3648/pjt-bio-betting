@@ -1,5 +1,12 @@
 /* apps-script/Shared.html 의 <style> 을 그대로 옮긴 것.
    05-design-system.md — 외부 글꼴·CDN 없음. 학교망에서 막히면 수업이 멈춘다 */
+@font-face{
+  font-family:"Pretendard Variable";
+  src:url("/fonts/PretendardVariable.woff2") format("woff2");
+  font-style:normal;
+  font-weight:45 920;
+  font-display:swap;
+}
 :root{
   --bg:#0F1720; --bg-light:#F5F7FA; --card:#1B2734; --card-light:#FFF;
   --text:#E8EDF2; --text-dark:#1B2734; --muted:#7A8A99;
@@ -7,8 +14,9 @@
   --easy:#7CB342; --normal:#FB8C00; --hard:#E53935;
 }
 *{box-sizing:border-box;margin:0;padding:0}
-body{font-family:system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
+body{font-family:"Pretendard Variable",system-ui,-apple-system,"Apple SD Gothic Neo","Malgun Gothic","Noto Sans KR",sans-serif;
      -webkit-text-size-adjust:100%}
+input,select,textarea{font-family:inherit}
 .num{font-variant-numeric:tabular-nums}
 button{font:inherit;cursor:pointer;border:none;border-radius:8px}
 button:disabled{opacity:.4;cursor:default}
